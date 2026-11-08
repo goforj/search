@@ -11,6 +11,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -266,5 +269,115 @@ func TestMeilisearchFacetCardinalityLimit(t *testing.T) {
 	}
 	if _, err := index.Search(ctx, search.Query{Facets: []search.TermFacet{{Name: "categories", Field: "category", Limit: 2}}}); !errors.Is(err, search.ErrUnsupported) {
 		t.Fatal(err)
+	}
+}
+
+// gatedSearchTransport holds one admitted search at the transport boundary while preserving the real server request.
+type gatedSearchTransport struct {
+	base    http.RoundTripper
+	enabled atomic.Bool
+	entered chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+// RoundTrip keeps administration live while making request-draining behavior observable for search calls.
+func (g *gatedSearchTransport) RoundTrip(request *http.Request) (*http.Response, error) {
+	if g.enabled.Load() && (strings.HasSuffix(request.URL.Path, "/search") || strings.HasSuffix(request.URL.Path, "/_search")) {
+		g.once.Do(func() { close(g.entered) })
+		select {
+		case <-g.release:
+		case <-request.Context().Done():
+			return nil, request.Context().Err()
+		}
+	}
+	return g.base.RoundTrip(request)
+}
+
+// gatedServiceDriver injects caller-owned transport instrumentation without changing production client policy.
+func gatedServiceDriver(t *testing.T, engine, endpoint string, transport http.RoundTripper) administeredBackend {
+	t.Helper()
+	client := &http.Client{Transport: transport, Timeout: 5 * time.Second}
+	var driver administeredBackend
+	var err error
+	switch engine {
+	case "meilisearch":
+		driver, err = meilisearch.New(meilisearch.Config{URL: endpoint, APIKey: testAPIKey, Prefix: fixturePrefix(t), HTTPClient: client})
+	case "typesense":
+		driver, err = typesensesearch.New(typesensesearch.Config{URL: endpoint, APIKey: testAPIKey, Prefix: fixturePrefix(t), HTTPClient: client})
+	case "opensearch":
+		driver, err = opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, Prefix: fixturePrefix(t), HTTPClient: client, RefreshInterval: 100 * time.Millisecond})
+	case "elasticsearch":
+		driver, err = elasticsearch.New(elasticsearch.Config{URL: endpoint, Username: "elastic", Password: testOpenSearchPassword, Prefix: fixturePrefix(t), HTTPClient: client, RefreshInterval: 100 * time.Millisecond})
+	default:
+		t.Fatal("unsupported HTTP service fixture")
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	return driver
+}
+
+// TestServiceCloseDrainsAdmittedSearch proves concrete service drivers wait for active reads before closing.
+func TestServiceCloseDrainsAdmittedSearch(t *testing.T) {
+	for _, engine := range selectedServices() {
+		t.Run(engine, func(t *testing.T) {
+			endpoint := startServer(t, engine)
+			base := http.DefaultTransport.(*http.Transport).Clone()
+			defer base.CloseIdleConnections()
+			gate := &gatedSearchTransport{base: base, entered: make(chan struct{}), release: make(chan struct{})}
+			driver := gatedServiceDriver(t, engine, endpoint, gate)
+			defer driver.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cancel()
+			var release sync.Once
+			unblock := func() { release.Do(func() { close(gate.release) }) }
+			defer unblock()
+			definition := searchtest.Definition()
+			if err := driver.CreateIndex(ctx, definition); err != nil {
+				t.Fatal(err)
+			}
+			index, err := search.NewIndex(driver, definition)
+			if err != nil {
+				t.Fatal(err)
+			}
+			gate.enabled.Store(true)
+			searched := make(chan error, 1)
+			go func() { _, err := index.Search(ctx, search.Query{}); searched <- err }()
+			select {
+			case <-gate.entered:
+			case <-ctx.Done():
+				t.Fatal("search did not reach transport")
+			}
+			closing := make(chan struct{})
+			closed := make(chan error, 1)
+			go func() { close(closing); closed <- driver.Close() }()
+			<-closing
+			select {
+			case err := <-closed:
+				t.Fatal("driver closed with an admitted search still running", err)
+			case <-time.After(20 * time.Millisecond):
+			}
+			unblock()
+			select {
+			case err := <-searched:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-ctx.Done():
+				t.Fatal("admitted search did not finish")
+			}
+			select {
+			case err := <-closed:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-ctx.Done():
+				t.Fatal("driver did not finish closing")
+			}
+			if _, err := index.Search(ctx, search.Query{}); !errors.Is(err, search.ErrClosed) {
+				t.Fatal(err)
+			}
+		})
 	}
 }
