@@ -37,7 +37,7 @@ func EvidenceMarkdown(root string) (string, error) {
 		return "", fmt.Errorf("driver evidence is stale; run make test-integration")
 	}
 	var out strings.Builder
-	out.WriteString("| Driver | Tested version | Mutation visibility | Bulk precision | Topology |\n| --- | --- | --- | --- | --- |\n")
+	out.WriteString("| Driver | Tested version | Mutation visibility | Bulk precision | Topology |\n| ---: | --- | --- | --- | --- |\n")
 	for _, driver := range evidence.Drivers {
 		visibility, precision, topology := "synchronous", "per item", "shared service"
 		if driver.Name == "bleve" {

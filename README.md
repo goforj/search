@@ -90,7 +90,7 @@ Keep search data rebuildable. Search is not the authoritative database or an aut
 
 <!-- drivers:embed:start -->
 | Driver | Tested version | Mutation visibility | Bulk precision | Topology |
-| --- | --- | --- | --- | --- |
+| ---: | --- | --- | --- | --- |
 | [![Bleve](docs/assets/badges/driver-bleve.svg)](driver/blevesearch) | `v2.6.3` | synchronous | per item | single process; memory or disk |
 | [![Meilisearch](docs/assets/badges/driver-meilisearch.svg)](driver/meilisearch) | `v1.17.0` | asynchronous receipt | aggregate task | shared service |
 | [![Typesense](docs/assets/badges/driver-typesense.svg)](driver/typesensesearch) | `30.0` | synchronous | per item | shared service |
