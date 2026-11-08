@@ -151,7 +151,8 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 			if !ok {
 				return "", fmt.Errorf("API index references unknown API %s", name)
 			}
-			apis = append(apis, fmt.Sprintf("[%s](%s#L%d)", symbol.Name, symbol.Source, symbol.Line))
+			label := strings.TrimPrefix(symbol.Name, "search.")
+			apis = append(apis, fmt.Sprintf("[%s](%s#L%d)", label, symbol.Source, symbol.Line))
 		}
 		for _, name := range entry.Examples {
 			example, ok := byExample[name]

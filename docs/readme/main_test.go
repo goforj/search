@@ -32,7 +32,7 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, expected := range []string{
-		"[search.Index.Search](index.go#L79)",
+		"[Index.Search](index.go#L79)",
 		"[Search documents](#example-search)",
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
@@ -42,7 +42,7 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 			t.Fatal("missing API navigation or example", expected)
 		}
 	}
-	if strings.Contains(markdown, "[`search.Index.Search`]") || strings.Contains(markdown, "pkg.go.dev") {
+	if strings.Contains(markdown, "[search.Index.Search]") || strings.Contains(markdown, "[`Index.Search`]") || strings.Contains(markdown, "pkg.go.dev") {
 		t.Fatal("API links use code styling or unpublished documentation")
 	}
 	examples[0].APIs = []string{"search.Missing"}
@@ -70,12 +70,12 @@ func TestApplicationAPIStaysFocused(t *testing.T) {
 		t.Fatal(err)
 	}
 	index, _, _ := strings.Cut(markdown, "## API examples")
-	for _, name := range []string{"search.NewIndex", "search.Upsert", "search.SearchAs", "search.Index.Bulk", "search.Index.Wait", "searchfake.New"} {
+	for _, name := range []string{"NewIndex", "Upsert", "SearchAs", "Index.Bulk", "Index.Wait", "searchfake.New"} {
 		if !strings.Contains(index, "["+name+"]") {
 			t.Fatal("missing application operation", name)
 		}
 	}
-	for _, name := range []string{"search.FilterView", "search.Receipt.Token", "search.Value.MarshalJSON", "meilisearch.Driver.Search", "search.ItemOutcomePrecision", "search.ErrClosed"} {
+	for _, name := range []string{"FilterView", "Receipt.Token", "Value.MarshalJSON", "meilisearch.Driver.Search", "ItemOutcomePrecision", "ErrClosed"} {
 		if strings.Contains(index, "["+name+"]") {
 			t.Fatal("supporting API returned to application index", name)
 		}
