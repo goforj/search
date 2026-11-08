@@ -9,6 +9,8 @@ import (
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 	"io"
+
+	"github.com/testcontainers/testcontainers-go/exec"
 	"strings"
 	"testing"
 	"time"
@@ -54,7 +56,7 @@ func startTCPServer(t *testing.T, engine string) string {
 		t.Fatal(err)
 	}
 	if engine == "redis" {
-		code, output, err := container.Exec(ctx, []string{"redis-cli", "--no-auth-warning", "-a", testAPIKey, "--raw", "INFO", "server"})
+		code, output, err := container.Exec(ctx, []string{"redis-cli", "--no-auth-warning", "-a", testAPIKey, "--raw", "INFO", "server"}, exec.Multiplexed())
 		if err != nil {
 			t.Fatal("cannot verify native Redis version")
 		}

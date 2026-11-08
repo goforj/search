@@ -11,6 +11,8 @@ import (
 	"github.com/goforj/search/driver/redissearch"
 	"github.com/goforj/search/searchtest"
 	"io"
+
+	"github.com/testcontainers/testcontainers-go/exec"
 	"strings"
 	"testing"
 	"time"
@@ -48,7 +50,7 @@ func redisAdmin(t *testing.T, args ...string) string {
 	fixturePool.Unlock()
 	command := []string{"redis-cli", "--no-auth-warning", "-a", testAPIKey, "--raw"}
 	command = append(command, args...)
-	code, output, err := container.Exec(ctx, command)
+	code, output, err := container.Exec(ctx, command, exec.Multiplexed())
 	if err != nil {
 		t.Fatal("disposable Redis administration failed")
 	}
