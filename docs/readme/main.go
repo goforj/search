@@ -101,34 +101,66 @@ func quickStartMarkdown(examples []gen.Example) (string, error) {
 	return "", fmt.Errorf("missing executable quickstart example")
 }
 
-// apiMarkdown links declarations to checked-in source and associates APIs with their tested inline examples.
+// apiEntry selects operations around one application task rather than exported-symbol inventory.
+type apiEntry struct {
+	Task     string
+	APIs     []string
+	Examples []string
+}
+
+// applicationAPI keeps the README centered on the operations application services call.
+var applicationAPI = []apiEntry{
+	{"Define an index", []string{"search.Definition", "search.NewIndex"}, []string{"quickstart"}},
+	{"Write and remove documents", []string{"search.Upsert", "search.Index.Delete"}, []string{"quickstart"}},
+	{"Search documents", []string{"search.SearchAs", "search.Index.Search", "search.Query"}, []string{"search"}},
+	{"Filter results", []string{"search.Keyword", "search.Integer", "search.And", "search.Equal"}, []string{"filters"}},
+	{"Sort and paginate", []string{"search.Query", "search.Sort"}, []string{"filters"}},
+	{"Count facets", []string{"search.TermFacet"}, []string{"facets"}},
+	{"Highlight matches", []string{"search.Highlight"}, []string{"highlights"}},
+	{"Write a batch", []string{"search.Index.Bulk", "search.UpsertMutation", "search.DeleteMutation"}, []string{"bulk"}},
+	{"Wait for visibility", []string{"search.Index.Wait", "search.Outcome"}, []string{"quickstart", "bulk"}},
+	{"Test application code", []string{"searchfake.New", "searchfake.Backend.QueueSearch", "searchfake.Backend.Calls"}, []string{"fake"}},
+}
+
+// apiMarkdown projects the curated application workflow while retaining tested example navigation.
 func apiMarkdown(symbols []gen.Symbol, examples []gen.Example) (string, error) {
-	known := map[string]bool{}
+	return apiMarkdownFor(symbols, examples, applicationAPI)
+}
+
+// apiMarkdownFor resolves curated entries against actual declarations and executable examples.
+func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiEntry) (string, error) {
+	known := map[string]gen.Symbol{}
 	for _, symbol := range symbols {
-		known[symbol.Name] = true
+		known[symbol.Name] = symbol
 	}
-	related := map[string][]gen.Example{}
+	byExample := map[string]gen.Example{}
 	for _, example := range examples {
+		byExample[example.Name] = example
 		for _, name := range example.APIs {
-			if !known[name] {
+			if _, ok := known[name]; !ok {
 				return "", fmt.Errorf("example %s references unknown API %s", example.Name, name)
 			}
-			related[name] = append(related[name], example)
 		}
 	}
 	var out strings.Builder
-	out.WriteString("## API Index\n\nAPI names open their source definitions. Example links jump to tested usage below.\n")
-	group := ""
-	for _, symbol := range symbols {
-		if group != symbol.Group {
-			group = symbol.Group
-			fmt.Fprintf(&out, "\n### %s\n\n| API | Description | Example |\n| --- | --- | --- |\n", group)
+	out.WriteString("## API Index\n\nChoose a backend in [Drivers](#drivers), then use these operations in your application. API names open their source definitions; examples jump to tested usage below.\n\n| Task | API | Example |\n| --- | --- | --- |\n")
+	for _, entry := range entries {
+		apis, links := []string{}, []string{}
+		for _, name := range entry.APIs {
+			symbol, ok := known[name]
+			if !ok {
+				return "", fmt.Errorf("API index references unknown API %s", name)
+			}
+			apis = append(apis, fmt.Sprintf("[%s](%s#L%d)", symbol.Name, symbol.Source, symbol.Line))
 		}
-		links := []string{}
-		for _, example := range related[symbol.Name] {
+		for _, name := range entry.Examples {
+			example, ok := byExample[name]
+			if !ok {
+				return "", fmt.Errorf("API index references missing example %s", name)
+			}
 			links = append(links, fmt.Sprintf("[%s](#example-%s)", example.Title, example.Name))
 		}
-		fmt.Fprintf(&out, "| [%s](%s#L%d) | %s | %s |\n", symbol.Name, symbol.Source, symbol.Line, strings.ReplaceAll(symbol.Description, "|", "\\|"), strings.Join(links, " · "))
+		fmt.Fprintf(&out, "| %s | %s | %s |\n", entry.Task, strings.Join(apis, " · "), strings.Join(links, " · "))
 	}
 	out.WriteString("\n## API examples\n\nEach snippet comes from its linked executable test. Open the full program for its index definition and setup.\n")
 	for _, example := range examples {

@@ -26,7 +26,8 @@ func TestQuickStartRequiresTestedSource(t *testing.T) {
 func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 	symbols := []gen.Symbol{{Name: "search.Index.Search", Source: "index.go", Line: 79, Group: "Queries", Description: "Search matches text | filters."}}
 	examples := []gen.Example{{Name: "search", Title: "Search documents", Source: "search_test.go", APIs: []string{"search.Index.Search"}, Snippet: "index.Search(ctx, query)\n"}}
-	markdown, err := apiMarkdown(symbols, examples)
+	entries := []apiEntry{{Task: "Search documents", APIs: []string{"search.Index.Search"}, Examples: []string{"search"}}}
+	markdown, err := apiMarkdownFor(symbols, examples, entries)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +37,6 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
 		"[Full program](examples/search/main.go)",
-		"text \\| filters",
 	} {
 		if !strings.Contains(markdown, expected) {
 			t.Fatal("missing API navigation or example", expected)
@@ -46,7 +46,50 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 		t.Fatal("API links use code styling or unpublished documentation")
 	}
 	examples[0].APIs = []string{"search.Missing"}
-	if _, err := apiMarkdown(symbols, examples); err == nil {
+	if _, err := apiMarkdownFor(symbols, examples, entries); err == nil {
 		t.Fatal("unknown API annotation was accepted")
+	}
+}
+
+// TestApplicationAPIStaysFocused prevents driver plumbing and supporting DTOs from returning to the primary index.
+func TestApplicationAPIStaysFocused(t *testing.T) {
+	root, err := gen.Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	symbols, err := gen.Symbols(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	examples, err := gen.Examples(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	markdown, err := apiMarkdown(symbols, examples)
+	if err != nil {
+		t.Fatal(err)
+	}
+	index, _, _ := strings.Cut(markdown, "## API examples")
+	for _, name := range []string{"search.NewIndex", "search.Upsert", "search.SearchAs", "search.Index.Bulk", "search.Index.Wait", "searchfake.New"} {
+		if !strings.Contains(index, "["+name+"]") {
+			t.Fatal("missing application operation", name)
+		}
+	}
+	for _, name := range []string{"search.FilterView", "search.Receipt.Token", "search.Value.MarshalJSON", "meilisearch.Driver.Search", "search.ItemOutcomePrecision", "search.ErrClosed"} {
+		if strings.Contains(index, "["+name+"]") {
+			t.Fatal("supporting API returned to application index", name)
+		}
+	}
+	if strings.Contains(index, "| Description |") {
+		t.Fatal("exhaustive symbol table returned")
+	}
+}
+
+// TestCuratedEntriesRejectStaleReferences catches renamed APIs and examples at generation time.
+func TestCuratedEntriesRejectStaleReferences(t *testing.T) {
+	for _, entry := range []apiEntry{{Task: "Missing API", APIs: []string{"search.Missing"}}, {Task: "Missing example", Examples: []string{"missing"}}} {
+		if _, err := apiMarkdownFor(nil, nil, []apiEntry{entry}); err == nil {
+			t.Fatal("stale curated entry accepted", entry.Task)
+		}
 	}
 }
