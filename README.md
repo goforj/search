@@ -244,9 +244,9 @@ Choose a backend in [Drivers](#drivers), then use these operations in your appli
 
 ## API examples
 
-Select an example title for its complete runnable program and setup.
+Find complete programs and setup in [Runnable examples](#runnable-examples).
 
-### <a id="example-bulk"></a>[Inspect bulk visibility](examples/bulk/main.go)
+### <a id="example-bulk"></a>Inspect bulk visibility
 
 ```go
 first, err := search.DeleteMutation("one")
@@ -272,7 +272,7 @@ for _, item := range outcome.Bulk.Items {
 }
 ```
 
-### <a id="example-facets"></a>[Count facets before pagination](examples/facets/main.go)
+### <a id="example-facets"></a>Count facets before pagination
 
 ```go
 result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
@@ -287,7 +287,7 @@ for _, bucket := range result.Facets[0].Buckets {
 }
 ```
 
-### <a id="example-fake"></a>[Test an application service](examples/fake/main.go)
+### <a id="example-fake"></a>Test an application service
 
 ```go
 backend := searchfake.New()
@@ -307,7 +307,7 @@ fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
 // 3 search
 ```
 
-### <a id="example-filters"></a>[Filter and sort results](examples/filters/main.go)
+### <a id="example-filters"></a>Filter and sort results
 
 ```go
 category, err := search.Keyword("kitchen")
@@ -332,7 +332,7 @@ fmt.Println(result.Total.Value)
 // 2
 ```
 
-### <a id="example-highlights"></a>[Escape structured highlights](examples/highlights/main.go)
+### <a id="example-highlights"></a>Escape structured highlights
 
 ```go
 result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
@@ -351,7 +351,7 @@ fmt.Println()
 // <mark>Blue</mark> mug
 ```
 
-### <a id="example-quickstart"></a>[Index and search a document](examples/quickstart/main.go)
+### <a id="example-quickstart"></a>Index and search a document
 
 ```go
 ctx := context.Background()
@@ -396,7 +396,7 @@ fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
 // mug-1 Blue mug
 ```
 
-### <a id="example-search"></a>[Search typed documents](examples/search/main.go)
+### <a id="example-search"></a>Search typed documents
 
 ```go
 page, err := search.SearchAs[struct {
@@ -411,7 +411,7 @@ fmt.Println(page.Total.Value)
 // 1
 ```
 
-### <a id="example-services"></a>[Construct service drivers](examples/services/main.go)
+### <a id="example-services"></a>Construct service drivers
 
 ```go
 meili, err := meilisearch.New(meilisearch.Config{URL: "http://127.0.0.1:7700"})

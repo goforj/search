@@ -42,7 +42,7 @@ func TestAPIIndexLinksToInlineExamples(t *testing.T) {
 		"[Search documents](#example-search)",
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
-		`id="example-search"></a>[Search documents](examples/search/main.go)`,
+		`### <a id="example-search"></a>Search documents`,
 	} {
 		if !strings.Contains(markdown, expected) {
 			t.Fatal("missing API navigation or example", expected)
@@ -54,6 +54,9 @@ func TestAPIIndexLinksToInlineExamples(t *testing.T) {
 	}
 	if strings.Contains(markdown, "[search.Index.Search]") || strings.Contains(markdown, "[`Index.Search`]") || strings.Contains(markdown, "pkg.go.dev") {
 		t.Fatal("API links use code styling or unpublished documentation")
+	}
+	if strings.Contains(markdown, "></a>[") {
+		t.Fatal("example headings must be plain text")
 	}
 	if strings.Contains(markdown, "[Full program]") || strings.Contains(markdown, "[Executable test]") {
 		t.Fatal("repeated example footers returned")

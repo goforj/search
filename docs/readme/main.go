@@ -188,12 +188,12 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 		}
 		fmt.Fprintf(&out, "| %s | %s | %s |\n", entry.Task, strings.Join(apis, " · "), strings.Join(links, " · "))
 	}
-	out.WriteString("\n## API examples\n\nSelect an example title for its complete runnable program and setup.\n")
+	out.WriteString("\n## API examples\n\nFind complete programs and setup in [Runnable examples](#runnable-examples).\n")
 	for _, example := range examples {
 		if example.Snippet == "" {
 			continue
 		}
-		fmt.Fprintf(&out, "\n### <a id=\"example-%s\"></a>[%s](examples/%s/main.go)\n\n```go\n%s```\n", example.Name, example.Title, example.Name, example.Snippet)
+		fmt.Fprintf(&out, "\n### <a id=\"example-%s\"></a>%s\n\n```go\n%s```\n", example.Name, example.Title, example.Snippet)
 	}
 	return out.String(), nil
 }
