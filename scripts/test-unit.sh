@@ -8,6 +8,6 @@ GOWORK=off go test -json -count=1 -coverpkg='github.com/goforj/search/...' -cove
 scripts/local-modfile.sh driver/blevesearch test -json -count=1 -coverpkg='github.com/goforj/search/...' -coverprofile="$repo_root/.artifacts/bleve.cover" ./... >> .artifacts/unit.json
 GOWORK=off go -C docs test -json -count=1 ./... >> .artifacts/unit.json
 GOWORK=off go -C examples test -json -count=1 -coverpkg='github.com/goforj/search/...' -coverprofile="$repo_root/.artifacts/examples.cover" ./... >> .artifacts/unit.json
-GOWORK=off go -C integration test -tags=integration -run '^$' ./...
+GOWORK=off go -C integration test -tags=integration,sqlite_fts5 -run '^$' ./...
 GOWORK=off go -C docs run ./report -events "$repo_root/.artifacts/unit.json" -kind unit
 

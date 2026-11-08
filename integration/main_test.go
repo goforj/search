@@ -20,7 +20,8 @@ var fixturePool = struct {
 	sync.Mutex
 	endpoints  map[string]string
 	containers []testcontainers.Container
-}{endpoints: make(map[string]string)}
+	engines    map[string]testcontainers.Container
+}{endpoints: make(map[string]string), engines: make(map[string]testcontainers.Container)}
 
 // TestMain tears down every started engine even when a test fails after partial startup.
 func TestMain(m *testing.M) {
