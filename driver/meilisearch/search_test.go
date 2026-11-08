@@ -13,7 +13,7 @@ import (
 
 // TestSearchProtocol verifies successful native responses, literal request policy, and corrupted stored data.
 func TestSearchProtocol(t *testing.T) {
-	for _, scenario := range []string{"text", "browse", "wrong-id", "corrupt-body", "corrupt-facet", "transport", "too-many-facets"} {
+	for _, scenario := range []string{"text", "browse", "wrong-id", "corrupt-body", "corrupt-facet", "missing-score", "null-score", "invalid-score", "missing-total", "null-total", "transport", "too-many-facets"} {
 		t.Run(scenario, func(t *testing.T) {
 			d, def := fixtureDriver(t, func(w http.ResponseWriter, r *http.Request) {
 				if scenario == "transport" {
@@ -38,6 +38,14 @@ func TestSearchProtocol(t *testing.T) {
 				if scenario == "corrupt-body" {
 					hit["_forjbody"] = "[]"
 				}
+				switch scenario {
+				case "missing-score":
+					delete(hit, "_rankingScore")
+				case "null-score":
+					hit["_rankingScore"] = nil
+				case "invalid-score":
+					hit["_rankingScore"] = "not a score"
+				}
 				counts := map[string]uint64{"v637570": 1}
 				if scenario == "corrupt-facet" {
 					counts = map[string]uint64{"invalid": 1}
@@ -48,6 +56,12 @@ func TestSearchProtocol(t *testing.T) {
 					}
 				}
 				response := map[string]any{"processingTimeMs": 1, "estimatedTotalHits": 1, "hits": []any{hit}, "facetDistribution": map[string]any{driverutil.FieldKey("category"): counts}}
+				if scenario == "missing-total" {
+					delete(response, "estimatedTotalHits")
+				}
+				if scenario == "null-total" {
+					response["estimatedTotalHits"] = nil
+				}
 				json.NewEncoder(w).Encode(response)
 
 			})
@@ -59,7 +73,7 @@ func TestSearchProtocol(t *testing.T) {
 			r, err := d.Search(context.Background(), def, q)
 			want := error(nil)
 			switch scenario {
-			case "wrong-id", "corrupt-body", "corrupt-facet", "transport":
+			case "wrong-id", "corrupt-body", "corrupt-facet", "missing-score", "null-score", "invalid-score", "missing-total", "null-total", "transport":
 				want = search.ErrUnavailable
 			case "too-many-facets":
 				want = search.ErrUnsupported

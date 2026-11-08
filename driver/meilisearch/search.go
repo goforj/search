@@ -66,16 +66,16 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, q search.Que
 	var raw struct {
 		ProcessingTimeMs   *uint64 `json:"processingTimeMs"`
 		Hits               []map[string]json.RawMessage
-		EstimatedTotalHits uint64
+		EstimatedTotalHits *uint64
 		FacetDistribution  map[string]map[string]uint64
 	}
 	if e := d.http.Do(ctx, "POST", "/indexes/"+d.name+"/search", body, &raw, false); e != nil {
 		return search.Result{}, e
 	}
-	if raw.ProcessingTimeMs == nil || *raw.ProcessingTimeMs >= nativeSearchCutoff {
+	if raw.ProcessingTimeMs == nil || *raw.ProcessingTimeMs >= nativeSearchCutoff || raw.EstimatedTotalHits == nil {
 		return search.Result{}, search.ErrUnavailable
 	}
-	out := search.Result{Total: search.Total{Value: raw.EstimatedTotalHits, Relation: search.TotalEstimated}}
+	out := search.Result{Total: search.Total{Value: *raw.EstimatedTotalHits, Relation: search.TotalEstimated}}
 	for _, hit := range raw.Hits {
 		var id, stored, physicalID string
 		_ = json.Unmarshal(hit["_forjoriginal"], &id)
@@ -86,9 +86,9 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, q search.Que
 		}
 		var score *float64
 		if text != "" {
-			var n float64
-			_ = json.Unmarshal(hit["_rankingScore"], &n)
-			score = &n
+			if err := json.Unmarshal(hit["_rankingScore"], &score); err != nil || score == nil {
+				return search.Result{}, search.ErrUnavailable
+			}
 		}
 		h, e := driverutil.Hit(id, stored, def, q, score)
 		if e != nil {
