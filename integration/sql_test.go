@@ -140,3 +140,55 @@ func TestSQLLongValuesAndRollback(t *testing.T) {
 		})
 	}
 }
+
+// TestSQLCorruptStoredBody fails safely when stored JSON no longer agrees with declared highlight types.
+func TestSQLCorruptStoredBody(t *testing.T) {
+	for _, engine := range []string{"postgres", "sqlite"} {
+		t.Run(engine, func(t *testing.T) {
+			db := sqlDatabase(t, engine)
+			var driver administeredBackend
+			var err error
+			if engine == "postgres" {
+				driver, err = postgressearch.New(postgressearch.Config{DB: db, Prefix: fixturePrefix(t)})
+			} else {
+				driver, err = sqlitesearch.New(sqlitesearch.Config{DB: db, Prefix: fixturePrefix(t)})
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer driver.Close()
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			definition := searchtest.Definition()
+			if err := driver.CreateIndex(ctx, definition); err != nil {
+				t.Fatal(err)
+			}
+			index, err := search.NewIndex(driver, definition)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := index.Upsert(ctx, search.Document{ID: "one", Body: []byte(`{"title":"blue mug","active":true,"rank":1,"code":"x"}`)}); err != nil {
+				t.Fatal(err)
+			}
+			query := "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 's_%_meta'"
+			if engine == "postgres" {
+				query = "SELECT tablename FROM pg_tables WHERE schemaname=current_schema() AND tablename LIKE 's_" + fixturePrefix(t) + "%_meta'"
+			}
+			var table string
+			if err := db.QueryRowContext(ctx, query).Scan(&table); err != nil {
+				t.Fatal(err)
+			}
+			table = strings.TrimSuffix(table, "_meta")
+			placeholder := "?1"
+			if engine == "postgres" {
+				placeholder = "$1"
+			}
+			if _, err := db.ExecContext(ctx, "UPDATE "+table+" SET body="+placeholder, `{"title":7,"active":true,"rank":1,"code":"x"}`); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}}); !errors.Is(err, search.ErrUnavailable) {
+				t.Fatal(err)
+			}
+		})
+	}
+}

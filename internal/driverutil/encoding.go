@@ -132,8 +132,12 @@ func Terms(text string) []string {
 
 // Highlights returns structured full-field fragments without parsing or trusting backend HTML.
 func Highlights(d search.Document, def search.Definition, q search.Query) map[search.FieldName][]search.Fragment {
+	return highlights(Object(d), def, q)
+}
+
+// highlights reuses the validated stored object so response decoding does not parse the body for each feature.
+func highlights(obj map[string]any, def search.Definition, q search.Query) map[search.FieldName][]search.Fragment {
 	out := map[search.FieldName][]search.Fragment{}
-	obj := Object(d)
 	terms := map[string]bool{}
 	for _, t := range Terms(q.Text) {
 		terms[t] = true
@@ -187,8 +191,11 @@ func Hit(id, body string, def search.Definition, q search.Query, score *float64)
 	if !json.Valid(d.Body) {
 		return search.Hit{}, search.ErrUnavailable
 	}
-	h := search.Hit{Document: d, Score: score, Highlights: Highlights(d, def, q)}
 	obj := Object(d)
+	if !validStoredFields(obj, def) {
+		return search.Hit{}, search.ErrUnavailable
+	}
+	h := search.Hit{Document: d, Score: score, Highlights: highlights(obj, def, q)}
 	for _, s := range q.Sort {
 		for _, f := range def.Fields {
 			if f.Name == s.Field {
@@ -214,7 +221,11 @@ func DecodeScalar(s string, t search.FieldType) (search.Value, error) {
 		if e != nil {
 			return search.Value{}, search.ErrUnavailable
 		}
-		return search.Keyword(string(b))
+		value, err := search.Keyword(string(b))
+		if err != nil {
+			return search.Value{}, search.ErrUnavailable
+		}
+		return value, nil
 	case search.BooleanField:
 		if s != "0" && s != "1" {
 			return search.Value{}, search.ErrUnavailable
@@ -222,4 +233,52 @@ func DecodeScalar(s string, t search.FieldType) (search.Value, error) {
 		return search.Boolean(s == "1"), nil
 	}
 	return search.Value{}, search.ErrUnavailable
+}
+
+// validStoredFields checks persisted data before highlight and facet code uses typed projections.
+func validStoredFields(object map[string]any, definition search.Definition) bool {
+	if object == nil {
+		return false
+	}
+	for _, field := range definition.Fields {
+		value, present := At(object, field.Path)
+		if !present {
+			if field.Required {
+				return false
+			}
+			continue
+		}
+		switch field.Type {
+		case search.TextField, search.KeywordField:
+			if _, ok := value.(string); !ok {
+				return false
+			}
+		case search.BooleanField:
+			if _, ok := value.(bool); !ok {
+				return false
+			}
+		case search.IntegerField:
+			number, ok := value.(json.Number)
+			if !ok {
+				return false
+			}
+			integer, err := number.Int64()
+			if err != nil || integer < -search.MaxInteger || integer > search.MaxInteger {
+				return false
+			}
+		case search.KeywordsField:
+			values, ok := value.([]any)
+			if !ok {
+				return false
+			}
+			for _, value := range values {
+				if _, ok := value.(string); !ok {
+					return false
+				}
+			}
+		default:
+			return false
+		}
+	}
+	return true
 }

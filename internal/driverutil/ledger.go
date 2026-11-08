@@ -35,6 +35,11 @@ func (l *Ledger) Complete(o search.Outcome) (search.Receipt, error) {
 		l.order = l.order[1:]
 	}
 	l.order = append(l.order, token)
+	if o.Bulk != nil {
+		bulk := *o.Bulk
+		bulk.Items = slices.Clone(bulk.Items)
+		o.Bulk = &bulk
+	}
 	l.entries[token] = o
 	return search.NewReceipt([]byte(token))
 }
