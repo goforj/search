@@ -191,3 +191,58 @@ func TestHTTPTransportOwnership(t *testing.T) {
 		t.Fatal("owned transport was not closed")
 	}
 }
+
+// TestWrappedDefaultTransport preserves application-installed global transports without assuming their concrete type.
+func TestWrappedDefaultTransport(t *testing.T) {
+	original := http.DefaultTransport
+	borrowed := &closeCountingTransport{}
+	http.DefaultTransport = borrowed
+	defer func() { http.DefaultTransport = original }()
+	client, err := NewHTTP("http://localhost", "", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if client.Client.Transport != borrowed {
+		t.Fatal("application default transport was replaced")
+	}
+	client.Close()
+	if borrowed.closed != 0 {
+		t.Fatal("application default transport was closed")
+	}
+}
+
+// TestResponseBodyCancellation preserves deadline identity after response headers have already arrived.
+func TestResponseBodyCancellation(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(200); w.(http.Flusher).Flush(); <-release }))
+	defer server.Close()
+	defer close(release)
+	client, err := NewHTTP(server.URL, "", "", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Millisecond)
+	defer cancel()
+	if err := client.Do(ctx, "GET", "/", nil, nil, false); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
+	client.Client.Timeout = 20 * time.Millisecond
+	if err := client.Do(context.Background(), "GET", "/", nil, nil, false); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
+}
+
+// TestClientDeadlineBeforeHeaders keeps configured client timeouts consistent with response-body deadlines.
+func TestClientDeadlineBeforeHeaders(t *testing.T) {
+	release := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { <-release }))
+	defer server.Close()
+	defer close(release)
+	client, err := NewHTTP(server.URL, "", "", &http.Client{Timeout: 20 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Do(context.Background(), "GET", "/", nil, nil, false); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
+}

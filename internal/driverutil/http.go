@@ -42,13 +42,18 @@ func NewHTTP(base, key, header string, client *http.Client) (*HTTP, error) {
 		c.Timeout = MaxRequestTimeout
 	}
 	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	owned := c.Transport == nil
-	if owned {
-		t := http.DefaultTransport.(*http.Transport).Clone()
-		t.MaxResponseHeaderBytes = 64 << 10
-		t.ResponseHeaderTimeout = 15 * time.Second
-		t.DisableCompression = true
-		c.Transport = t
+	owned := false
+	if c.Transport == nil {
+		if transport, ok := http.DefaultTransport.(*http.Transport); ok {
+			transport := transport.Clone()
+			transport.MaxResponseHeaderBytes = 64 << 10
+			transport.ResponseHeaderTimeout = 15 * time.Second
+			transport.DisableCompression = true
+			c.Transport = transport
+			owned = true
+		} else {
+			c.Transport = http.DefaultTransport
+		}
 	}
 	return &HTTP{Base: strings.TrimRight(base, "/"), Key: key, Header: header, Client: &c, MaxBytes: 16 << 20, owned: owned}, nil
 }
@@ -105,6 +110,9 @@ func (h *HTTP) DoBytes(ctx context.Context, method, path, contentType string, bo
 		if ctx.Err() != nil {
 			return nil, ctx.Err()
 		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, context.DeadlineExceeded
+		}
 		return nil, search.ErrUnavailable
 	}
 	defer response.Body.Close()
@@ -112,6 +120,12 @@ func (h *HTTP) DoBytes(ctx context.Context, method, path, contentType string, bo
 	if err != nil || int64(len(data)) > h.MaxBytes {
 		if mutation {
 			return nil, unknownMutationError(err)
+		}
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			return nil, context.DeadlineExceeded
 		}
 		return nil, search.ErrUnavailable
 	}
