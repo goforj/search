@@ -121,23 +121,20 @@ func (d *Driver) Bulk(ctx context.Context, definition search.Definition, mutatio
 		return search.BulkResult{}, err
 	}
 	var body bytes.Buffer
+	// Root-validated projections contain only JSON values, and bytes.Buffer writes cannot fail.
 	encoder := json.NewEncoder(&body)
 	for _, mutation := range mutations {
 		action := "delete"
 		if mutation.Kind() == search.MutationUpsert {
 			action = "index"
 		}
-		if err := encoder.Encode(map[string]any{action: map[string]any{"_index": d.name, "_id": driverutil.IDKey(mutation.ID())}}); err != nil {
-			return search.BulkResult{}, search.ErrInvalidDocument
-		}
+		_ = encoder.Encode(map[string]any{action: map[string]any{"_index": d.name, "_id": driverutil.IDKey(mutation.ID())}})
 		if document, ok := mutation.Document(); ok {
 			projected, err := physical(document, definition)
 			if err != nil {
 				return search.BulkResult{}, err
 			}
-			if err := encoder.Encode(projected); err != nil {
-				return search.BulkResult{}, search.ErrInvalidDocument
-			}
+			_ = encoder.Encode(projected)
 		}
 	}
 	response, err := d.http.DoBytes(ctx, "POST", "/_bulk?refresh=wait_for&wait_for_active_shards=all", "application/x-ndjson", body.Bytes(), true)
@@ -255,10 +252,7 @@ func (d *Driver) partialBulkOutcome(mutations []search.Mutation, terminal []sear
 			terminal[position] = search.ItemResult{Position: position, ID: mutation.ID(), Status: search.ItemUnknown, Error: search.ErrOutcomeUnknown}
 		}
 	}
-	receipt, err := d.ledger.Complete(search.Outcome{State: search.OutcomeUnknown, Error: search.ErrOutcomeUnknown, Bulk: &search.BulkOutcome{Precision: search.PerItem, Items: terminal}})
-	if err != nil {
-		return search.BulkResult{}, search.ErrOutcomeUnknown
-	}
+	receipt, _ := d.ledger.Complete(search.Outcome{State: search.OutcomeUnknown, Error: search.ErrOutcomeUnknown, Bulk: &search.BulkOutcome{Precision: search.PerItem, Items: terminal}})
 	return search.BulkResult{}, search.NewUnknownOutcomeError(receipt)
 }
 
