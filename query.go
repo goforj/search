@@ -34,7 +34,7 @@ type TermFacet struct {
 
 // normalizeQuery resolves defaults and validates every operation against the declared schema.
 func normalizeQuery(q Query, d Definition, l Limits) (Query, error) {
-	if !utf8.ValidString(q.Text) || len(q.Text) > l.QueryBytes || len(strings.FieldsFunc(q.Text, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })) > l.QueryTerms || len(q.Fields) > l.QueryFields || len(q.Facets) > l.Facets || len(q.Highlight) > l.HighlightFields {
+	if !utf8.ValidString(q.Text) || len(q.Text) > l.QueryBytes || len(strings.FieldsFunc(q.Text, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })) > l.QueryTerms || len(q.Facets) > l.Facets || len(q.Highlight) > l.HighlightFields {
 		return Query{}, ErrInvalidQuery
 	}
 	fields := map[FieldName]Field{}
@@ -48,7 +48,7 @@ func normalizeQuery(q Query, d Definition, l Limits) (Query, error) {
 	if len(q.Fields) == 0 {
 		q.Fields = slices.Clone(d.DefaultSearchable)
 	}
-	if q.Text != "" && len(q.Fields) == 0 {
+	if len(q.Fields) > l.QueryFields || q.Text != "" && len(q.Fields) == 0 {
 		return Query{}, ErrInvalidQuery
 	}
 	seen := map[FieldName]bool{}
