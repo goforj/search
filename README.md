@@ -126,14 +126,14 @@ Choose an embedded index, an existing SQL pool, or a shared search service.
 <!-- drivers:embed:start -->
 | Driver | Tested version | Mutation visibility | Bulk precision | Topology |
 | ---: | --- | --- | --- | --- |
-| [![Bleve](docs/assets/badges/driver-bleve.svg)](driver/blevesearch) | `v2.6.3` | synchronous | per item | single process; memory or disk |
-| [![Meilisearch](docs/assets/badges/driver-meilisearch.svg)](driver/meilisearch) | `v1.17.0` | asynchronous receipt | aggregate task | shared service |
-| [![Typesense](docs/assets/badges/driver-typesense.svg)](driver/typesensesearch) | `30.0` | synchronous | per item | shared service |
-| [![OpenSearch](docs/assets/badges/driver-opensearch.svg)](driver/opensearch) | `3.9.0` | refresh-waiting | per item | shared service |
-| [![Elasticsearch](docs/assets/badges/driver-elasticsearch.svg)](driver/elasticsearch) | `9.5.6` | refresh-waiting | per item | shared service |
-| [![PostgreSQL FTS](docs/assets/badges/driver-postgres.svg)](driver/postgressearch) | `18.6` | synchronous | per item | application-owned SQL pool |
-| [![SQLite FTS5](docs/assets/badges/driver-sqlite.svg)](driver/sqlitesearch) | `3.54.1` | synchronous | per item | embedded SQL; application-owned pool |
-| [![Redis Search](docs/assets/badges/driver-redis.svg)](driver/redissearch) | `8.10.3` | synchronous | per item | standalone service; at most 4096 matches |
+| [![Bleve](docs/assets/badges/driver-bleve.svg)](driver/blevesearch) | v2.6.3 | synchronous | per item | single process; memory or disk |
+| [![Meilisearch](docs/assets/badges/driver-meilisearch.svg)](driver/meilisearch) | v1.17.0 | asynchronous receipt | aggregate task | shared service |
+| [![Typesense](docs/assets/badges/driver-typesense.svg)](driver/typesensesearch) | 30.0 | synchronous | per item | shared service |
+| [![OpenSearch](docs/assets/badges/driver-opensearch.svg)](driver/opensearch) | 3.9.0 | refresh-waiting | per item | shared service |
+| [![Elasticsearch](docs/assets/badges/driver-elasticsearch.svg)](driver/elasticsearch) | 9.5.6 | refresh-waiting | per item | shared service |
+| [![PostgreSQL FTS](docs/assets/badges/driver-postgres.svg)](driver/postgressearch) | 18.6 | synchronous | per item | application-owned SQL pool |
+| [![SQLite FTS5](docs/assets/badges/driver-sqlite.svg)](driver/sqlitesearch) | 3.54.1 | synchronous | per item | embedded SQL; application-owned pool |
+| [![Redis Search](docs/assets/badges/driver-redis.svg)](driver/redissearch) | 8.10.3 | synchronous | per item | standalone service; at most 4096 matches |
 
 All listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.
 <!-- drivers:embed:end -->

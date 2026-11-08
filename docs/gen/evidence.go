@@ -63,7 +63,7 @@ func EvidenceMarkdown(root string) (string, error) {
 		if err != nil {
 			return "", err
 		}
-		fmt.Fprintf(&out, "| %s | `%s` | %s | %s | %s |\n", badge, driver.Version, visibility, precision, topology)
+		fmt.Fprintf(&out, "| %s | %s | %s | %s | %s |\n", badge, driver.Version, visibility, precision, topology)
 	}
 	out.WriteString("\nAll listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.\n")
 	return out.String(), nil
