@@ -26,7 +26,7 @@ func TestDefinitionEncodingBudgets(t *testing.T) {
 
 // TestJSONTokenBoundaries checks decoder failures and token types outside the canonical object parser.
 func TestJSONTokenBoundaries(t *testing.T) {
-	for _, input := range []string{"", "1.5"} {
+	for _, input := range []string{"", "1.5", `{"unterminated`, `{"bad\uXXXX":0}`} {
 		decoder := json.NewDecoder(strings.NewReader(input))
 		members := 0
 		if _, err := readJSON(decoder, 0, &members, DefaultLimits()); err == nil {
