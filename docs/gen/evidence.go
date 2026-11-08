@@ -3,6 +3,7 @@ package gen
 import (
 	"encoding/json"
 	"fmt"
+	"html"
 	"os"
 	"path/filepath"
 	"strings"
@@ -72,7 +73,11 @@ func TestBadges(root string) (string, error) {
 		if err := json.Unmarshal(data, &result); err != nil {
 			return "", err
 		}
-		fmt.Fprintf(&out, "  <img src=\"https://img.shields.io/badge/%s_tests-%d-brightgreen\" alt=\"Executed %s tests, including subtests\">\n", kind, result.Count, kind)
+		path, err := writeBadge(root, kind+"-tests", kind+" tests", fmt.Sprint(result.Count))
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&out, "  <img src=\"%s\" alt=\"Executed %s tests, including subtests\">\n", path, kind)
 	}
 	data, err := os.ReadFile(filepath.Join(root, "docs/coverage.json"))
 	if err == nil {
@@ -82,9 +87,34 @@ func TestBadges(root string) (string, error) {
 		if err := json.Unmarshal(data, &coverage); err != nil {
 			return "", err
 		}
-		fmt.Fprintf(&out, "  <a href=\"docs/coverage.json\"><img src=\"https://img.shields.io/badge/coverage-%.1f%%25-brightgreen\" alt=\"Merged statement coverage\"></a>\n", coverage.Total)
+		path, err := writeBadge(root, "coverage", "coverage", fmt.Sprintf("%.1f%%", coverage.Total))
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&out, "  <a href=\"docs/coverage.json\"><img src=\"%s\" alt=\"Merged statement coverage\"></a>\n", path)
 	} else if !os.IsNotExist(err) {
 		return "", err
 	}
 	return out.String(), nil
+}
+
+// writeBadge keeps measured evidence readable without an external badge service or image proxy cache.
+func writeBadge(root, name, label, value string) (string, error) {
+	left, right := len(label)*7+14, len(value)*7+14
+	path := "docs/assets/badges/" + name + ".svg"
+	data := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="20" role="img" aria-label="%s: %s">
+  <title>%s: %s</title>
+  <rect width="%d" height="20" rx="3" fill="#555"/>
+  <path fill="#4c1" d="M%d 0h%dv20H%dz"/>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
+    <text x="%d" y="14">%s</text>
+    <text x="%d" y="14">%s</text>
+  </g>
+</svg>
+`, left+right, html.EscapeString(label), html.EscapeString(value), html.EscapeString(label), html.EscapeString(value), left+right, left, right, left, left/2, html.EscapeString(label), left+right/2, html.EscapeString(value))
+	absolute := filepath.Join(root, filepath.FromSlash(path))
+	if err := os.MkdirAll(filepath.Dir(absolute), 0755); err != nil {
+		return "", err
+	}
+	return path, os.WriteFile(absolute, []byte(data), 0644)
 }

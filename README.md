@@ -14,9 +14,9 @@
   <a href="https://codecov.io/gh/goforj/search"><img src="https://codecov.io/gh/goforj/search/graph/badge.svg" alt="Coverage"></a>
   <a href="https://github.com/goforj/search/tags"><img src="https://img.shields.io/github/v/tag/goforj/search?label=version&sort=semver&filter=%21driver%2A" alt="Latest tag"></a>
 <!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-201-brightgreen" alt="Executed unit tests, including subtests">
-  <img src="https://img.shields.io/badge/integration_tests-202-brightgreen" alt="Executed integration tests, including subtests">
-  <a href="docs/coverage.json"><img src="https://img.shields.io/badge/coverage-90.3%25-brightgreen" alt="Merged statement coverage"></a>
+<img src="docs/assets/badges/unit-tests.svg" alt="Executed unit tests, including subtests">
+  <img src="docs/assets/badges/integration-tests.svg" alt="Executed integration tests, including subtests">
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage.svg" alt="Merged statement coverage"></a>
 <!-- test-count:embed:end -->
 </p>
 
