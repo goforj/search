@@ -1,0 +1,6 @@
+<!-- Custom GoForj feature artwork; this SVG is the authoritative vector source. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Explicit schemas">
+  <title>Explicit schemas</title>
+  <rect x=".5" y=".5" width="23" height="23" rx="5" fill="#6a7dff" fill-opacity=".09"/>
+  <g fill="none" fill-opacity="1" stroke-opacity="1" stroke="#6a7dff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="4" width="4" height="4" rx=".8"/><rect x="4" y="15" width="5" height="5" rx=".8"/><rect x="15" y="15" width="5" height="5" rx=".8"/><path d="M12 8v4m-5.5 3v-3h11v3"/></g>
+</svg>

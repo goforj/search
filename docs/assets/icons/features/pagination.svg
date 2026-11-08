@@ -1,0 +1,6 @@
+<!-- Custom GoForj feature artwork; this SVG is the authoritative vector source. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="Pagination">
+  <title>Pagination</title>
+  <rect x=".5" y=".5" width="23" height="23" rx="5" fill="#6a7dff" fill-opacity=".09"/>
+  <g fill="none" fill-opacity="1" stroke-opacity="1" stroke="#6a7dff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17H5V4h11v2"/><rect x="8" y="7" width="11" height="14" rx="1.5"/><path d="M11 11h5m-5 3h5m-5 3h3"/></g>
+</svg>
