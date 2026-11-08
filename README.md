@@ -175,11 +175,33 @@ After the first release:
 
 ```sh
 go get github.com/goforj/search
-# Optional embedded driver:
+
+# Bleve (embedded, Go 1.25+)
 go get github.com/goforj/search/driver/blevesearch
+
+# Meilisearch
+go get github.com/goforj/search/driver/meilisearch
+
+# Typesense
+go get github.com/goforj/search/driver/typesensesearch
+
+# OpenSearch
+go get github.com/goforj/search/driver/opensearch
+
+# Elasticsearch
+go get github.com/goforj/search/driver/elasticsearch
+
+# PostgreSQL FTS
+go get github.com/goforj/search/driver/postgressearch
+
+# SQLite FTS5
+go get github.com/goforj/search/driver/sqlitesearch
+
+# Redis Search
+go get github.com/goforj/search/driver/redissearch
 ```
 
-Service drivers are packages in the root module. See [module ownership and release order](docs/development.md).
+Install the drivers you need. All drivers except Bleve are packages in the root module and are included when you install `search`; their commands above are provided for convenient copying. Bleve is a separate optional module. See [module ownership and release order](docs/development.md).
 
 See [search behavior and recovery](docs/development.md#search-behavior) for write visibility, query semantics, and receipt lifetime.
 
