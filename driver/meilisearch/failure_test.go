@@ -254,10 +254,7 @@ func TestExpiredTaskDominatesAggregateFailure(t *testing.T) {
 			}
 			fmt.Fprint(w, `{"status":"failed"}`)
 		})
-		receipt, err := driver.rememberTasks(tasks, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
+		receipt := driver.rememberTasks(tasks, nil)
 		outcome, err := driver.Wait(context.Background(), receipt)
 		if err != nil || outcome.State != search.OutcomeUnknown || !errors.Is(outcome.Error, search.ErrReceiptExpired) {
 			t.Fatal(outcome, err)

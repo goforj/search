@@ -38,15 +38,13 @@ func (d *Driver) remember(id *uint64, items []search.ItemResult) (search.Receipt
 	if id == nil {
 		return search.Receipt{}, search.ErrOutcomeUnknown
 	}
-	return d.rememberTasks([]uint64{*id}, items)
+	return d.rememberTasks([]uint64{*id}, items), nil
 }
 
 // rememberTasks binds accepted tasks to a content-free process-local receipt.
-func (d *Driver) rememberTasks(tasks []uint64, items []search.ItemResult) (search.Receipt, error) {
+func (d *Driver) rememberTasks(tasks []uint64, items []search.ItemResult) search.Receipt {
 	var random [16]byte
-	if _, err := rand.Read(random[:]); err != nil {
-		return search.Receipt{}, search.ErrOutcomeUnknown
-	}
+	rand.Read(random[:])
 	token := hex.EncodeToString(random[:])
 	if len(d.order) >= 4096 {
 		delete(d.pending, d.order[0])
@@ -54,7 +52,8 @@ func (d *Driver) rememberTasks(tasks []uint64, items []search.ItemResult) (searc
 	}
 	d.order = append(d.order, token)
 	d.pending[token] = &pending{items: slices.Clone(items), tasks: slices.Clone(tasks)}
-	return search.NewReceipt([]byte(token))
+	receipt, _ := search.NewReceipt([]byte(token))
+	return receipt
 }
 
 // Upsert submits a complete replacement rather than a partial document merge.
@@ -127,8 +126,8 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 		tasks = append(tasks, *task.TaskUID)
 		start = end
 	}
-	receipt, err := d.rememberTasks(tasks, items)
-	return search.BulkResult{Receipt: receipt, Items: items, Precision: search.BatchOnly}, err
+	receipt := d.rememberTasks(tasks, items)
+	return search.BulkResult{Receipt: receipt, Items: items, Precision: search.BatchOnly}, nil
 }
 
 // Wait reports aggregate task precision without fabricating per-document success.
@@ -183,10 +182,7 @@ func (d *Driver) interruptedTasks(tasks []uint64, items []search.ItemResult, cau
 	if len(tasks) == 0 {
 		return cause
 	}
-	receipt, err := d.rememberTasks(tasks, items)
-	if err != nil {
-		return search.ErrOutcomeUnknown
-	}
+	receipt := d.rememberTasks(tasks, items)
 	d.pending[string(receipt.Token())].uncertain = true
 	return errors.Join(search.NewUnknownOutcomeError(receipt), search.SafeError(cause))
 }
