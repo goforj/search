@@ -141,3 +141,29 @@ func TestInterruptedMixedBatchRetainsKnownItems(t *testing.T) {
 		t.Fatal(outcome, err)
 	}
 }
+
+// TestDeleteAcknowledgementIdentity prevents malformed successful deletes from proving visibility.
+func TestDeleteAcknowledgementIdentity(t *testing.T) {
+	for _, body := range []string{`{}`, `{"id":"other"}`} {
+		driver, definition := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, body) })
+		if _, err := driver.Delete(context.Background(), definition, "one"); !errors.Is(err, search.ErrOutcomeUnknown) {
+			t.Fatal(err)
+		}
+		deletion, _ := search.DeleteMutation("one")
+		if _, err := driver.Bulk(context.Background(), definition, []search.Mutation{deletion}); !errors.Is(err, search.ErrOutcomeUnknown) {
+			t.Fatal(err)
+		}
+	}
+}
+
+// TestSearchRequiresCountEvidence rejects incomplete successful HTTP responses instead of reporting an empty index.
+func TestSearchRequiresCountEvidence(t *testing.T) {
+	driver, definition := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `{"hits":[]}`) })
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := index.Search(context.Background(), search.Query{}); !errors.Is(err, search.ErrUnavailable) {
+		t.Fatal(err)
+	}
+}

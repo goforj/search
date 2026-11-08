@@ -57,13 +57,7 @@ func (d *Driver) Delete(ctx context.Context, def search.Definition, id search.Do
 	if err := d.ready(ctx, def); err != nil {
 		return search.Receipt{}, err
 	}
-	var out map[string]any
-	err := d.http.Do(ctx, "DELETE", "/collections/"+d.name+"/documents/"+driverutil.IDKey(id), nil, &out, true)
-	if errors.Is(err, search.ErrIndexNotFound) {
-		if verifyErr := d.http.Do(ctx, "GET", "/collections/"+d.name, nil, &out, false); verifyErr != nil {
-			return search.Receipt{}, verifyErr
-		}
-	} else if err != nil {
+	if err := d.deleteNative(ctx, id); err != nil {
 		return search.Receipt{}, err
 	}
 	return d.ledger.Complete(search.Outcome{State: search.OutcomeSucceeded})
@@ -81,14 +75,8 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 	terminal := make([]search.ItemResult, len(mutations))
 	for start := 0; start < len(mutations); {
 		if mutations[start].Kind() == search.MutationDelete {
-			var response map[string]any
-			err := d.http.Do(ctx, "DELETE", "/collections/"+d.name+"/documents/"+driverutil.IDKey(mutations[start].ID()), nil, &response, true)
-			if errors.Is(err, search.ErrIndexNotFound) {
-				if verifyErr := d.http.Do(ctx, "GET", "/collections/"+d.name, nil, &response, false); verifyErr != nil {
-					return d.partialOutcome(mutations, terminal, verifyErr)
-				}
-			} else if err != nil {
-				return d.partialOutcome(mutations, terminal, search.ErrOutcomeUnknown)
+			if err := d.deleteNative(ctx, mutations[start].ID()); err != nil {
+				return d.partialOutcome(mutations, terminal, err)
 			}
 			items[start] = search.ItemResult{Position: start, ID: mutations[start].ID(), Status: search.ItemAccepted}
 			terminal[start] = search.ItemResult{Position: start, ID: mutations[start].ID(), Status: search.ItemSucceeded}
@@ -183,4 +171,20 @@ func (d *Driver) partialOutcome(mutations []search.Mutation, terminal []search.I
 		return search.BulkResult{}, search.ErrOutcomeUnknown
 	}
 	return search.BulkResult{}, errors.Join(search.NewUnknownOutcomeError(receipt), search.SafeError(cause))
+}
+
+// deleteNative checks the acknowledged ID before treating a response as visible removal.
+func (d *Driver) deleteNative(ctx context.Context, id search.DocumentID) error {
+	var response map[string]any
+	err := d.http.Do(ctx, "DELETE", "/collections/"+d.name+"/documents/"+driverutil.IDKey(id), nil, &response, true)
+	if errors.Is(err, search.ErrIndexNotFound) {
+		return d.http.Do(ctx, "GET", "/collections/"+d.name, nil, &response, false)
+	}
+	if err != nil {
+		return err
+	}
+	if response["id"] != driverutil.IDKey(id) {
+		return search.ErrOutcomeUnknown
+	}
+	return nil
 }

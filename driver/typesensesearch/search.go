@@ -60,7 +60,7 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, q search.Que
 		"split_join_tokens": {"off"}, "exhaustive_search": {"false"},
 	}
 	var raw struct {
-		Found        uint64
+		Found        *uint64
 		SearchCutoff bool `json:"search_cutoff"`
 		Hits         []struct {
 			Document  map[string]json.RawMessage
@@ -77,10 +77,10 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, q search.Que
 	if err := d.http.Do(ctx, "GET", "/collections/"+d.name+"/documents/search?"+params.Encode(), nil, &raw, false); err != nil {
 		return search.Result{}, err
 	}
-	if raw.SearchCutoff {
+	if raw.SearchCutoff || raw.Found == nil {
 		return search.Result{}, search.ErrUnavailable
 	}
-	out := search.Result{Total: search.Total{Value: raw.Found, Relation: search.TotalExact}}
+	out := search.Result{Total: search.Total{Value: *raw.Found, Relation: search.TotalExact}}
 	for _, hit := range raw.Hits {
 		var id, body, physicalID string
 		_ = json.Unmarshal(hit.Document["_forjoriginal"], &id)
