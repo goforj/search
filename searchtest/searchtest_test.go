@@ -101,6 +101,15 @@ func (i *harnessIndex) Search(ctx context.Context, q search.Query) (search.Resul
 		"all": {"A", "a", "é", "中"}, "literal-all-terms": {"A", "a"}, "reversed-terms": {"A", "a"}, "empty-and": {"A", "a", "é", "中"}, "equal": {"A", "a"}, "missing-null": {"é", "中"}, "not-equal-missing": {"é", "中"}, "exists-empty-array": {"A", "a"}, "array-all": {"A"}, "array-any": {"A"}, "not-array-all": {"a", "é", "中"}, "integer-boundary": {"A"}, "less-or-equal": {"A", "a", "中"}, "greater-than": {"é"}, "greater-or-equal": {"a", "é", "中"}, "boolean-equality": {"a"}, "scalar-set": {"a", "é", "中"}, "nested-negation": {"é"}, "field-primary-text": {"é", "a", "A"}, "between": {"a", "é", "中"}, "two-sorts": {"A", "中", "a", "é"}, "utf8-keyword-order": {"a", "é", "中", "A"}, "page": {"a", "é"}, "facet-before-pagination": {"A"}, "safe-highlights": {"A"}, "replace-and-delete": {"a"}, "facet-truncation-ties": {"facet0000"}, "keyword-only-nested-index": {"nested"},
 	}
 	ids := expected[name]
+	if name == "cross-field-all-terms" {
+		ids = []string{"split", "title"}
+		if len(q.Fields) > 0 {
+			ids = []string{"title"}
+			if q.Fields[0] == "summary" {
+				ids = nil
+			}
+		}
+	}
 	result := search.Result{Total: search.Total{Value: uint64(len(ids)), Relation: search.TotalExact}}
 	if name == "window-edge" || name == "page" || name == "facet-before-pagination" {
 		result.Total.Value = 4
@@ -304,6 +313,7 @@ func TestHarnessAssertions(t *testing.T) {
 		"mixed-bulk":                {"delete-factory", "upsert-factory", "bulk-error", "wait-error", "wait-state", "bulk-outcome", "batch-precision"},
 		"concurrent-calls":          {"upsert-error", "wait-error", "wait-state", "search-error"},
 		"facet-truncation-ties":     {"provision-error", "cleanup-error", "upsert-factory", "bulk-error", "wait-error", "wait-state", "search-error", "facets", "truncated", "facet-order"},
+		"cross-field-all-terms":     {"provision-error", "cleanup-error", "upsert-error", "wait-error", "wait-state", "search-error", "total", "ids"},
 		"keyword-only-nested-index": {"provision-error", "cleanup-error", "upsert-error", "wait-error", "wait-state", "keyword-factory", "search-error", "total", "facets"},
 	}
 	for scenario, faults := range cases {

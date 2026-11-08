@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"sort"
 	"sync"
 	"testing"
 	"time"
@@ -394,6 +395,56 @@ func runBackend(t backendTest, provision backendProvision, factories backendFact
 		}
 	})
 
+	run("cross-field-all-terms", func(t backendTest) {
+		definition := search.Definition{Name: "crossfields", Fields: []search.Field{
+			{Name: "title", Type: search.TextField, Searchable: true},
+			{Name: "summary", Type: search.TextField, Searchable: true},
+		}}
+		index, cleanup, err := provision(ctx, definition)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer func() {
+			if err := cleanup(context.Background()); err != nil {
+				t.Error(err)
+			}
+		}()
+		for _, document := range []search.Document{
+			{ID: "split", Body: json.RawMessage(`{"title":"copper","summary":"kettle"}`)},
+			{ID: "title", Body: json.RawMessage(`{"title":"copper kettle"}`)},
+			{ID: "other", Body: json.RawMessage(`{"title":"copper","summary":"spoon"}`)},
+		} {
+			receipt, err := index.Upsert(ctx, document)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if outcome, err := index.Wait(ctx, receipt); err != nil || outcome.State != search.OutcomeSucceeded {
+				t.Fatal(outcome, err)
+			}
+		}
+		for _, test := range []struct {
+			fields []search.FieldName
+			ids    []string
+		}{
+			{nil, []string{"split", "title"}},
+			{[]search.FieldName{"title"}, []string{"title"}},
+			{[]search.FieldName{"summary"}, []string{}},
+		} {
+			result, err := index.Search(ctx, search.Query{Text: "copper kettle", Fields: test.fields})
+			if err != nil {
+				t.Fatal(err)
+			}
+			ids := []string{}
+			for _, hit := range result.Hits {
+				ids = append(ids, string(hit.Document.ID))
+			}
+			sort.Strings(ids)
+			if result.Total.Value != uint64(len(test.ids)) || !reflect.DeepEqual(ids, test.ids) {
+				t.Fatalf("fields=%v: hits=%v total=%v want=%v", test.fields, ids, result.Total, test.ids)
+			}
+		}
+	})
+
 	run("keyword-only-nested-index", func(t backendTest) {
 		definition := search.Definition{Name: "nested", Fields: []search.Field{{Name: "code", Path: "/nested/a~1b/0/~0key", Type: search.KeywordField, Required: true, Filterable: true, Sortable: true, Facetable: true}}}
 		index, cleanup, err := provision(ctx, definition)
@@ -464,6 +515,7 @@ func ScenarioNames() []string {
 		"mixed-bulk",
 		"concurrent-calls",
 		"facet-truncation-ties",
+		"cross-field-all-terms",
 		"keyword-only-nested-index",
 	}
 }
