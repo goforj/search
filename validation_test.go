@@ -294,3 +294,15 @@ func TestTerminalRejectionCannotBecomeSuccess(t *testing.T) {
 		}
 	}
 }
+
+// TestPointerDepthRejectsBeforeSplit keeps excessive path components from allocating an unbounded slice.
+func TestPointerDepthRejectsBeforeSplit(t *testing.T) {
+	pointer := JSONPointer(strings.Repeat("/part", 65536))
+	if _, ok := pointerParts(pointer, 16); ok {
+		t.Fatal("over-depth pointer accepted")
+	}
+	allocations := testing.AllocsPerRun(10, func() { _, _ = pointerParts(pointer, 16) })
+	if allocations != 0 {
+		t.Fatalf("rejected pointer caused %.0f allocations", allocations)
+	}
+}

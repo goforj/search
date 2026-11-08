@@ -33,8 +33,12 @@ type TermFacet struct {
 }
 
 // normalizeQuery resolves defaults and validates every operation against the declared schema.
+// Input collections are bounded before cloning, then defaults are bounded after resolution.
 func normalizeQuery(q Query, d Definition, l Limits) (Query, error) {
-	if !utf8.ValidString(q.Text) || len(q.Text) > l.QueryBytes || len(strings.FieldsFunc(q.Text, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })) > l.QueryTerms || len(q.Facets) > l.Facets || len(q.Highlight) > l.HighlightFields {
+	if !utf8.ValidString(q.Text) || len(q.Text) > l.QueryBytes ||
+		len(strings.FieldsFunc(q.Text, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })) > l.QueryTerms ||
+		len(q.Fields) > l.QueryFields || len(q.Sort) > 2 ||
+		len(q.Facets) > l.Facets || len(q.Highlight) > l.HighlightFields {
 		return Query{}, ErrInvalidQuery
 	}
 	fields := map[FieldName]Field{}

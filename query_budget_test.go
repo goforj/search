@@ -29,3 +29,20 @@ func TestResolvedSearchFieldsRespectBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestOversizedQueryCollectionsRejectBeforeCopy bounds allocations for caller-provided slices that exceed query budgets.
+func TestOversizedQueryCollectionsRejectBeforeCopy(t *testing.T) {
+	index, err := search.NewIndex(searchfake.New(), minimalDefinition())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, query := range []search.Query{{Fields: make([]search.FieldName, 65536)}, {Sort: make([]search.Sort, 65536)}} {
+		if _, err := index.Search(context.Background(), query); !errors.Is(err, search.ErrInvalidQuery) {
+			t.Fatal(err)
+		}
+		allocations := testing.AllocsPerRun(10, func() { _, _ = index.Search(context.Background(), query) })
+		if allocations != 0 {
+			t.Fatalf("rejected oversized slices caused %.0f allocations", allocations)
+		}
+	}
+}

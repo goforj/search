@@ -198,10 +198,10 @@ func pointerParts(p JSONPointer, max int) ([]string, bool) {
 	if !utf8.ValidString(s) || !strings.HasPrefix(s, "/") {
 		return nil, false
 	}
-	parts := strings.Split(s[1:], "/")
-	if len(parts) > max {
+	if strings.Count(s, "/") > max {
 		return nil, false
 	}
+	parts := strings.Split(s[1:], "/")
 	for i, part := range parts {
 		for j := 0; j < len(part); j++ {
 			if part[j] == '~' {
