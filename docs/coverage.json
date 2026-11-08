@@ -1,17 +1,17 @@
 {
-  "total_percent": 89.61690885072655,
+  "total_percent": 89.9922219341457,
   "packages": {
-    "github.com/goforj/search": 94.3076923076923,
+    "github.com/goforj/search": 94.51851851851852,
     "github.com/goforj/search/driver/blevesearch": 91.19718309859155,
     "github.com/goforj/search/driver/elasticsearch": 88.73626373626374,
-    "github.com/goforj/search/driver/meilisearch": 89.81233243967829,
+    "github.com/goforj/search/driver/meilisearch": 90.66666666666667,
     "github.com/goforj/search/driver/opensearch": 88.73626373626374,
     "github.com/goforj/search/driver/postgressearch": 100,
     "github.com/goforj/search/driver/redissearch": 86.98481561822126,
     "github.com/goforj/search/driver/sqlitesearch": 100,
-    "github.com/goforj/search/driver/typesensesearch": 92.3076923076923,
-    "github.com/goforj/search/internal/driverutil": 91.09311740890688,
-    "github.com/goforj/search/internal/sqlsearch": 88.72549019607843,
+    "github.com/goforj/search/driver/typesensesearch": 93.51851851851852,
+    "github.com/goforj/search/internal/driverutil": 91.78082191780823,
+    "github.com/goforj/search/internal/sqlsearch": 89.24205378973105,
     "github.com/goforj/search/searchfake": 93.24324324324324,
     "github.com/goforj/search/searchtest": 74.88151658767772
   }
