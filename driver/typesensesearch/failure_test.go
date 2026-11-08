@@ -105,3 +105,39 @@ func TestConstructionAndReadinessFailures(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestInterruptedMixedBatchRetainsKnownItems preserves earlier synchronous success through later transport uncertainty.
+func TestInterruptedMixedBatchRetainsKnownItems(t *testing.T) {
+	driver, definition := fixtureDriver(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "DELETE" {
+			fmt.Fprint(w, `{"id":"i6f6e65"}`)
+			return
+		}
+		w.WriteHeader(503)
+	})
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, err := search.DeleteMutation("one")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := search.UpsertMutation(search.Document{ID: "two", Body: []byte(`{"active":true,"rank":0,"code":"x"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = index.Bulk(context.Background(), []search.Mutation{first, second})
+	var unknown *search.UnknownOutcomeError
+	if !errors.As(err, &unknown) {
+		t.Fatal(err)
+	}
+	receipt, ok := unknown.Receipt()
+	if !ok {
+		t.Fatal("recoverable item outcomes lost")
+	}
+	outcome, err := index.Wait(context.Background(), receipt)
+	if err != nil || outcome.State != search.OutcomeUnknown || outcome.Bulk == nil || outcome.Bulk.Items[0].Status != search.ItemSucceeded || outcome.Bulk.Items[1].Status != search.ItemUnknown {
+		t.Fatal(outcome, err)
+	}
+}

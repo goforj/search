@@ -39,7 +39,10 @@ Focused backend checks are available:
 make test-integration bleve
 make test-integration meilisearch
 make test-integration typesense
+make test-integration opensearch
 ```
+
+`integration/versions.json` owns service versions and digest-pinned images. The harness checks each running server's reported version against that file. OpenSearch uses its security plugin with disposable Basic credentials and runs the complete contract with both one and two primary shards. Native bulk rejection is tested against the real server.
 
 A focused run does not refresh the all-driver support report. The complete run uses Testcontainers with disposable credentials, random host ports, bounded readiness, isolated containers, and cleanup registered before assertions. Docker must be available; missing infrastructure fails the run instead of silently skipping it.
 
@@ -66,3 +69,7 @@ Tagging, pushing, GitHub releases, documentation-site registration, framework ge
 The implementation follows the portable lexical core from GoForj's search design: explicit definitions, complete replacement writes, typed filtering, stable pagination, term facets, structured highlights, receipt visibility, and honest bulk precision.
 
 GoForj component wiring, named-engine registries, maker commands, reindex coordination, Lighthouse integration, vector search, and online promotion are separate work. Indexes remain derived data. Applications own authorization, tenant predicates, reconciliation, and recovery from their authoritative source.
+
+## Driver roadmap
+
+The implemented drivers cover embedded Bleve, Meilisearch, Typesense, and OpenSearch. [PostgreSQL full-text search](https://www.postgresql.org/docs/current/datatype-textsearch.html) and [SQLite FTS5](https://sqlite.org/fts5.html) are the next useful candidates for applications that want search in their existing database. [Redis Search](https://redis.io/docs/latest/develop/interact/search-and-query/) is another candidate for applications already operating Redis with its search capability. Elasticsearch should have an independent driver and version matrix rather than being treated as an OpenSearch alias. Algolia would add a hosted-service option. None of these candidates currently has a support claim or integration evidence.

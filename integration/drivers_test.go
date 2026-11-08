@@ -1,6 +1,6 @@
 //go:build integration
 
-package integration_test
+package integration
 
 import (
 	"bytes"
@@ -21,6 +21,7 @@ import (
 	"github.com/goforj/search"
 	"github.com/goforj/search/driver/blevesearch"
 	"github.com/goforj/search/driver/meilisearch"
+	"github.com/goforj/search/driver/opensearch"
 	"github.com/goforj/search/driver/typesensesearch"
 	"github.com/goforj/search/searchtest"
 	"github.com/testcontainers/testcontainers-go"
@@ -30,26 +31,48 @@ import (
 // testAPIKey is a public, disposable fixture credential used only in isolated containers.
 const testAPIKey = "search-integration-disposable-key"
 
+// testOpenSearchPassword is a public, disposable credential for the isolated security-enabled node.
+const testOpenSearchPassword = "Search-Fixture-Only-2026!"
+
 // startServer provisions an isolated real server with pinned image, random port, and bounded readiness.
 func startServer(t *testing.T, engine string) string {
 	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
-	request := testcontainers.ContainerRequest{}
+	var versions map[string]engineVersion
+	if err := json.Unmarshal(pinnedVersions, &versions); err != nil {
+		t.Fatal(err)
+	}
+	version, ok := versions[engine]
+	if !ok || version.Image == "" || version.Version == "" {
+		t.Fatal("missing pinned backend version")
+	}
+	request := testcontainers.ContainerRequest{Image: version.Image}
 	port, health := "7700/tcp", "/health"
 	switch engine {
 	case "meilisearch":
-		request.Image = "getmeili/meilisearch:v1.17.0"
 		request.Env = map[string]string{"MEILI_MASTER_KEY": testAPIKey, "MEILI_NO_ANALYTICS": "true"}
 	case "typesense":
 		port = "8108/tcp"
-		request.Image = "typesense/typesense:30.0"
 		request.Cmd = []string{"--data-dir=/tmp", "--api-key=" + testAPIKey, "--enable-cors=false"}
+	case "opensearch":
+		port, health = "9200/tcp", "/"
+		request.Env = map[string]string{
+			"discovery.type":                    "single-node",
+			"OPENSEARCH_INITIAL_ADMIN_PASSWORD": testOpenSearchPassword,
+			"OPENSEARCH_JAVA_OPTS":              "-Xms512m -Xmx512m",
+			"plugins.security.ssl.http.enabled": "false",
+			"bootstrap.memory_lock":             "false",
+		}
 	default:
 		t.Fatalf("unknown engine %q", engine)
 	}
 	request.ExposedPorts = []string{port}
-	request.WaitingFor = wait.ForHTTP(health).WithPort(nat.Port(port)).WithStartupTimeout(60 * time.Second)
+	readiness := wait.ForHTTP(health).WithPort(nat.Port(port)).WithStartupTimeout(60 * time.Second)
+	if engine == "opensearch" {
+		readiness.WithBasicAuth("admin", testOpenSearchPassword)
+	}
+	request.WaitingFor = readiness
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{ContainerRequest: request, Started: true})
 	if container != nil {
 		t.Cleanup(func() {
@@ -67,6 +90,7 @@ func startServer(t *testing.T, engine string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
+	verifyServerVersion(t, ctx, engine, endpoint, version.Version)
 	return endpoint
 }
 
@@ -127,6 +151,13 @@ func TestServiceAuthentication(t *testing.T) {
 				}
 				defer driver.Close()
 				err = driver.ValidateIndex(ctx, searchtest.Definition())
+			} else if engine == "opensearch" {
+				driver, e := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: "wrong"})
+				if e != nil {
+					t.Fatal(e)
+				}
+				defer driver.Close()
+				err = driver.ValidateIndex(ctx, searchtest.Definition())
 			} else {
 				driver, e := typesensesearch.New(typesensesearch.Config{URL: endpoint, APIKey: "wrong"})
 				if e != nil {
@@ -137,6 +168,9 @@ func TestServiceAuthentication(t *testing.T) {
 			}
 			if !errors.Is(err, search.ErrUnauthorized) {
 				t.Fatal(fmt.Sprintf("classification: %v", err))
+			}
+			if engine == "opensearch" {
+				return
 			}
 			response, err := http.Get(endpoint + "/health")
 			if err != nil {
@@ -271,7 +305,140 @@ func selectedServices() []string {
 		return []string{"meilisearch"}
 	case "typesense":
 		return []string{"typesense"}
+	case "opensearch":
+		return []string{"opensearch"}
 	default:
-		return []string{"meilisearch", "typesense"}
+		return []string{"meilisearch", "typesense", "opensearch"}
+	}
+}
+
+// verifyServerVersion prevents a support table from advertising a version that the actual fixture did not run.
+func verifyServerVersion(t *testing.T, ctx context.Context, engine, endpoint, expected string) {
+	t.Helper()
+	path, header, value := "/version", "Authorization", "Bearer "+testAPIKey
+	if engine == "typesense" {
+		path, header, value = "/debug", "X-TYPESENSE-API-KEY", testAPIKey
+	}
+	if engine == "opensearch" {
+		path = "/"
+	}
+	request, err := http.NewRequestWithContext(ctx, "GET", endpoint+path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request.Header.Set(header, value)
+	if engine == "opensearch" {
+		request.SetBasicAuth("admin", testOpenSearchPassword)
+	}
+	client := http.Client{Timeout: 10 * time.Second}
+	response, err := client.Do(request)
+	if err != nil {
+		t.Fatal("cannot inspect disposable backend version")
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		t.Fatal("backend version inspection was rejected")
+	}
+	var version struct {
+		Version    json.RawMessage
+		PkgVersion string `json:"pkgVersion"`
+	}
+	if err := json.NewDecoder(io.LimitReader(response.Body, 1<<20)).Decode(&version); err != nil {
+		t.Fatal("invalid backend version response")
+	}
+	var actual string
+	if engine == "opensearch" {
+		var native struct{ Number string }
+		if err := json.Unmarshal(version.Version, &native); err != nil {
+			t.Fatal(err)
+		}
+		actual = native.Number
+	} else if len(version.Version) != 0 {
+		if err := json.Unmarshal(version.Version, &actual); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if engine == "meilisearch" {
+		actual = version.PkgVersion
+	}
+	if strings.TrimPrefix(actual, "v") != strings.TrimPrefix(expected, "v") {
+		t.Fatalf("actual backend version %q differs from pinned version %q", actual, expected)
+	}
+}
+
+// TestOpenSearchContract proves the complete portable suite against a security-enabled, pinned real cluster.
+func TestOpenSearchContract(t *testing.T) {
+	endpoint := startServer(t, "opensearch")
+	searchtest.RunBackend(t, func(ctx context.Context, definition search.Definition) (*search.Index, func(context.Context) error, error) {
+		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, RefreshInterval: 100 * time.Millisecond})
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := driver.CreateIndex(ctx, definition); err != nil {
+			driver.Close()
+			return nil, nil, err
+		}
+		index, err := search.NewIndex(driver, definition)
+		return index, func(context.Context) error { return driver.Close() }, err
+	})
+}
+
+// TestOpenSearchMultiShardContract proves the portable contract across native shard routing and coordinator merges.
+func TestOpenSearchMultiShardContract(t *testing.T) {
+	endpoint := startServer(t, "opensearch")
+	searchtest.RunBackend(t, func(ctx context.Context, definition search.Definition) (*search.Index, func(context.Context) error, error) {
+		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, Shards: 2, RefreshInterval: 100 * time.Millisecond})
+		if err != nil {
+			return nil, nil, err
+		}
+		if err := driver.CreateIndex(ctx, definition); err != nil {
+			driver.Close()
+			return nil, nil, err
+		}
+		index, err := search.NewIndex(driver, definition)
+		return index, func(context.Context) error { return driver.Close() }, err
+	})
+}
+
+// TestOpenSearchPartialBulk proves a real mapping rejection remains visible beside a successful native item.
+func TestOpenSearchPartialBulk(t *testing.T) {
+	endpoint := startServer(t, "opensearch")
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, RefreshInterval: 100 * time.Millisecond})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer driver.Close()
+	definition := searchtest.Definition()
+	if err := driver.CreateIndex(ctx, definition); err != nil {
+		t.Fatal(err)
+	}
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	good, err := search.UpsertMutation(search.Document{ID: "good", Body: []byte(`{"active":true,"rank":1,"code":"x"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	bad, err := search.UpsertMutation(search.Document{ID: "bad", Body: []byte(`{"active":true,"rank":"private-invalid-number","code":"x"}`)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Intentionally bypass root validation so the real server must produce a per-item mapping failure.
+	batch, err := driver.Bulk(ctx, index.Definition(), []search.Mutation{good, bad})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if batch.Items[0].Status != search.ItemAccepted || batch.Items[1].Status != search.ItemRejected || !errors.Is(batch.Items[1].Error, search.ErrInvalidDocument) {
+		t.Fatal(batch.Items)
+	}
+	outcome, err := driver.Wait(ctx, batch.Receipt)
+	if err != nil || outcome.State != search.OutcomeFailed || outcome.Bulk.Items[0].Status != search.ItemSucceeded || outcome.Bulk.Items[1].Status != search.ItemFailed {
+		t.Fatal(outcome, err)
+	}
+	if strings.Contains(fmt.Sprintf("%+v", outcome.Bulk.Items), "private-invalid") {
+		t.Fatal("native mapping reason leaked")
 	}
 }

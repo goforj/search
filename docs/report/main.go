@@ -132,11 +132,20 @@ func recordTests(root, path, kind string) error {
 		if err != nil {
 			return err
 		}
+		versionData, err := os.ReadFile(filepath.Join(root, "integration/versions.json"))
+		if err != nil {
+			return err
+		}
+		var versions map[string]struct{ Version string }
+		if err := json.Unmarshal(versionData, &versions); err != nil {
+			return err
+		}
 		evidence := driverEvidence{Source: source}
 		for _, engine := range []struct{ name, suite, version string }{
 			{"bleve", "TestBleveContract", bleveVersion(root)},
-			{"meilisearch", "TestMeilisearchContract", "v1.17.0"},
-			{"typesense", "TestTypesenseContract", "30.0"},
+			{"meilisearch", "TestMeilisearchContract", versions["meilisearch"].Version},
+			{"typesense", "TestTypesenseContract", versions["typesense"].Version},
+			{"opensearch", "TestOpenSearchContract", versions["opensearch"].Version},
 		} {
 			row := driverResult{Name: engine.name, Version: engine.version}
 			for _, scenario := range searchtest.ScenarioNames() {
@@ -151,6 +160,21 @@ func recordTests(root, path, kind string) error {
 					return fmt.Errorf("%s is missing executed scenario %s", engine.name, scenario)
 				}
 				row.Scenarios = append(row.Scenarios, scenario)
+			}
+			if engine.name == "opensearch" {
+				for _, scenario := range searchtest.ScenarioNames() {
+					found := false
+					for _, executed := range report.Tests {
+						if strings.HasSuffix(executed, "/TestOpenSearchMultiShardContract/"+scenario) {
+							found = true
+							break
+						}
+					}
+					if !found {
+						return fmt.Errorf("opensearch is missing multi-shard fixture %s", scenario)
+					}
+					row.Scenarios = append(row.Scenarios, "multi-shard/"+scenario)
+				}
 			}
 			evidence.Drivers = append(evidence.Drivers, row)
 		}

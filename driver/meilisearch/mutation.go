@@ -34,15 +34,15 @@ func physical(doc search.Document, def search.Definition) map[string]any {
 }
 
 // remember retains receipt-to-index binding and bounded batch submission evidence.
-func (d *Driver) remember(id *uint64, def search.Definition, items []search.ItemResult) (search.Receipt, error) {
+func (d *Driver) remember(id *uint64, items []search.ItemResult) (search.Receipt, error) {
 	if id == nil {
 		return search.Receipt{}, search.ErrOutcomeUnknown
 	}
-	return d.rememberTasks([]uint64{*id}, def, items)
+	return d.rememberTasks([]uint64{*id}, items)
 }
 
 // rememberTasks binds accepted tasks to a content-free process-local receipt.
-func (d *Driver) rememberTasks(tasks []uint64, def search.Definition, items []search.ItemResult) (search.Receipt, error) {
+func (d *Driver) rememberTasks(tasks []uint64, items []search.ItemResult) (search.Receipt, error) {
 	var random [16]byte
 	if _, err := rand.Read(random[:]); err != nil {
 		return search.Receipt{}, search.ErrOutcomeUnknown
@@ -53,7 +53,7 @@ func (d *Driver) rememberTasks(tasks []uint64, def search.Definition, items []se
 		d.order = d.order[1:]
 	}
 	d.order = append(d.order, token)
-	d.pending[token] = &pending{items: slices.Clone(items), def: def, tasks: slices.Clone(tasks)}
+	d.pending[token] = &pending{items: slices.Clone(items), tasks: slices.Clone(tasks)}
 	return search.NewReceipt([]byte(token))
 }
 
@@ -69,7 +69,7 @@ func (d *Driver) Upsert(ctx context.Context, def search.Definition, doc search.D
 	if e := d.http.Do(ctx, "POST", "/indexes/"+d.name+"/documents", []any{physical(doc, def)}, &task, true); e != nil {
 		return search.Receipt{}, e
 	}
-	return d.remember(task.TaskUID, def, nil)
+	return d.remember(task.TaskUID, nil)
 }
 
 // Delete submits an idempotent document removal.
@@ -84,7 +84,7 @@ func (d *Driver) Delete(ctx context.Context, def search.Definition, id search.Do
 	if e := d.http.Do(ctx, "DELETE", "/indexes/"+d.name+"/documents/"+driverutil.IDKey(id), nil, &task, true); e != nil {
 		return search.Receipt{}, e
 	}
-	return d.remember(task.TaskUID, def, nil)
+	return d.remember(task.TaskUID, nil)
 }
 
 // Bulk submits contiguous operation groups and retains every accepted task.
@@ -120,7 +120,7 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 		var task taskRef
 		if err := d.http.Do(ctx, "POST", path, body, &task, true); err != nil {
 			if len(tasks) > 0 {
-				receipt, recoveryErr := d.rememberTasks(tasks, def, items)
+				receipt, recoveryErr := d.rememberTasks(tasks, items)
 				if recoveryErr != nil {
 					return search.BulkResult{}, search.ErrOutcomeUnknown
 				}
@@ -135,7 +135,7 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 		tasks = append(tasks, *task.TaskUID)
 		start = end
 	}
-	receipt, err := d.rememberTasks(tasks, def, items)
+	receipt, err := d.rememberTasks(tasks, items)
 	return search.BulkResult{Receipt: receipt, Items: items, Precision: search.BatchOnly}, err
 }
 

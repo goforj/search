@@ -79,6 +79,7 @@ func (d *Driver) Close() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.closed = true
+	d.http.Close()
 	return nil
 }
 

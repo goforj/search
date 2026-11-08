@@ -9,7 +9,8 @@ case "$backend" in
  bleve) pattern='^TestBleve' ;;
  meilisearch) pattern='^TestMeilisearch|^TestService' ;;
  typesense) pattern='^TestTypesense|^TestService' ;;
- *) echo 'usage: test-integration.sh [all|bleve|meilisearch|typesense]' >&2; exit 1 ;;
+ opensearch) pattern='^TestOpenSearch|^TestService' ;;
+ *) echo 'usage: test-integration.sh [all|bleve|meilisearch|typesense|opensearch]' >&2; exit 1 ;;
 esac
 export INTEGRATION_DRIVER="$backend"
 trap 'GOWORK=off go -C docs run ./report -showevents "$repo_root/.artifacts/integration.json"' ERR

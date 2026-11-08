@@ -1,0 +1,14 @@
+{
+  "meilisearch": {
+    "version": "v1.17.0",
+    "image": "getmeili/meilisearch:v1.17.0@sha256:f979a182f309e800b0e5faf58dba7db5608b4cde70841703248e31de64c79959"
+  },
+  "typesense": {
+    "version": "30.0",
+    "image": "typesense/typesense:30.0@sha256:297dc401dc19d634726b1191b20d4d2adb7cbf1435273fff71f6b69691f6548f"
+  },
+  "opensearch": {
+    "version": "3.9.0",
+    "image": "opensearchproject/opensearch:3.9.0@sha256:3b55f6b6249cfdb92b52ee59adc8a266203ba9ef9f5d82544fad6f1af2f3609e"
+  }
+}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/goforj/search/driver/meilisearch"
+	"github.com/goforj/search/driver/opensearch"
 	"github.com/goforj/search/driver/typesensesearch"
 )
 
@@ -20,6 +21,11 @@ func main() {
 		panic(err)
 	}
 	defer typesense.Close()
+	openSearch, err := opensearch.New(opensearch.Config{URL: "http://127.0.0.1:9200"})
+	if err != nil {
+		panic(err)
+	}
+	defer openSearch.Close()
 	fmt.Println("Clients constructed without backend I/O")
 	// Clients constructed without backend I/O
 

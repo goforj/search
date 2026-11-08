@@ -2,7 +2,7 @@
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(eval $(ARGS):;@:)
 
-.PHONY: help test test-race test-integration test-coverage vet tidy modules-check generate check-generated release-plan release-check
+.PHONY: help test test-race test-integration test-coverage vet tidy modules-check generate check-generated release-plan release-check bench
 
 help: ## Show available commands.
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -13,7 +13,7 @@ test: ## Run every module's unit and executable example tests.
 test-race: ## Run race tests across every module.
 	@scripts/test-all-modules.sh race
 
-test-integration: ## Run real drivers: make test-integration [all|bleve|meilisearch|typesense].
+test-integration: ## Run real drivers: make test-integration [all|bleve|meilisearch|typesense|opensearch].
 	@scripts/test-integration.sh $(or $(firstword $(ARGS)),all)
 
 test-coverage: ## Run unit and real-backend tests and generate merged coverage.

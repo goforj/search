@@ -157,3 +157,37 @@ func TestAcceptedMutationDeadlinePreservesUncertaintyAndContext(t *testing.T) {
 		t.Fatal(safe)
 	}
 }
+
+// closeCountingTransport makes borrowed transport ownership observable without opening a connection.
+type closeCountingTransport struct{ closed int }
+
+// RoundTrip is unused because this fixture exercises lifecycle ownership only.
+func (c *closeCountingTransport) RoundTrip(*http.Request) (*http.Response, error) {
+	return nil, search.ErrUnavailable
+}
+
+// CloseIdleConnections records whether another client's shutdown affected the borrowed transport.
+func (c *closeCountingTransport) CloseIdleConnections() { c.closed++ }
+
+// TestHTTPTransportOwnership releases owned clients without closing borrowed connection pools.
+func TestHTTPTransportOwnership(t *testing.T) {
+	borrowed := &closeCountingTransport{}
+	client, err := NewHTTP("http://localhost", "", "Authorization", &http.Client{Transport: borrowed})
+	if err != nil {
+		t.Fatal(err)
+	}
+	client.Close()
+	if borrowed.closed != 0 {
+		t.Fatal("borrowed transport was closed")
+	}
+	owned, err := NewHTTP("http://localhost", "", "Authorization", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	counter := &closeCountingTransport{}
+	owned.Client.Transport = counter
+	owned.Close()
+	if counter.closed != 1 {
+		t.Fatal("owned transport was not closed")
+	}
+}

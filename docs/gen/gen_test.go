@@ -42,7 +42,7 @@ func TestQualifiedAPIIndex(t *testing.T) {
 		}
 		found[symbol.Name] = true
 	}
-	for _, name := range []string{"search.Value.Keyword", "search.Keyword", "blevesearch.Driver.Search", "meilisearch.Driver.Search", "typesensesearch.Driver.Search", "searchfake.New"} {
+	for _, name := range []string{"search.Value.Keyword", "search.Keyword", "blevesearch.Driver.Search", "meilisearch.Driver.Search", "typesensesearch.Driver.Search", "opensearch.Driver.Search", "searchfake.New"} {
 		if !found[name] {
 			t.Fatal("missing API", name)
 		}

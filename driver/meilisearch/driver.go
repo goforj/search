@@ -38,7 +38,6 @@ type Driver struct {
 type pending struct {
 	uncertain bool
 	items     []search.ItemResult
-	def       search.Definition
 	tasks     []uint64
 }
 
@@ -97,6 +96,7 @@ func (d *Driver) Close() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.closed = true
+	d.http.Close()
 	return nil
 }
 

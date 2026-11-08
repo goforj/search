@@ -19,11 +19,13 @@ const MaxRequestTimeout = 30 * time.Second
 
 // HTTP owns a restricted, bounded transport without redirect credential forwarding.
 type HTTP struct {
-	Base     string
-	Key      string
-	Header   string
-	Client   *http.Client
-	MaxBytes int64
+	Authorization string
+	owned         bool
+	Base          string
+	Key           string
+	Header        string
+	Client        *http.Client
+	MaxBytes      int64
 }
 
 // NewHTTP validates an origin and copies client policy without changing shared transports.
@@ -40,14 +42,15 @@ func NewHTTP(base, key, header string, client *http.Client) (*HTTP, error) {
 		c.Timeout = MaxRequestTimeout
 	}
 	c.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	if c.Transport == nil {
+	owned := c.Transport == nil
+	if owned {
 		t := http.DefaultTransport.(*http.Transport).Clone()
 		t.MaxResponseHeaderBytes = 64 << 10
 		t.ResponseHeaderTimeout = 15 * time.Second
 		t.DisableCompression = true
 		c.Transport = t
 	}
-	return &HTTP{Base: strings.TrimRight(base, "/"), Key: key, Header: header, Client: &c, MaxBytes: 16 << 20}, nil
+	return &HTTP{Base: strings.TrimRight(base, "/"), Key: key, Header: header, Client: &c, MaxBytes: 16 << 20, owned: owned}, nil
 }
 
 // Do marshals JSON and treats malformed accepted-mutation responses as unknown outcomes.
@@ -85,7 +88,9 @@ func (h *HTTP) DoBytes(ctx context.Context, method, path, contentType string, bo
 		return nil, search.ErrUnavailable
 	}
 	req.Header.Set("Content-Type", contentType)
-	if h.Key != "" {
+	if h.Authorization != "" {
+		req.Header.Set("Authorization", h.Authorization)
+	} else if h.Key != "" {
 		value := h.Key
 		if h.Header == "Authorization" {
 			value = "Bearer " + value
@@ -124,7 +129,7 @@ func (h *HTTP) DoBytes(ctx context.Context, method, path, contentType string, bo
 		if mutation && response.StatusCode >= 500 {
 			return nil, unknownMutationError(err)
 		}
-		return nil, search.ErrUnavailable
+		return nil, &StatusError{Code: response.StatusCode, classification: search.ErrUnavailable}
 	}
 	return data, nil
 }
@@ -139,3 +144,22 @@ func unknownMutationError(err error) error {
 	}
 	return search.ErrOutcomeUnknown
 }
+
+// Close releases only idle connections owned by this client, preserving application-supplied transports.
+func (h *HTTP) Close() {
+	if h.owned {
+		h.Client.CloseIdleConnections()
+	}
+}
+
+// StatusError retains only an HTTP status and an allowlisted classification for concrete driver translation.
+type StatusError struct {
+	Code           int
+	classification error
+}
+
+// Error omits server prose, URLs, and response bodies.
+func (e *StatusError) Error() string { return e.classification.Error() }
+
+// Unwrap exposes only the stable library classification.
+func (e *StatusError) Unwrap() error { return e.classification }

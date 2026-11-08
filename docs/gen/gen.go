@@ -55,7 +55,7 @@ func Root() (string, error) {
 
 // Symbols inventories root and qualified driver APIs without importing their dependencies.
 func Symbols(root string) ([]Symbol, error) {
-	targets := []string{".", "driver/blevesearch", "driver/meilisearch", "driver/typesensesearch", "searchfake", "searchtest"}
+	targets := []string{".", "driver/blevesearch", "driver/meilisearch", "driver/typesensesearch", "driver/opensearch", "searchfake", "searchtest"}
 	var symbols []Symbol
 	for _, target := range targets {
 		set := token.NewFileSet()
@@ -259,12 +259,12 @@ func SourceFingerprint(root string) (string, error) {
 			return err
 		}
 		if entry.IsDir() {
-			if relative == ".git" || relative == "docs" || relative == "examples" {
+			if relative == ".git" || relative == "docs" || relative == "examples" || relative == ".artifacts" {
 				return filepath.SkipDir
 			}
 			return nil
 		}
-		if strings.HasSuffix(path, ".go") || entry.Name() == "go.mod" {
+		if strings.HasSuffix(path, ".go") || entry.Name() == "go.mod" || filepath.ToSlash(relative) == "integration/versions.json" {
 			files = append(files, relative)
 		}
 		return nil

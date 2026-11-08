@@ -1,10 +1,11 @@
 //go:build integration
 
-package integration_test
+package integration
 
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 
 	"github.com/goforj/search"
 	"github.com/goforj/search/driver/meilisearch"
+	"github.com/goforj/search/driver/opensearch"
 	"github.com/goforj/search/driver/typesensesearch"
 	"github.com/goforj/search/internal/driverutil"
 	"github.com/goforj/search/searchtest"
@@ -43,6 +45,18 @@ func serviceDriver(t *testing.T, engine, endpoint, prefix string) administeredBa
 		})
 		return driver
 	}
+	if engine == "opensearch" {
+		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, Prefix: prefix, RefreshInterval: 100 * time.Millisecond})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if err := driver.Close(); err != nil {
+				t.Error(err)
+			}
+		})
+		return driver
+	}
 	driver, err := typesensesearch.New(typesensesearch.Config{URL: endpoint, APIKey: testAPIKey, Prefix: prefix, HTTPClient: &http.Client{Transport: &classificationTransport{t: t, base: http.DefaultTransport.(*http.Transport).Clone()}}})
 	if err != nil {
 		t.Fatal(err)
@@ -55,7 +69,7 @@ func serviceDriver(t *testing.T, engine, endpoint, prefix string) administeredBa
 	return driver
 }
 
-// TestServiceOwnershipAndActualDrift proves physical isolation and actual-schema validation on both servers.
+// TestServiceOwnershipAndActualDrift proves physical isolation and actual-schema validation on every service engine.
 func TestServiceOwnershipAndActualDrift(t *testing.T) {
 	for _, engine := range selectedServices() {
 		t.Run(engine, func(t *testing.T) {
@@ -101,11 +115,32 @@ func TestServiceOwnershipAndActualDrift(t *testing.T) {
 				header = "Authorization"
 			}
 			admin, err := driverutil.NewHTTP(endpoint, testAPIKey, header, nil)
+			if engine == "opensearch" {
+				admin, err = driverutil.NewHTTP(endpoint, "", "", nil)
+				if err == nil {
+					admin.Authorization = "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:"+testOpenSearchPassword))
+				}
+			}
 			if err != nil {
 				t.Fatal(err)
 			}
 			physical := "first_s_" + driverutil.FieldKey(search.FieldName(definition.Name))
-			if engine == "meilisearch" {
+			if engine == "opensearch" {
+				var observed map[string]any
+				if err := admin.Do(ctx, "GET", "/first_*/_mapping", nil, &observed, false); err != nil {
+					t.Fatal(err)
+				}
+				if len(observed) != 1 {
+					t.Fatal("ambiguous owned index target")
+				}
+				for name := range observed {
+					physical = name
+				}
+				var acknowledgement map[string]any
+				if err := admin.Do(ctx, "PUT", "/"+physical+"/_settings", map[string]any{"index": map[string]any{"max_result_window": 20000}}, &acknowledgement, true); err != nil {
+					t.Fatal(err)
+				}
+			} else if engine == "meilisearch" {
 				var task struct {
 					TaskUID uint64 `json:"taskUid"`
 				}

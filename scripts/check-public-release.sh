@@ -29,6 +29,7 @@ import (
  "github.com/goforj/search"
  "github.com/goforj/search/driver/blevesearch"
  "github.com/goforj/search/driver/meilisearch"
+ "github.com/goforj/search/driver/opensearch"
  "github.com/goforj/search/driver/typesensesearch"
 )
 
@@ -52,6 +53,9 @@ func TestPublishedComposition(t *testing.T) {
  typesense,err:=typesensesearch.New(typesensesearch.Config{URL:"http://127.0.0.1:8108"})
  if err!=nil{t.Fatal(err)}
  defer typesense.Close()
+ opensearch,err:=opensearch.New(opensearch.Config{URL:"http://127.0.0.1:9200"})
+ if err!=nil{t.Fatal(err)}
+ defer opensearch.Close()
 }
 EOF_GO
 cd "$consumer_temp"

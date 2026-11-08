@@ -14,9 +14,9 @@
   <a href="https://codecov.io/gh/goforj/search"><img src="https://codecov.io/gh/goforj/search/graph/badge.svg" alt="Coverage"></a>
   <a href="https://github.com/goforj/search/tags"><img src="https://img.shields.io/github/v/tag/goforj/search?label=version&sort=semver&filter=%21driver%2A" alt="Latest tag"></a>
 <!-- test-count:embed:start -->
-<img src="https://img.shields.io/badge/unit_tests-139-brightgreen" alt="Executed unit tests, including subtests">
-  <img src="https://img.shields.io/badge/integration_tests-113-brightgreen" alt="Executed integration tests, including subtests">
-  <a href="docs/coverage.json"><img src="https://img.shields.io/badge/coverage-85.7%25-brightgreen" alt="Merged statement coverage"></a>
+<img src="https://img.shields.io/badge/unit_tests-201-brightgreen" alt="Executed unit tests, including subtests">
+  <img src="https://img.shields.io/badge/integration_tests-202-brightgreen" alt="Executed integration tests, including subtests">
+  <a href="docs/coverage.json"><img src="https://img.shields.io/badge/coverage-90.3%25-brightgreen" alt="Merged statement coverage"></a>
 <!-- test-count:embed:end -->
 </p>
 
@@ -47,6 +47,7 @@ Service drivers are packages in the root module:
 ```go
 import "github.com/goforj/search/driver/meilisearch"
 import "github.com/goforj/search/driver/typesensesearch"
+import "github.com/goforj/search/driver/opensearch"
 ```
 
 ## Contract
@@ -70,6 +71,7 @@ Keep search data rebuildable. Search is not the authoritative database or an aut
 | bleve | v2.6.3 | synchronous | per item | single process; memory or disk |
 | meilisearch | v1.17.0 | asynchronous receipt | aggregate task | shared service |
 | typesense | 30.0 | synchronous | per item | shared service |
+| opensearch | 3.9.0 | refresh-waiting | per item | shared service |
 
 All listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.
 <!-- drivers:embed:end -->
@@ -77,6 +79,8 @@ All listed engines pass the same literal all-terms, typed-filter, stable-sort, p
 Meilisearch facets support at most 4096 distinct terms per requested field after filtering. Higher cardinality returns `ErrUnsupported`; it does not return an incorrectly chosen top bucket. The driver collects a bounded complete distribution because the engine does not preserve portable lexical ties at its native count cutoff.
 
 Meilisearch accepts at most ten backend words. Queries in scripts with finer native segmentation use a conservative rune bound to prevent silent truncation. Its validated server search cutoff exceeds the enforced 30-second maximum HTTP deadline, so the client fails before the engine can return a silently timed-out response. As with schema validation, this assumes administrators do not change settings behind a running client.
+
+OpenSearch writes wait for refresh and active shard copies before reporting visibility. Native bulk responses retain per-item failures even when HTTP succeeds. Queries reject timeouts and partial shard responses. Multi-shard facet counts retain the engine's estimated precision when native error bounds are nonzero. Keyword values are limited to 16382 UTF-8 bytes because their ordered encoding must fit Lucene's term limit. Provisioning defaults to one primary shard and no replicas; configure replicas explicitly for a production cluster.
 
 Bleve owns a single index path in one process. Its ownership lock refuses a second writer. Use a shared service when querying and indexing from separate processes. Close concrete drivers at the application lifecycle boundary.
 
@@ -95,7 +99,7 @@ make generate
 make check-generated
 ```
 
-Integration tests use Testcontainers with pinned Meilisearch and Typesense images and real Bleve indexes. See [development and release notes](docs/development.md) for module ownership and release order.
+Integration tests use Testcontainers with pinned Meilisearch, Typesense, and OpenSearch images and real Bleve indexes. OpenSearch runs with authentication enabled and executes the shared contract with one and two primary shards. See [development and release notes](docs/development.md) for module ownership and release order.
 
 <!-- examples:embed:start -->
 ## Examples
@@ -558,6 +562,7 @@ import (
 	"fmt"
 
 	"github.com/goforj/search/driver/meilisearch"
+	"github.com/goforj/search/driver/opensearch"
 	"github.com/goforj/search/driver/typesensesearch"
 )
 
@@ -573,6 +578,11 @@ func main() {
 		panic(err)
 	}
 	defer typesense.Close()
+	openSearch, err := opensearch.New(opensearch.Config{URL: "http://127.0.0.1:9200"})
+	if err != nil {
+		panic(err)
+	}
+	defer openSearch.Close()
 	fmt.Println("Clients constructed without backend I/O")
 	// Clients constructed without backend I/O
 
@@ -595,6 +605,11 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`meilisearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Config) | Config owns service credentials, physical namespace, and optional transport policy. |
 | [`meilisearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver) | Driver is a concurrent client for one provisioned logical index. |
 | [`meilisearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Close) | Close prevents new calls without closing application-owned HTTP transports. |
+| [`meilisearch.MaxFacetValues`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#MaxFacetValues) | MaxFacetValues bounds the distinct terms collected per requested facet before portable count-and-value ordering. |
+| [`opensearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Config) | Config owns connection policy and materialized index settings. |
+| [`opensearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver) | Driver owns a concurrent client for one explicitly provisioned logical index. |
+| [`opensearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Close) | Close drains admitted calls and releases only connection pools owned by this driver. |
+| [`opensearch.MaxKeywordBytes`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#MaxKeywordBytes) | MaxKeywordBytes keeps the physical hexadecimal term below Lucene's term-byte limit. |
 | [`search.ErrClosed`](https://pkg.go.dev/github.com/goforj/search#ErrClosed) | ErrClosed identifies a closed driver. |
 | [`search.ErrConflict`](https://pkg.go.dev/github.com/goforj/search#ErrConflict) | ErrConflict identifies a competing owner or conflicting request. |
 | [`search.ErrIndexNotFound`](https://pkg.go.dev/github.com/goforj/search#ErrIndexNotFound) | ErrIndexNotFound identifies an unprovisioned index. |
@@ -623,6 +638,7 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | --- | --- |
 | [`blevesearch.Open`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Open) | Open acquires ownership without creating or modifying an index schema. |
 | [`meilisearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#New) | New validates transport configuration without contacting the server. |
+| [`opensearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#New) | New validates configuration without contacting the cluster or changing index state. |
 | [`search.Backend`](https://pkg.go.dev/github.com/goforj/search#Backend) | Backend is the consumer-owned request-path contract implemented by concrete drivers. |
 | [`search.DefaultLimits`](https://pkg.go.dev/github.com/goforj/search#DefaultLimits) | DefaultLimits returns conservative allocation and backend-work budgets. |
 | [`search.Index`](https://pkg.go.dev/github.com/goforj/search#Index) | Index validates calls and owns its immutable definition. It is safe for concurrent use. |
@@ -641,6 +657,8 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`blevesearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.ValidateIndex) | ValidateIndex compares both portable metadata and the actual materialized mapping. |
 | [`meilisearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.CreateIndex) | CreateIndex provisions only missing state and never applies changes to an existing schema. |
 | [`meilisearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.ValidateIndex) | ValidateIndex compares portable identity and every driver-owned server setting. |
+| [`opensearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.CreateIndex) | CreateIndex creates only absent state and validates existing mappings without applying changes. |
+| [`opensearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.ValidateIndex) | ValidateIndex compares actual mappings and every owned index setting before marking the handle ready. |
 | [`search.Ascending`](https://pkg.go.dev/github.com/goforj/search#Ascending) | Ascending orders strings by UTF-8 bytes, Booleans false first, and integers numerically. |
 | [`search.BooleanField`](https://pkg.go.dev/github.com/goforj/search#BooleanField) | BooleanField enables Boolean filtering, ordering, and facets. |
 | [`search.Definition`](https://pkg.go.dev/github.com/goforj/search#Definition) | Definition describes rebuildable index data and default query behavior. |
@@ -714,6 +732,9 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`meilisearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Bulk) | Bulk submits contiguous operation groups and retains every accepted task. |
 | [`meilisearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Delete) | Delete submits an idempotent document removal. |
 | [`meilisearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Upsert) | Upsert submits a complete replacement rather than a partial document merge. |
+| [`opensearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Bulk) | Bulk submits native NDJSON and checks every item even when the HTTP request succeeds. |
+| [`opensearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Delete) | Delete treats missing documents idempotently while refusing to hide a removed index. |
+| [`opensearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Upsert) | Upsert replaces the complete document and waits for refresh on every participating shard. |
 | [`search.DeleteMutation`](https://pkg.go.dev/github.com/goforj/search#DeleteMutation) | DeleteMutation validates an ID for idempotent deletion. |
 | [`search.Index.Bulk`](https://pkg.go.dev/github.com/goforj/search#Index.Bulk) | Bulk rejects duplicate IDs and validates the entire bounded batch before submission. |
 | [`search.Index.Delete`](https://pkg.go.dev/github.com/goforj/search#Index.Delete) | Delete removes an ID idempotently; visibility is established through Wait. |
@@ -752,6 +773,7 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | --- | --- |
 | [`blevesearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Search) | Search compiles literal queries and typed filters without a backend query-string parser. |
 | [`meilisearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Search) | Search disables progressive term dropping and makes declared field sorts primary. |
+| [`opensearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Search) | Search rejects timed-out or failed-shard responses and retains native count precision. |
 | [`search.Highlight`](https://pkg.go.dev/github.com/goforj/search#Highlight) | Highlight requests untrusted text segments for one searchable field. |
 | [`search.Index.Search`](https://pkg.go.dev/github.com/goforj/search#Index.Search) | Search validates literal text, filters, limits, and result documents before exposure. |
 | [`search.Query`](https://pkg.go.dev/github.com/goforj/search#Query) | Query specifies literal all-terms text, typed filtering, and bounded pagination. |
@@ -764,6 +786,7 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | --- | --- |
 | [`blevesearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Wait) | Wait reports synchronous commit evidence, including bounded receipt expiration. |
 | [`meilisearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Wait) | Wait reports aggregate task precision without fabricating per-document success. |
+| [`opensearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Wait) | Wait returns visibility evidence established by the refresh-waiting write, including exact bulk outcomes. |
 | [`search.BatchOnly`](https://pkg.go.dev/github.com/goforj/search#BatchOnly) | BatchOnly means only the aggregate outcome is known. |
 | [`search.BulkOutcome`](https://pkg.go.dev/github.com/goforj/search#BulkOutcome) | BulkOutcome retains terminal per-item evidence without inventing precision. |
 | [`search.BulkResult`](https://pkg.go.dev/github.com/goforj/search#BulkResult) | BulkResult retains submission precision and accepted-work receipt. |
@@ -858,5 +881,6 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`search.Value.Integer`](https://pkg.go.dev/github.com/goforj/search#Value.Integer) | Integer returns the integer only for integer values. |
 | [`search.Value.Keyword`](https://pkg.go.dev/github.com/goforj/search#Value.Keyword) | Keyword returns the string only for keyword values. |
 | [`search.Value.Kind`](https://pkg.go.dev/github.com/goforj/search#Value.Kind) | Kind reports the scalar's discriminator. |
+| [`search.Value.MarshalJSON`](https://pkg.go.dev/github.com/goforj/search#Value.MarshalJSON) | MarshalJSON preserves a Value's scalar JSON shape for typed result DTOs and rejects its invalid zero value. |
 | [`search.ValueKind`](https://pkg.go.dev/github.com/goforj/search#ValueKind) | ValueKind distinguishes portable scalar types. |
 <!-- api:embed:end -->

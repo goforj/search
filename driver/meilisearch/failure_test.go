@@ -41,7 +41,7 @@ func fixtureDriver(t *testing.T, handler http.HandlerFunc) (*Driver, search.Defi
 func TestTaskInspectionFailures(t *testing.T) {
 	for _, status := range []string{"failed", "canceled", "invalid", "missing", "unauthorized"} {
 		t.Run(status, func(t *testing.T) {
-			driver, definition := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
+			driver, _ := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
 				if status == "missing" {
 					w.WriteHeader(404)
 					return
@@ -53,7 +53,7 @@ func TestTaskInspectionFailures(t *testing.T) {
 				fmt.Fprintf(w, `{"status":%q}`, status)
 			})
 			id := uint64(1)
-			receipt, err := driver.remember(&id, definition, nil)
+			receipt, err := driver.remember(&id, nil)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -78,9 +78,9 @@ func TestTaskInspectionFailures(t *testing.T) {
 			}
 		})
 	}
-	driver, definition := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `{"status":"processing"}`) })
+	driver, _ := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) { fmt.Fprint(w, `{"status":"processing"}`) })
 	id := uint64(1)
-	receipt, err := driver.remember(&id, definition, nil)
+	receipt, err := driver.remember(&id, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -89,7 +89,7 @@ func TestTaskInspectionFailures(t *testing.T) {
 	if _, err := driver.Wait(ctx, receipt); !errors.Is(err, context.DeadlineExceeded) {
 		t.Fatal(err)
 	}
-	if _, err := driver.remember(nil, definition, nil); !errors.Is(err, search.ErrOutcomeUnknown) {
+	if _, err := driver.remember(nil, nil); !errors.Is(err, search.ErrOutcomeUnknown) {
 		t.Fatal(err)
 	}
 	if _, err := driver.Wait(context.Background(), search.Receipt{}); err != nil {

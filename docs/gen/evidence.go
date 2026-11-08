@@ -42,6 +42,9 @@ func EvidenceMarkdown(root string) (string, error) {
 		if driver.Name == "bleve" {
 			topology = "single process; memory or disk"
 		}
+		if driver.Name == "opensearch" {
+			visibility = "refresh-waiting"
+		}
 		if driver.Name == "meilisearch" {
 			visibility = "asynchronous receipt"
 			precision = "aggregate task"

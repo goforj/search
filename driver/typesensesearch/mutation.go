@@ -85,10 +85,10 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 			err := d.http.Do(ctx, "DELETE", "/collections/"+d.name+"/documents/"+driverutil.IDKey(mutations[start].ID()), nil, &response, true)
 			if errors.Is(err, search.ErrIndexNotFound) {
 				if verifyErr := d.http.Do(ctx, "GET", "/collections/"+d.name, nil, &response, false); verifyErr != nil {
-					return search.BulkResult{}, verifyErr
+					return d.partialOutcome(mutations, terminal, verifyErr)
 				}
 			} else if err != nil {
-				return search.BulkResult{}, search.ErrOutcomeUnknown
+				return d.partialOutcome(mutations, terminal, search.ErrOutcomeUnknown)
 			}
 			items[start] = search.ItemResult{Position: start, ID: mutations[start].ID(), Status: search.ItemAccepted}
 			terminal[start] = search.ItemResult{Position: start, ID: mutations[start].ID(), Status: search.ItemSucceeded}
@@ -104,16 +104,16 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 		for _, mutation := range mutations[start:end] {
 			doc, _ := mutation.Document()
 			if err := encoder.Encode(physical(doc, def)); err != nil {
-				return search.BulkResult{}, search.ErrInvalidDocument
+				return d.partialOutcome(mutations, terminal, search.ErrInvalidDocument)
 			}
 		}
 		response, err := d.http.DoBytes(ctx, "POST", "/collections/"+d.name+"/documents/import?action=upsert&dirty_values=reject&return_id=true", "text/plain", body.Bytes(), true)
 		if err != nil {
-			return search.BulkResult{}, err
+			return d.partialOutcome(mutations, terminal, err)
 		}
 		lines := bytes.Split(bytes.TrimSpace(response), []byte("\n"))
 		if len(lines) != end-start {
-			return search.BulkResult{}, search.ErrOutcomeUnknown
+			return d.partialOutcome(mutations, terminal, search.ErrOutcomeUnknown)
 		}
 		for n, line := range lines {
 			var result struct {
@@ -121,7 +121,7 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 				ID      string
 			}
 			if err := json.Unmarshal(line, &result); err != nil || result.Success == nil {
-				return search.BulkResult{}, search.ErrOutcomeUnknown
+				return d.partialOutcome(mutations, terminal, search.ErrOutcomeUnknown)
 			}
 			position := start + n
 			item := search.ItemResult{Position: position, ID: mutations[position].ID(), Status: search.ItemAccepted}
@@ -131,7 +131,7 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 				item.Status, final.Status = search.ItemRejected, search.ItemFailed
 				item.Error, final.Error = search.ErrMutationFailed, search.ErrMutationFailed
 			} else if result.ID != driverutil.IDKey(item.ID) {
-				return search.BulkResult{}, search.ErrOutcomeUnknown
+				return d.partialOutcome(mutations, terminal, search.ErrOutcomeUnknown)
 			}
 			items[position], terminal[position] = item, final
 		}
@@ -160,4 +160,27 @@ func (d *Driver) Wait(ctx context.Context, receipt search.Receipt) (search.Outco
 		return search.Outcome{}, search.ErrClosed
 	}
 	return d.ledger.Wait(ctx, receipt)
+}
+
+// partialOutcome retains proven item results when later protocol loss makes the complete batch uncertain.
+func (d *Driver) partialOutcome(mutations []search.Mutation, terminal []search.ItemResult, cause error) (search.BulkResult, error) {
+	known := false
+	for _, item := range terminal {
+		if item.Status == search.ItemSucceeded || item.Status == search.ItemFailed {
+			known = true
+		}
+	}
+	if !known {
+		return search.BulkResult{}, search.SafeError(cause)
+	}
+	for n, mutation := range mutations {
+		if terminal[n].Status == "" {
+			terminal[n] = search.ItemResult{Position: n, ID: mutation.ID(), Status: search.ItemUnknown, Error: search.ErrOutcomeUnknown}
+		}
+	}
+	receipt, err := d.ledger.Complete(search.Outcome{State: search.OutcomeUnknown, Error: search.ErrOutcomeUnknown, Bulk: &search.BulkOutcome{Items: terminal, Precision: search.PerItem}})
+	if err != nil {
+		return search.BulkResult{}, search.ErrOutcomeUnknown
+	}
+	return search.BulkResult{}, errors.Join(search.NewUnknownOutcomeError(receipt), search.SafeError(cause))
 }
