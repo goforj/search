@@ -77,9 +77,12 @@ func (r *reader) value(depth int) (any, error) {
 			}
 			return string(data[:count]), nil
 		}
-		if count > 1000000 {
+		// Each interface slot consumes two machine words before any child frame is read.
+		const valueBytes = 2 * (strconv.IntSize / 8)
+		if count > 1000000 || count > r.remaining/valueBytes {
 			return nil, search.ErrUnavailable
 		}
+		r.remaining -= count * valueBytes
 		values := make([]any, count)
 		for n := range values {
 			value, err := r.value(depth + 1)

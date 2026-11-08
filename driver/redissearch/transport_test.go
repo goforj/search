@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -282,5 +283,20 @@ func TestTransportEdges(t *testing.T) {
 	cancel()
 	if err := transportError(ctx, errors.New("private"), false); !errors.Is(err, context.Canceled) {
 		t.Fatal(err)
+	}
+}
+
+// TestRESPAggregateAllocationBudget rejects array reservations before allocating their element storage.
+func TestRESPAggregateAllocationBudget(t *testing.T) {
+	for _, frame := range []string{fmt.Sprintf("*%d\r\n", 1024/(2*(strconv.IntSize/8))), fmt.Sprintf("*2\r\n*%d\r\n", 1024/(2*(strconv.IntSize/8))-2)} {
+		r := reader{input: bufio.NewReader(strings.NewReader(frame)), remaining: 1024}
+		if _, err := r.value(0); !errors.Is(err, search.ErrUnavailable) {
+			t.Fatalf("array allocation exceeded response budget: %v", err)
+		}
+	}
+	frame := "*2\r\n$-1\r\n$-1\r\n"
+	r := reader{input: bufio.NewReader(strings.NewReader(frame)), remaining: len(frame) + 2*2*(strconv.IntSize/8)}
+	if _, err := r.value(0); err != nil || r.remaining != 0 {
+		t.Fatalf("exact allocation budget rejected: remaining=%d, error=%v", r.remaining, err)
 	}
 }
