@@ -146,6 +146,10 @@ func recordTests(root, path, kind string) error {
 			{"meilisearch", "TestMeilisearchContract", versions["meilisearch"].Version},
 			{"typesense", "TestTypesenseContract", versions["typesense"].Version},
 			{"opensearch", "TestOpenSearchContract", versions["opensearch"].Version},
+			{"elasticsearch", "TestElasticsearchContract", versions["elasticsearch"].Version},
+			{"postgres", "TestPostgresContract", versions["postgres"].Version},
+			{"sqlite", "TestSQLiteContract", versions["sqlite"].Version},
+			{"redis", "TestRedisContract", versions["redis"].Version},
 		} {
 			row := driverResult{Name: engine.name, Version: engine.version}
 			for _, scenario := range searchtest.ScenarioNames() {
@@ -161,17 +165,21 @@ func recordTests(root, path, kind string) error {
 				}
 				row.Scenarios = append(row.Scenarios, scenario)
 			}
-			if engine.name == "opensearch" {
+			if engine.name == "opensearch" || engine.name == "elasticsearch" {
+				multiSuite := "TestOpenSearchMultiShardContract"
+				if engine.name == "elasticsearch" {
+					multiSuite = "TestElasticsearchMultiShardContract"
+				}
 				for _, scenario := range searchtest.ScenarioNames() {
 					found := false
 					for _, executed := range report.Tests {
-						if strings.HasSuffix(executed, "/TestOpenSearchMultiShardContract/"+scenario) {
+						if strings.HasSuffix(executed, "/"+multiSuite+"/"+scenario) {
 							found = true
 							break
 						}
 					}
 					if !found {
-						return fmt.Errorf("opensearch is missing multi-shard fixture %s", scenario)
+						return fmt.Errorf("%s is missing multi-shard fixture %s", engine.name, scenario)
 					}
 					row.Scenarios = append(row.Scenarios, "multi-shard/"+scenario)
 				}

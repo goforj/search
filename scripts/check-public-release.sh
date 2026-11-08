@@ -30,7 +30,17 @@ import (
  "github.com/goforj/search/driver/blevesearch"
  "github.com/goforj/search/driver/meilisearch"
  "github.com/goforj/search/driver/opensearch"
+ "github.com/goforj/search/driver/elasticsearch"
+ "github.com/goforj/search/driver/redissearch"
+ "github.com/goforj/search/driver/postgressearch"
+ "github.com/goforj/search/driver/sqlitesearch"
  "github.com/goforj/search/driver/typesensesearch"
+)
+
+// Published SQL driver composition is checked without selecting an application's database/sql provider.
+var (
+ _ search.Backend = (*postgressearch.Driver)(nil)
+ _ search.Backend = (*sqlitesearch.Driver)(nil)
 )
 
 // TestPublishedComposition verifies independently downloaded root and driver modules work together.
@@ -56,6 +66,12 @@ func TestPublishedComposition(t *testing.T) {
  opensearch,err:=opensearch.New(opensearch.Config{URL:"http://127.0.0.1:9200"})
  if err!=nil{t.Fatal(err)}
  defer opensearch.Close()
+ elastic,err:=elasticsearch.New(elasticsearch.Config{URL:"http://127.0.0.1:9200"})
+ if err!=nil{t.Fatal(err)}
+ defer elastic.Close()
+ redis,err:=redissearch.New(redissearch.Config{Addr:"127.0.0.1:6379"})
+ if err!=nil{t.Fatal(err)}
+ defer redis.Close()
 }
 EOF_GO
 cd "$consumer_temp"

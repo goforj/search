@@ -55,7 +55,7 @@ func Root() (string, error) {
 
 // Symbols inventories root and qualified driver APIs without importing their dependencies.
 func Symbols(root string) ([]Symbol, error) {
-	targets := []string{".", "driver/blevesearch", "driver/meilisearch", "driver/typesensesearch", "driver/opensearch", "searchfake", "searchtest"}
+	targets := []string{".", "driver/blevesearch", "driver/meilisearch", "driver/typesensesearch", "driver/opensearch", "driver/elasticsearch", "driver/postgressearch", "driver/sqlitesearch", "driver/redissearch", "searchfake", "searchtest"}
 	var symbols []Symbol
 	for _, target := range targets {
 		set := token.NewFileSet()

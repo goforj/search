@@ -43,12 +43,21 @@ func EvidenceMarkdown(root string) (string, error) {
 		if driver.Name == "bleve" {
 			topology = "single process; memory or disk"
 		}
-		if driver.Name == "opensearch" {
+		if driver.Name == "opensearch" || driver.Name == "elasticsearch" {
 			visibility = "refresh-waiting"
 		}
 		if driver.Name == "meilisearch" {
 			visibility = "asynchronous receipt"
 			precision = "aggregate task"
+		}
+		if driver.Name == "postgres" {
+			topology = "application-owned SQL pool"
+		}
+		if driver.Name == "sqlite" {
+			topology = "embedded SQL; application-owned pool"
+		}
+		if driver.Name == "redis" {
+			topology = "standalone service; at most 4096 matches"
 		}
 		fmt.Fprintf(&out, "| %s | %s | %s | %s | %s |\n", driver.Name, driver.Version, visibility, precision, topology)
 	}

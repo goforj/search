@@ -13,7 +13,7 @@ test: ## Run every module's unit and executable example tests.
 test-race: ## Run race tests across every module.
 	@scripts/test-all-modules.sh race
 
-test-integration: ## Run real drivers: make test-integration [all|bleve|meilisearch|typesense|opensearch].
+test-integration: ## Run real drivers: make test-integration [all|bleve|meilisearch|typesense|opensearch|elasticsearch|postgres|sqlite|redis].
 	@scripts/test-integration.sh $(or $(firstword $(ARGS)),all)
 
 test-coverage: ## Run unit and real-backend tests and generate merged coverage.

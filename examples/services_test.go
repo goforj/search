@@ -3,8 +3,10 @@ package examples_test
 import (
 	"fmt"
 
+	"github.com/goforj/search/driver/elasticsearch"
 	"github.com/goforj/search/driver/meilisearch"
 	"github.com/goforj/search/driver/opensearch"
+	"github.com/goforj/search/driver/redissearch"
 	"github.com/goforj/search/driver/typesensesearch"
 )
 
@@ -26,6 +28,16 @@ func Example_services() {
 		panic(err)
 	}
 	defer openSearch.Close()
+	elastic, err := elasticsearch.New(elasticsearch.Config{URL: "http://127.0.0.1:9200"})
+	if err != nil {
+		panic(err)
+	}
+	defer elastic.Close()
+	redis, err := redissearch.New(redissearch.Config{Addr: "127.0.0.1:6379"})
+	if err != nil {
+		panic(err)
+	}
+	defer redis.Close()
 	fmt.Println("Clients constructed without backend I/O")
 	// Clients constructed without backend I/O
 	// Output:

@@ -40,9 +40,13 @@ make test-integration bleve
 make test-integration meilisearch
 make test-integration typesense
 make test-integration opensearch
+make test-integration elasticsearch
+make test-integration postgres
+make test-integration sqlite
+make test-integration redis
 ```
 
-`integration/versions.json` owns service versions and digest-pinned images. The harness checks each running server's reported version against that file. OpenSearch uses its security plugin with disposable Basic credentials and runs the complete contract with both one and two primary shards. Native bulk rejection is tested against the real server.
+`integration/versions.json` owns service versions and digest-pinned images. The harness checks each running server's reported version against that file. OpenSearch and Elasticsearch use authenticated nodes and run the complete contract with both one and two primary shards. Native bulk rejection is tested against both real servers. PostgreSQL and Redis also require disposable credentials. SQLite runs against a real local database with FTS5 enabled. The integration module registers pgx and go-sqlite3; library packages use only database/sql. The integration scripts enable the sqlite_fts5 build tag and require a C compiler for that selected test provider. Applications may select another FTS5-enabled SQLite provider without importing this test dependency.
 
 A focused run does not refresh the all-driver support report. The complete run starts one Testcontainers container per engine for the entire package run. Tests use distinct physical index namespaces inside that container. Fixtures use disposable credentials, random host ports, bounded readiness, and package-level cleanup registered before assertions. The shared contract, authentication checks, schema drift, and native failure tests all reuse their engine container. Docker must be available; missing infrastructure fails the run instead of silently skipping it.
 
@@ -70,6 +74,8 @@ The implementation follows the portable lexical core from GoForj's search design
 
 GoForj component wiring, named-engine registries, maker commands, reindex coordination, Lighthouse integration, vector search, and online promotion are separate work. Indexes remain derived data. Applications own authorization, tenant predicates, reconciliation, and recovery from their authoritative source.
 
-## Driver roadmap
+## Driver support
 
-The implemented drivers cover embedded Bleve, Meilisearch, Typesense, and OpenSearch. [PostgreSQL full-text search](https://www.postgresql.org/docs/current/datatype-textsearch.html) and [SQLite FTS5](https://sqlite.org/fts5.html) are the next useful candidates for applications that want search in their existing database. [Redis Search](https://redis.io/docs/latest/develop/interact/search-and-query/) is another candidate for applications already operating Redis with its search capability. Elasticsearch should have an independent driver and version matrix rather than being treated as an OpenSearch alias. Algolia would add a hosted-service option. None of these candidates currently has a support claim or integration evidence.
+Implemented drivers cover Bleve, Meilisearch, Typesense, OpenSearch, Elasticsearch, PostgreSQL FTS, SQLite FTS5, and standalone Redis Search. Every supported driver must execute the same complete scenario inventory. Algolia is outside the current scope.
+
+SQL tests additionally prove actual schema drift detection, caller-owned pool lifetime, wide exact IDs and keywords, and rollback after a native constraint rejection. Redis tests prove its 4096-match boundary, authentication failures, native schema alteration, and removed-index detection. Lua commands isolate concurrent visibility but do not provide transactional rollback after a script error; such unproven writes retain unknown outcomes.

@@ -48,6 +48,10 @@ Service drivers are packages in the root module:
 import "github.com/goforj/search/driver/meilisearch"
 import "github.com/goforj/search/driver/typesensesearch"
 import "github.com/goforj/search/driver/opensearch"
+import "github.com/goforj/search/driver/elasticsearch"
+import "github.com/goforj/search/driver/redissearch"
+import "github.com/goforj/search/driver/postgressearch"
+import "github.com/goforj/search/driver/sqlitesearch"
 ```
 
 ## Contract
@@ -72,6 +76,10 @@ Keep search data rebuildable. Search is not the authoritative database or an aut
 | meilisearch | v1.17.0 | asynchronous receipt | aggregate task | shared service |
 | typesense | 30.0 | synchronous | per item | shared service |
 | opensearch | 3.9.0 | refresh-waiting | per item | shared service |
+| elasticsearch | 9.5.6 | refresh-waiting | per item | shared service |
+| postgres | 18.6 | synchronous | per item | application-owned SQL pool |
+| sqlite | 3.54.1 | synchronous | per item | embedded SQL; application-owned pool |
+| redis | 8.10.3 | synchronous | per item | standalone service; at most 4096 matches |
 
 All listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.
 <!-- drivers:embed:end -->
@@ -80,7 +88,18 @@ Meilisearch facets support at most 4096 distinct terms per requested field after
 
 Meilisearch accepts at most ten backend words. Queries in scripts with finer native segmentation use a conservative rune bound to prevent silent truncation. Its validated server search cutoff exceeds the enforced 30-second maximum HTTP deadline, so the client fails before the engine can return a silently timed-out response. As with schema validation, this assumes administrators do not change settings behind a running client.
 
-OpenSearch writes wait for refresh and active shard copies before reporting visibility. Native bulk responses retain per-item failures even when HTTP succeeds. Queries reject timeouts and partial shard responses. Multi-shard facet counts retain the engine's estimated precision when native error bounds are nonzero. Keyword values are limited to 16382 UTF-8 bytes because their ordered encoding must fit Lucene's term limit. Provisioning defaults to one primary shard and no replicas; configure replicas explicitly for a production cluster.
+Elasticsearch and OpenSearch each have an independent driver and tested version matrix. Their writes wait for refresh and active shard copies before reporting visibility. Native bulk responses retain per-item failures even when HTTP succeeds. Queries reject timeouts and partial shard responses. Multi-shard facet counts retain the engine's estimated precision when native error bounds are nonzero. Keyword values are limited to 16382 UTF-8 bytes because their ordered encoding must fit Lucene's term limit. Provisioning defaults to one primary shard and no replicas; configure replicas explicitly for a production cluster.
+
+PostgreSQL FTS and SQLite FTS5 accept an application-owned `*sql.DB`. The application selects and registers its SQL client, configures the pool, and closes it. The search driver creates dedicated tables, native full-text projections, and schema ownership metadata. Writes and their projections commit in one transaction. Queries compute hits, totals, and facets from one database snapshot. PostgreSQL uses the `simple` text-search configuration and byte-order collation. SQLite requires an FTS5-enabled provider. Driver `Close` preserves the injected pool.
+
+```go
+postgres, err := postgressearch.New(postgressearch.Config{DB: postgresDB, Prefix: "catalog_"})
+// postgresDB is the application's PostgreSQL pool.
+sqlite, err := sqlitesearch.New(sqlitesearch.Config{DB: sqliteDB, Prefix: "catalog_"})
+// sqliteDB is the application's FTS5-enabled SQLite pool.
+```
+
+Redis Search targets standalone Redis with its native Search module. It uses native literal matching and typed filtering, then collects at most 4096 matching documents to provide deterministic multiple sorts and exact array facets. More matches return `ErrUnsupported`. Mutations execute as one Lua command, and interrupted or failed scripts report uncertainty rather than implying rollback. Native query timeout exceeds the enforced maximum client deadline to avoid accepting partial timed-out results. Cluster routing is not supported by this driver.
 
 Bleve owns a single index path in one process. Its ownership lock refuses a second writer. Use a shared service when querying and indexing from separate processes. Close concrete drivers at the application lifecycle boundary.
 
@@ -99,7 +118,7 @@ make generate
 make check-generated
 ```
 
-Integration tests use Testcontainers with pinned Meilisearch, Typesense, and OpenSearch images and real Bleve indexes. OpenSearch runs with authentication enabled and executes the shared contract with one and two primary shards. See [development and release notes](docs/development.md) for module ownership and release order.
+Integration tests use Testcontainers with pinned Meilisearch, Typesense, OpenSearch, Elasticsearch, PostgreSQL, and Redis images, plus real Bleve indexes and SQLite FTS5 databases. Each service container starts once per run; tests use separate index namespaces. OpenSearch and Elasticsearch run with authentication enabled and execute the shared contract with one and two primary shards. See [development and release notes](docs/development.md) for module ownership and release order.
 
 <!-- examples:embed:start -->
 ## Examples
@@ -561,8 +580,10 @@ package main
 import (
 	"fmt"
 
+	"github.com/goforj/search/driver/elasticsearch"
 	"github.com/goforj/search/driver/meilisearch"
 	"github.com/goforj/search/driver/opensearch"
+	"github.com/goforj/search/driver/redissearch"
 	"github.com/goforj/search/driver/typesensesearch"
 )
 
@@ -583,6 +604,16 @@ func main() {
 		panic(err)
 	}
 	defer openSearch.Close()
+	elastic, err := elasticsearch.New(elasticsearch.Config{URL: "http://127.0.0.1:9200"})
+	if err != nil {
+		panic(err)
+	}
+	defer elastic.Close()
+	redis, err := redissearch.New(redissearch.Config{Addr: "127.0.0.1:6379"})
+	if err != nil {
+		panic(err)
+	}
+	defer redis.Close()
 	fmt.Println("Clients constructed without backend I/O")
 	// Clients constructed without backend I/O
 
@@ -602,6 +633,10 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`blevesearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Config) | Config selects a single-index persistent path or an explicit in-memory index. |
 | [`blevesearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver) | Driver owns one embedded index and its process lock. Close releases both. |
 | [`blevesearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Close) | Close waits for admitted calls before releasing the embedded index and ownership lock. |
+| [`elasticsearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Config) | Config owns connection policy and materialized index settings. |
+| [`elasticsearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver) | Driver owns a concurrent client for one explicitly provisioned logical index. |
+| [`elasticsearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.Close) | Close drains admitted calls and releases only connection pools owned by this driver. |
+| [`elasticsearch.MaxKeywordBytes`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#MaxKeywordBytes) | MaxKeywordBytes keeps the physical hexadecimal term below Lucene's term-byte limit. |
 | [`meilisearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Config) | Config owns service credentials, physical namespace, and optional transport policy. |
 | [`meilisearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver) | Driver is a concurrent client for one provisioned logical index. |
 | [`meilisearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Close) | Close prevents new calls without closing application-owned HTTP transports. |
@@ -610,6 +645,13 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`opensearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver) | Driver owns a concurrent client for one explicitly provisioned logical index. |
 | [`opensearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Close) | Close drains admitted calls and releases only connection pools owned by this driver. |
 | [`opensearch.MaxKeywordBytes`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#MaxKeywordBytes) | MaxKeywordBytes keeps the physical hexadecimal term below Lucene's term-byte limit. |
+| [`postgressearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Config) | Config uses an application-owned pool and an optional lowercase ASCII table namespace. |
+| [`postgressearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver) | Driver owns one logical index without taking ownership of the injected database pool. |
+| [`postgressearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.Close) | Close drains admitted operations and preserves the application-owned database pool. |
+| [`redissearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Config) | Config owns standalone Redis connection policy without changing persistent client authentication. |
+| [`redissearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver) | Driver owns one explicitly provisioned Redis Search index and process-local receipt state. |
+| [`redissearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.Close) | Close drains admitted calls; every connection is already scoped to a single operation. |
+| [`redissearch.MaxMatches`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#MaxMatches) | MaxMatches bounds complete match collection needed for portable multi-sort and exact array facets. |
 | [`search.ErrClosed`](https://pkg.go.dev/github.com/goforj/search#ErrClosed) | ErrClosed identifies a closed driver. |
 | [`search.ErrConflict`](https://pkg.go.dev/github.com/goforj/search#ErrConflict) | ErrConflict identifies a competing owner or conflicting request. |
 | [`search.ErrIndexNotFound`](https://pkg.go.dev/github.com/goforj/search#ErrIndexNotFound) | ErrIndexNotFound identifies an unprovisioned index. |
@@ -628,6 +670,9 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`search.ErrUnsupported`](https://pkg.go.dev/github.com/goforj/search#ErrUnsupported) | ErrUnsupported identifies an unavailable backend capability. |
 | [`search.SafeError`](https://pkg.go.dev/github.com/goforj/search#SafeError) | SafeError removes backend prose and unwrap chains while retaining known classifications. |
 | [`search.UnknownOutcomeError`](https://pkg.go.dev/github.com/goforj/search#UnknownOutcomeError) | UnknownOutcomeError retains recoverable accepted-work evidence without exposing backend prose. |
+| [`sqlitesearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Config) | Config uses an application-owned pool and an optional lowercase ASCII table namespace. |
+| [`sqlitesearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver) | Driver owns one logical index without taking ownership of the injected database pool. |
+| [`sqlitesearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.Close) | Close drains admitted operations and preserves the application-owned database pool. |
 | [`typesensesearch.Config`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Config) | Config supplies server-owned credentials and an optional physical namespace. |
 | [`typesensesearch.Driver`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver) | Driver owns one validated collection and bounded process-local mutation evidence. |
 | [`typesensesearch.Driver.Close`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.Close) | Close prevents new operations after admitted calls have completed. |
@@ -637,8 +682,11 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | API | Description |
 | --- | --- |
 | [`blevesearch.Open`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Open) | Open acquires ownership without creating or modifying an index schema. |
+| [`elasticsearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#New) | New validates configuration without contacting the cluster or changing index state. |
 | [`meilisearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#New) | New validates transport configuration without contacting the server. |
 | [`opensearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#New) | New validates configuration without contacting the cluster or changing index state. |
+| [`postgressearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#New) | New validates namespace policy without making connections or provisioning tables. |
+| [`redissearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#New) | New validates configuration without connecting or provisioning native state. |
 | [`search.Backend`](https://pkg.go.dev/github.com/goforj/search#Backend) | Backend is the consumer-owned request-path contract implemented by concrete drivers. |
 | [`search.DefaultLimits`](https://pkg.go.dev/github.com/goforj/search#DefaultLimits) | DefaultLimits returns conservative allocation and backend-work budgets. |
 | [`search.Index`](https://pkg.go.dev/github.com/goforj/search#Index) | Index validates calls and owns its immutable definition. It is safe for concurrent use. |
@@ -647,6 +695,7 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`search.Option`](https://pkg.go.dev/github.com/goforj/search#Option) | Option configures domain limits or safe observation before the handle is published. |
 | [`search.WithLimits`](https://pkg.go.dev/github.com/goforj/search#WithLimits) | WithLimits replaces nonzero limits, up to sixteen times each default ceiling. |
 | [`search.WithObserver`](https://pkg.go.dev/github.com/goforj/search#WithObserver) | WithObserver attaches synchronous, panic-isolated observation without retaining contexts. |
+| [`sqlitesearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#New) | New validates namespace policy without making connections or provisioning tables. |
 | [`typesensesearch.New`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#New) | New validates configuration without provisioning or contacting Typesense. |
 
 ### Definitions
@@ -655,10 +704,16 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | --- | --- |
 | [`blevesearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.CreateIndex) | CreateIndex creates only an absent index; existing schema must match exactly. |
 | [`blevesearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.ValidateIndex) | ValidateIndex compares both portable metadata and the actual materialized mapping. |
+| [`elasticsearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.CreateIndex) | CreateIndex creates only absent state and validates existing mappings without applying changes. |
+| [`elasticsearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.ValidateIndex) | ValidateIndex compares actual mappings and every owned index setting before marking the handle ready. |
 | [`meilisearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.CreateIndex) | CreateIndex provisions only missing state and never applies changes to an existing schema. |
 | [`meilisearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.ValidateIndex) | ValidateIndex compares portable identity and every driver-owned server setting. |
 | [`opensearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.CreateIndex) | CreateIndex creates only absent state and validates existing mappings without applying changes. |
 | [`opensearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.ValidateIndex) | ValidateIndex compares actual mappings and every owned index setting before marking the handle ready. |
+| [`postgressearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.CreateIndex) | CreateIndex atomically provisions absent storage and validates existing schemas without patching them. |
+| [`postgressearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.ValidateIndex) | ValidateIndex checks the portable fingerprint and actual materialized native schema. |
+| [`redissearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.CreateIndex) | CreateIndex provisions absent native schema with no stemming or stop-word dropping. |
+| [`redissearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.ValidateIndex) | ValidateIndex checks both portable ownership and actual native attributes without changing either. |
 | [`search.Ascending`](https://pkg.go.dev/github.com/goforj/search#Ascending) | Ascending orders strings by UTF-8 bytes, Booleans false first, and integers numerically. |
 | [`search.BooleanField`](https://pkg.go.dev/github.com/goforj/search#BooleanField) | BooleanField enables Boolean filtering, ordering, and facets. |
 | [`search.Definition`](https://pkg.go.dev/github.com/goforj/search#Definition) | Definition describes rebuildable index data and default query behavior. |
@@ -674,6 +729,8 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`search.KeywordsField`](https://pkg.go.dev/github.com/goforj/search#KeywordsField) | KeywordsField enables array membership and term facets. |
 | [`search.Sort`](https://pkg.go.dev/github.com/goforj/search#Sort) | Sort selects a required, sortable field. Drivers append an ascending ID tie-break. |
 | [`search.TextField`](https://pkg.go.dev/github.com/goforj/search#TextField) | TextField enables analyzed full-text matching only. |
+| [`sqlitesearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.CreateIndex) | CreateIndex atomically provisions absent storage and validates existing schemas without patching them. |
+| [`sqlitesearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.ValidateIndex) | ValidateIndex checks the portable fingerprint and actual materialized native schema. |
 | [`typesensesearch.Driver.CreateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.CreateIndex) | CreateIndex creates an absent collection and refuses to mutate an existing schema. |
 | [`typesensesearch.Driver.ValidateIndex`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.ValidateIndex) | ValidateIndex compares actual field settings and persisted ownership metadata. |
 
@@ -729,12 +786,21 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`blevesearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Bulk) | Bulk commits one atomic Bleve batch and retains ordered per-item outcomes. |
 | [`blevesearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Delete) | Delete commits idempotent removal synchronously. |
 | [`blevesearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Upsert) | Upsert commits complete replacement data synchronously. |
+| [`elasticsearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.Bulk) | Bulk submits native NDJSON and checks every item even when the HTTP request succeeds. |
+| [`elasticsearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.Delete) | Delete treats missing documents idempotently while refusing to hide a removed index. |
+| [`elasticsearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.Upsert) | Upsert replaces the complete document and waits for refresh on every participating shard. |
 | [`meilisearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Bulk) | Bulk submits contiguous operation groups and retains every accepted task. |
 | [`meilisearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Delete) | Delete submits an idempotent document removal. |
 | [`meilisearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Upsert) | Upsert submits a complete replacement rather than a partial document merge. |
 | [`opensearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Bulk) | Bulk submits native NDJSON and checks every item even when the HTTP request succeeds. |
 | [`opensearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Delete) | Delete treats missing documents idempotently while refusing to hide a removed index. |
 | [`opensearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Upsert) | Upsert replaces the complete document and waits for refresh on every participating shard. |
+| [`postgressearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.Bulk) | Bulk commits ordered mutations as one transaction with per-item terminal success evidence. |
+| [`postgressearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.Delete) | Delete atomically removes the body and search projections, including absent IDs idempotently. |
+| [`postgressearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.Upsert) | Upsert commits replacement and native search visibility in one transaction. |
+| [`redissearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.Bulk) | Bulk atomically applies ordered mutations and retains exact per-item terminal success evidence. |
+| [`redissearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.Delete) | Delete removes the complete native hash idempotently while checking index existence. |
+| [`redissearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.Upsert) | Upsert replaces the entire native hash atomically before issuing a visibility receipt. |
 | [`search.DeleteMutation`](https://pkg.go.dev/github.com/goforj/search#DeleteMutation) | DeleteMutation validates an ID for idempotent deletion. |
 | [`search.Index.Bulk`](https://pkg.go.dev/github.com/goforj/search#Index.Bulk) | Bulk rejects duplicate IDs and validates the entire bounded batch before submission. |
 | [`search.Index.Delete`](https://pkg.go.dev/github.com/goforj/search#Index.Delete) | Delete removes an ID idempotently; visibility is established through Wait. |
@@ -743,6 +809,9 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`search.Mutation.ID`](https://pkg.go.dev/github.com/goforj/search#Mutation.ID) | ID returns the explicit document identity. |
 | [`search.Mutation.Kind`](https://pkg.go.dev/github.com/goforj/search#Mutation.Kind) | Kind identifies which operation this mutation contains. |
 | [`search.UpsertMutation`](https://pkg.go.dev/github.com/goforj/search#UpsertMutation) | UpsertMutation takes ownership of document bytes after structural validation. |
+| [`sqlitesearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.Bulk) | Bulk commits ordered mutations as one transaction with per-item terminal success evidence. |
+| [`sqlitesearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.Delete) | Delete atomically removes the body and search projections, including absent IDs idempotently. |
+| [`sqlitesearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.Upsert) | Upsert commits replacement and native search visibility in one transaction. |
 | [`typesensesearch.Driver.Bulk`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.Bulk) | Bulk parses every native import response line, retaining known per-item failures. |
 | [`typesensesearch.Driver.Delete`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.Delete) | Delete removes an ID idempotently and proves synchronous visibility. |
 | [`typesensesearch.Driver.Upsert`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.Upsert) | Upsert replaces a complete document, including removal of previously indexed fields. |
@@ -772,12 +841,16 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | API | Description |
 | --- | --- |
 | [`blevesearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Search) | Search compiles literal queries and typed filters without a backend query-string parser. |
+| [`elasticsearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.Search) | Search rejects timed-out or failed-shard responses and retains native count precision. |
 | [`meilisearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Search) | Search disables progressive term dropping and makes declared field sorts primary. |
 | [`opensearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Search) | Search rejects timed-out or failed-shard responses and retains native count precision. |
+| [`postgressearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.Search) | Search uses native full-text matching and exact snapshot-consistent totals and facets. |
+| [`redissearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.Search) | Search collects a bounded complete native match set before portable sorting and exact pre-page facets. |
 | [`search.Highlight`](https://pkg.go.dev/github.com/goforj/search#Highlight) | Highlight requests untrusted text segments for one searchable field. |
 | [`search.Index.Search`](https://pkg.go.dev/github.com/goforj/search#Index.Search) | Search validates literal text, filters, limits, and result documents before exposure. |
 | [`search.Query`](https://pkg.go.dev/github.com/goforj/search#Query) | Query specifies literal all-terms text, typed filtering, and bounded pagination. |
 | [`search.TermFacet`](https://pkg.go.dev/github.com/goforj/search#TermFacet) | TermFacet counts distinct per-document terms before hit pagination. |
+| [`sqlitesearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.Search) | Search uses native full-text matching and exact snapshot-consistent totals and facets. |
 | [`typesensesearch.Driver.Search`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.Search) | Search disables implicit token dropping, fuzzy expansion, and prefix matching. |
 
 ### Receipts
@@ -785,8 +858,11 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | API | Description |
 | --- | --- |
 | [`blevesearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/blevesearch#Driver.Wait) | Wait reports synchronous commit evidence, including bounded receipt expiration. |
+| [`elasticsearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/elasticsearch#Driver.Wait) | Wait returns visibility evidence established by the refresh-waiting write, including exact bulk outcomes. |
 | [`meilisearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/meilisearch#Driver.Wait) | Wait reports aggregate task precision without fabricating per-document success. |
 | [`opensearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/opensearch#Driver.Wait) | Wait returns visibility evidence established by the refresh-waiting write, including exact bulk outcomes. |
+| [`postgressearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/postgressearch#Driver.Wait) | Wait reports visibility established by transaction commit without issuing another database query. |
+| [`redissearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/redissearch#Driver.Wait) | Wait returns only visibility established by an acknowledged atomic mutation command. |
 | [`search.BatchOnly`](https://pkg.go.dev/github.com/goforj/search#BatchOnly) | BatchOnly means only the aggregate outcome is known. |
 | [`search.BulkOutcome`](https://pkg.go.dev/github.com/goforj/search#BulkOutcome) | BulkOutcome retains terminal per-item evidence without inventing precision. |
 | [`search.BulkResult`](https://pkg.go.dev/github.com/goforj/search#BulkResult) | BulkResult retains submission precision and accepted-work receipt. |
@@ -816,6 +892,7 @@ Generated from GoDoc. Edit the owning Go source and run `make generate`.
 | [`search.UnknownOutcomeError.Error`](https://pkg.go.dev/github.com/goforj/search#UnknownOutcomeError.Error) | Error reports uncertainty without serializing the opaque token. |
 | [`search.UnknownOutcomeError.Receipt`](https://pkg.go.dev/github.com/goforj/search#UnknownOutcomeError.Receipt) | Receipt returns immutable recovery evidence when the driver obtained a trustworthy token. |
 | [`search.UnknownOutcomeError.Unwrap`](https://pkg.go.dev/github.com/goforj/search#UnknownOutcomeError.Unwrap) | Unwrap preserves the stable uncertainty classification. |
+| [`sqlitesearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/sqlitesearch#Driver.Wait) | Wait reports visibility established by transaction commit without issuing another database query. |
 | [`typesensesearch.Driver.Wait`](https://pkg.go.dev/github.com/goforj/search/driver/typesensesearch#Driver.Wait) | Wait reports retained per-item evidence or explicit receipt expiration. |
 
 ### Results
