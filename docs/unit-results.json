@@ -1,5 +1,5 @@
 {
-  "executed_tests": 913,
+  "executed_tests": 915,
   "tests": [
     "github.com/goforj/search/FuzzDocumentValidation",
     "github.com/goforj/search/FuzzDocumentValidation/seed#0",
@@ -83,6 +83,7 @@
     "github.com/goforj/search/TestTypedHelpersHonorIndexLimits",
     "github.com/goforj/search/TestValueJSONPreservesScalarTypes",
     "github.com/goforj/search/TestWaitDoesNotMutateBackendEvidence",
+    "github.com/goforj/search/docs/gen/TestExampleSnippetBoundaries",
     "github.com/goforj/search/docs/gen/TestExamplesDeclareExecutableOutput",
     "github.com/goforj/search/docs/gen/TestExamplesMatchStandalonePrograms",
     "github.com/goforj/search/docs/gen/TestFeatureBadgeKeepsLabelAndArtworkTogether",
@@ -90,6 +91,7 @@
     "github.com/goforj/search/docs/gen/TestQualifiedAPIIndex",
     "github.com/goforj/search/docs/gen/TestReplace",
     "github.com/goforj/search/docs/gen/TestSourceFingerprintTracksExecutableOwnership",
+    "github.com/goforj/search/docs/readme/TestAPIIndexLinksToSourceAndInlineExamples",
     "github.com/goforj/search/docs/readme/TestQuickStartRequiresTestedSource",
     "github.com/goforj/search/docs/report/TestCoverageLanesRemainIndependent",
     "github.com/goforj/search/driver/blevesearch/TestBatchMappingFailureNeverCommits",
