@@ -5,6 +5,10 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
+	"net"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -83,6 +87,149 @@ func TestConstructionRejectsInvalidPolicy(t *testing.T) {
 		t.Fatal(err)
 	}
 	if _, err := driver.Wait(context.Background(), search.Receipt{}); !errors.Is(err, search.ErrClosed) {
+		t.Fatal(err)
+	}
+}
+
+// protocolServer makes connection loss and cancellation reproducible below the real-engine integration layer.
+func protocolServer(t *testing.T, handler func(net.Conn)) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		connection, err := listener.Accept()
+		if err != nil {
+			return
+		}
+		defer connection.Close()
+		connection.SetDeadline(time.Now().Add(3 * time.Second))
+		handler(connection)
+	}()
+	t.Cleanup(func() {
+		listener.Close()
+		select {
+		case <-done:
+		case <-time.After(4 * time.Second):
+			t.Error("protocol fixture did not stop")
+		}
+	})
+	return listener.Addr().String()
+}
+
+// readCommand keeps fake server assertions at the protocol boundary without recording credential values.
+func readCommand(t *testing.T, connection net.Conn, want string) {
+	t.Helper()
+	reader := reader{input: bufio.NewReader(connection), remaining: maxResponseBytes}
+	value, err := reader.value(0)
+	if err != nil {
+		t.Error("client did not send a complete command")
+		return
+	}
+	args, ok := value.([]any)
+	if !ok || len(args) == 0 || args[0] != want {
+		t.Error("client sent an unexpected command kind")
+	}
+}
+
+// TestConnectionStages verifies authentication, database selection, and uncertain dispatch independently.
+func TestConnectionStages(t *testing.T) {
+	t.Run("authenticated-database", func(t *testing.T) {
+		addr := protocolServer(t, func(connection net.Conn) {
+			for _, command := range []string{"AUTH", "SELECT", "PING"} {
+				readCommand(t, connection, command)
+				fmt.Fprint(connection, "+OK\r\n")
+			}
+		})
+		driver, err := New(Config{Addr: addr, Username: "fixture-user", Password: "fixture-password", DB: 2})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer driver.Close()
+		if value, err := driver.command(context.Background(), false, "PING"); err != nil || value != "OK" {
+			t.Fatal(value, err)
+		}
+	})
+	for _, stage := range []string{"AUTH", "SELECT"} {
+		t.Run("rejected-"+stage, func(t *testing.T) {
+			addr := protocolServer(t, func(connection net.Conn) {
+				readCommand(t, connection, stage)
+				fmt.Fprint(connection, "-NOPERM private-credential-and-command\r\n")
+			})
+			config := Config{Addr: addr, DB: 1}
+			if stage == "AUTH" {
+				config.Password = "fixture-password"
+			}
+			driver, err := New(config)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer driver.Close()
+			if _, err := driver.command(context.Background(), true, "EVAL", "fixture"); !errors.Is(err, search.ErrUnauthorized) || errors.Is(err, search.ErrOutcomeUnknown) || strings.Contains(err.Error(), "private") {
+				t.Fatal(err)
+			}
+		})
+	}
+	t.Run("lost-write-response", func(t *testing.T) {
+		addr := protocolServer(t, func(connection net.Conn) { readCommand(t, connection, "EVAL") })
+		driver, err := New(Config{Addr: addr})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer driver.Close()
+		if _, err := driver.command(context.Background(), true, "EVAL", "fixture"); !errors.Is(err, search.ErrOutcomeUnknown) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("canceled-write", func(t *testing.T) {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+		addr := protocolServer(t, func(connection net.Conn) {
+			readCommand(t, connection, "EVAL")
+			cancel()
+			var b [1]byte
+			connection.Read(b[:])
+		})
+		driver, err := New(Config{Addr: addr})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer driver.Close()
+		if _, err := driver.command(ctx, true, "EVAL", "fixture"); !errors.Is(err, context.Canceled) || !errors.Is(err, search.ErrOutcomeUnknown) {
+			t.Fatal(err)
+		}
+	})
+	t.Run("malformed-read-response", func(t *testing.T) {
+		addr := protocolServer(t, func(connection net.Conn) {
+			readCommand(t, connection, "PING")
+			fmt.Fprint(connection, "$999999999\r\n")
+		})
+		driver, err := New(Config{Addr: addr})
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer driver.Close()
+		if _, err := driver.command(context.Background(), false, "PING"); !errors.Is(err, search.ErrUnavailable) {
+			t.Fatal(err)
+		}
+	})
+}
+
+// TestTLSVerification refuses an untrusted server before dispatching any Redis mutation.
+func TestTLSVerification(t *testing.T) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("untrusted TLS server received an application request")
+	}))
+	defer server.Close()
+	driver, err := New(Config{Addr: strings.TrimPrefix(server.URL, "https://"), TLSConfig: &tls.Config{}, Timeout: time.Second})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer driver.Close()
+	if _, err := driver.command(context.Background(), true, "EVAL", "fixture"); !errors.Is(err, search.ErrUnavailable) || errors.Is(err, search.ErrOutcomeUnknown) {
 		t.Fatal(err)
 	}
 }
