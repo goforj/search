@@ -1,0 +1,10 @@
+.DS_Store
+.idea/
+.vscode/
+.artifacts/
+coverage.out
+coverage.txt
+*.test
+.env
+.env.*
+_data/

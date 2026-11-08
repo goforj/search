@@ -1,0 +1,69 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  minimum-root:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.24.x'
+          cache-dependency-path: go.mod
+      - name: Verify root and service clients on their minimum Go line
+        run: GOWORK=off go test -race ./...
+
+  quality:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.25.x', stable]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: ${{ matrix.go }}
+          cache-dependency-path: '**/go.sum'
+      - name: Verify formatting, modules, and tidy parity
+        run: |
+          test -z "$(gofmt -l .)"
+          make modules-check
+          scripts/tidy-modules.sh --check
+      - name: Test and vet every module
+        run: |
+          make test
+          make vet
+          make test-race
+      - name: Verify generated documentation and executable examples
+        run: |
+          make check-generated
+          git diff --exit-code -- README.md examples docs/unit-results.json
+
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: stable
+          cache-dependency-path: '**/go.sum'
+      - name: Run every real driver with race detection and merge coverage
+        run: |
+          make test-coverage
+          make generate
+          make check-generated
+      - name: Upload merged coverage
+        uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
+        with:
+          files: .artifacts/coverage.out
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

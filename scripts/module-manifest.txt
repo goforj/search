@@ -1,0 +1,6 @@
+# classification module-directory
+published .
+published driver/blevesearch
+tooling docs
+tooling examples
+tooling integration

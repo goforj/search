@@ -1,0 +1,6 @@
+Generated with the built-in imagegen tool for the search repository.
+Style references: the existing goforj/mail and goforj/cache README logo PNGs.
+Output: docs/assets/logo.png, transparent PNG.
+
+Prompt:
+Create a polished transparent PNG library logo for the GoForj Go library named exactly "search". Match the visual family of the two provided style references: friendly light sky-blue Go gopher with huge white eyes, tiny cream muzzle and paws, thick deep navy outlines, subtle blue shading, white die-cut sticker border. The gopher holds a large magnifying glass inspecting a small white search-results card with blue lines. Below, the exact lowercase word "search" in heavy rounded white lettering with thick navy outline and white sticker border, beautifully legible at 300px width. Compact integrated silhouette, centered, no background, no extra words, no scenery, no tiny decorative items. The provided images are style references only, create a new search-specific mascot and wordmark. Save final output for use as repository docs/assets/logo.png.

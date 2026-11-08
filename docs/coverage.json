@@ -1,0 +1,12 @@
+{
+  "total_percent": 85.70009930486594,
+  "packages": {
+    "github.com/goforj/search": 88.38709677419355,
+    "github.com/goforj/search/driver/blevesearch": 85.56338028169014,
+    "github.com/goforj/search/driver/meilisearch": 82.47126436781609,
+    "github.com/goforj/search/driver/typesensesearch": 88.33333333333333,
+    "github.com/goforj/search/internal/driverutil": 87.01298701298701,
+    "github.com/goforj/search/searchfake": 86.48648648648648,
+    "github.com/goforj/search/searchtest": 75.1592356687898
+  }
+}
