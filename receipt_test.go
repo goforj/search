@@ -237,3 +237,91 @@ func TestTypedHelpersHonorIndexLimits(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestBulkOutcomeIntegrity rejects terminal evidence that cannot be correlated to the submitted operations.
+func TestBulkOutcomeIntegrity(t *testing.T) {
+	for name, bulk := range map[string]*search.BulkOutcome{
+		"missing-items":           {Precision: search.PerItem},
+		"foreign-id":              {Precision: search.PerItem, Items: []search.ItemResult{{ID: "other", Status: search.ItemSucceeded}}},
+		"wrong-position":          {Precision: search.PerItem, Items: []search.ItemResult{{Position: 1, ID: "one", Status: search.ItemSucceeded}}},
+		"unknown-precision":       {Precision: "invalid", Items: []search.ItemResult{{ID: "one", Status: search.ItemSucceeded}}},
+		"submission-status":       {Precision: search.PerItem, Items: []search.ItemResult{{ID: "one", Status: search.ItemAccepted}}},
+		"invented-rejection":      {Precision: search.PerItem, Items: []search.ItemResult{{ID: "one", Status: search.ItemRejected}}},
+		"invented-item-precision": {Precision: search.BatchOnly, Items: []search.ItemResult{{ID: "one", Status: search.ItemSucceeded}}},
+		"inconsistent-success":    {Precision: search.PerItem, Items: []search.ItemResult{{ID: "one", Status: search.ItemUnknown}}},
+	} {
+		t.Run(name, func(t *testing.T) {
+			index, err := search.NewIndex(outcomeBackend{Backend: searchfake.New(), outcome: search.Outcome{State: search.OutcomeSucceeded, Bulk: bulk}}, minimalDefinition())
+			if err != nil {
+				t.Fatal(err)
+			}
+			mutation, err := search.DeleteMutation("one")
+			if err != nil {
+				t.Fatal(err)
+			}
+			batch, err := index.Bulk(context.Background(), []search.Mutation{mutation})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := index.Wait(context.Background(), batch.Receipt); !errors.Is(err, search.ErrUnavailable) {
+				t.Fatal(err)
+			}
+		})
+	}
+}
+
+// TestWaitDoesNotMutateBackendEvidence keeps redaction and caching from writing through a backend-owned slice.
+func TestWaitDoesNotMutateBackendEvidence(t *testing.T) {
+	private := errors.New("private backend detail")
+	bulk := &search.BulkOutcome{Precision: search.PerItem, Items: []search.ItemResult{{ID: "one", Status: search.ItemFailed, Error: private}}}
+	index, err := search.NewIndex(outcomeBackend{Backend: searchfake.New(), outcome: search.Outcome{State: search.OutcomeFailed, Bulk: bulk}}, minimalDefinition())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutation, _ := search.DeleteMutation("one")
+	batch, err := index.Bulk(context.Background(), []search.Mutation{mutation})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcome, err := index.Wait(context.Background(), batch.Receipt)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bulk.Items[0].Error != private || outcome.Bulk.Items[0].Error == private {
+		t.Fatal("backend evidence was changed or private error leaked")
+	}
+}
+
+// uncertainBulkBackend retains submission uncertainty while supplying deliberately malformed terminal evidence.
+type uncertainBulkBackend struct{ outcomeBackend }
+
+// Bulk models a backend that acknowledged work before losing the complete response.
+func (b uncertainBulkBackend) Bulk(ctx context.Context, definition search.Definition, mutations []search.Mutation) (search.BulkResult, error) {
+	batch, err := b.Backend.Bulk(ctx, definition, mutations)
+	if err != nil {
+		return search.BulkResult{}, err
+	}
+	return search.BulkResult{}, search.NewUnknownOutcomeError(batch.Receipt)
+}
+
+// TestRecoveredBulkStillChecksIdentity correlates recovery receipts with their original input IDs.
+func TestRecoveredBulkStillChecksIdentity(t *testing.T) {
+	backend := uncertainBulkBackend{outcomeBackend{Backend: searchfake.New(), outcome: search.Outcome{State: search.OutcomeSucceeded, Bulk: &search.BulkOutcome{Precision: search.PerItem, Items: []search.ItemResult{{ID: "other", Status: search.ItemSucceeded}}}}}}
+	index, err := search.NewIndex(backend, minimalDefinition())
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutation, _ := search.DeleteMutation("one")
+	_, err = index.Bulk(context.Background(), []search.Mutation{mutation})
+	var unknown *search.UnknownOutcomeError
+	if !errors.As(err, &unknown) {
+		t.Fatal(err)
+	}
+	receipt, ok := unknown.Receipt()
+	if !ok {
+		t.Fatal("recovery receipt was lost")
+	}
+	if _, err := index.Wait(context.Background(), receipt); !errors.Is(err, search.ErrUnavailable) {
+		t.Fatal(err)
+	}
+}

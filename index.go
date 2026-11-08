@@ -10,6 +10,7 @@ import (
 )
 
 // Backend is the consumer-owned request-path contract implemented by concrete drivers.
+// Implementations must support concurrent calls and return caller-owned response collections.
 type Backend interface {
 	Search(context.Context, Definition, Query) (Result, error)
 	Upsert(context.Context, Definition, Document) (Receipt, error)
@@ -121,7 +122,7 @@ func (i *Index) Upsert(ctx context.Context, d Document) (Receipt, error) {
 	}
 	i.emit(ctx, Event{Kind: "upsert", Phase: PhaseSubmission, Duration: time.Since(start), DocumentCount: 1, ReceiptID: receiptID(r)}, err)
 	if err != nil {
-		return Receipt{}, i.mutationError(err)
+		return Receipt{}, i.mutationError(err, nil)
 	}
 	return r, nil
 }
@@ -142,7 +143,7 @@ func (i *Index) Delete(ctx context.Context, id DocumentID) (Receipt, error) {
 	}
 	i.emit(ctx, Event{Kind: "delete", Phase: PhaseSubmission, Duration: time.Since(start), DocumentCount: 1, ReceiptID: receiptID(r)}, err)
 	if err != nil {
-		return Receipt{}, i.mutationError(err)
+		return Receipt{}, i.mutationError(err, nil)
 	}
 	return r, nil
 }
@@ -183,6 +184,7 @@ func (i *Index) Bulk(ctx context.Context, ms []Mutation) (BulkResult, error) {
 	}
 	start := time.Now()
 	r, err := i.backend.Bulk(ctx, i.Definition(), out)
+	r.Items = slices.Clone(r.Items)
 	if err == nil {
 		r.Receipt, err = i.bind(r.Receipt)
 	}
@@ -204,7 +206,7 @@ func (i *Index) Bulk(ctx context.Context, ms []Mutation) (BulkResult, error) {
 	}
 	i.emit(ctx, Event{Kind: "bulk", Phase: PhaseSubmission, Duration: time.Since(start), DocumentCount: len(ms), ReceiptID: receiptID(r.Receipt)}, err)
 	if err != nil {
-		return BulkResult{}, i.mutationError(err)
+		return BulkResult{}, i.mutationError(err, out)
 	}
 	return r, nil
 }
@@ -236,6 +238,7 @@ func (i *Index) Wait(ctx context.Context, r Receipt) (Outcome, error) {
 	if o.State != OutcomeSucceeded && o.State != OutcomeFailed && o.State != OutcomeUnknown {
 		return Outcome{}, ErrUnavailable
 	}
+	o = cloneOutcome(o)
 	o.Error = SafeError(o.Error)
 	if o.State == OutcomeSucceeded {
 		o.Error = nil
@@ -261,6 +264,9 @@ func (i *Index) Wait(ctx context.Context, r Receipt) (Outcome, error) {
 			}
 		}
 		o.Bulk = &BulkOutcome{Items: items, Precision: BatchOnly}
+	}
+	if !validBulkOutcome(o, r.state.bulk) {
+		return Outcome{}, ErrUnavailable
 	}
 	if o.Bulk != nil {
 		for x := range o.Bulk.Items {
@@ -322,15 +328,54 @@ func cloneOutcome(o Outcome) Outcome {
 }
 
 // mutationError attaches recovered work to the same handle before exposing uncertainty.
-func (i *Index) mutationError(err error) error {
+func (i *Index) mutationError(err error, mutations []Mutation) error {
 	var unknown *UnknownOutcomeError
 	if errors.As(err, &unknown) {
 		if receipt, ok := unknown.Receipt(); ok {
 			bound, bindErr := i.bind(receipt)
 			if bindErr == nil {
+				for position, mutation := range mutations {
+					bound.state.bulk = append(bound.state.bulk, ItemResult{Position: position, ID: mutation.ID(), Status: ItemUnknown})
+				}
 				return withContextError(NewUnknownOutcomeError(bound), err)
 			}
 		}
 	}
 	return SafeError(err)
+}
+
+// validBulkOutcome prevents malformed backend evidence from changing item identity or inventing precision.
+func validBulkOutcome(outcome Outcome, submitted []ItemResult) bool {
+	if outcome.Bulk == nil {
+		return len(submitted) == 0
+	}
+	bulk := outcome.Bulk
+	if len(submitted) == 0 || len(bulk.Items) != len(submitted) || (bulk.Precision != PerItem && bulk.Precision != BatchOnly) {
+		return false
+	}
+	for position, item := range bulk.Items {
+		if item.Position != position || item.ID != submitted[position].ID {
+			return false
+		}
+		switch item.Status {
+		case ItemSucceeded, ItemFailed:
+			if bulk.Precision == BatchOnly {
+				return false
+			}
+		case ItemUnknown:
+		case ItemRejected:
+			if submitted[position].Status != ItemRejected {
+				return false
+			}
+		default:
+			return false
+		}
+		if submitted[position].Status == ItemRejected && item.Status != ItemRejected && item.Status != ItemFailed {
+			return false
+		}
+		if outcome.State == OutcomeSucceeded && bulk.Precision == PerItem && item.Status != ItemSucceeded {
+			return false
+		}
+	}
+	return true
 }

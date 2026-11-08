@@ -280,3 +280,17 @@ func TestValueJSONPreservesScalarTypes(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// TestTerminalRejectionCannotBecomeSuccess preserves already-proven submission failures through terminal inspection.
+func TestTerminalRejectionCannotBecomeSuccess(t *testing.T) {
+	submitted := []ItemResult{{ID: "one", Status: ItemRejected}}
+	for _, test := range []struct {
+		status ItemStatus
+		valid  bool
+	}{{ItemSucceeded, false}, {ItemUnknown, false}, {ItemFailed, true}, {ItemRejected, true}} {
+		outcome := Outcome{State: OutcomeFailed, Bulk: &BulkOutcome{Precision: PerItem, Items: []ItemResult{{ID: "one", Status: test.status}}}}
+		if validBulkOutcome(outcome, submitted) != test.valid {
+			t.Fatal(test.status)
+		}
+	}
+}
