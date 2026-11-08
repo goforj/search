@@ -33,10 +33,65 @@ func Definition() search.Definition {
 // @group Testing
 func RunBackend(t *testing.T, provision Provision) {
 	t.Helper()
+	runBackend(backendReporter(t), func(ctx context.Context, def search.Definition) (backendIndex, func(context.Context) error, error) {
+		index, cleanup, err := provision(ctx, def)
+		return index, cleanup, err
+	}, portableFactories())
+}
+
+// backendIndex limits the harness to the public request operations it verifies.
+type backendIndex interface {
+	Search(context.Context, search.Query) (search.Result, error)
+	Upsert(context.Context, search.Document) (search.Receipt, error)
+	Delete(context.Context, search.DocumentID) (search.Receipt, error)
+	Bulk(context.Context, []search.Mutation) (search.BulkResult, error)
+	Wait(context.Context, search.Receipt) (search.Outcome, error)
+}
+
+// backendProvision isolates harness assertion tests from the domain handle's own validation.
+type backendProvision func(context.Context, search.Definition) (backendIndex, func(context.Context) error, error)
+
+// backendTest binds test reporting so the contract's own failure assertions can be verified in isolation.
+type backendTest struct {
+	Helper  func()
+	Cleanup func(func())
+	Error   func(...any)
+	Errorf  func(string, ...any)
+	Fatal   func(...any)
+	Fatalf  func(string, ...any)
+	Run     func(string, func(backendTest)) bool
+}
+
+// backendReporter preserves testing.T cleanup, subtest, and failure semantics for public contract runs.
+func backendReporter(t *testing.T) backendTest {
+	return backendTest{
+		Helper: t.Helper, Cleanup: t.Cleanup, Error: t.Error, Errorf: t.Errorf, Fatal: t.Fatal, Fatalf: t.Fatalf,
+		Run: func(name string, test func(backendTest)) bool {
+			return t.Run(name, func(child *testing.T) { test(backendReporter(child)) })
+		},
+	}
+}
+
+// backendFactories keeps fixture construction wired to the same public constructors consumers call.
+type backendFactories struct {
+	Keyword        func(string) (search.Value, error)
+	Integer        func(int64) (search.Value, error)
+	UpsertMutation func(search.Document) (search.Mutation, error)
+	DeleteMutation func(search.DocumentID) (search.Mutation, error)
+}
+
+// portableFactories binds fixture values and mutations without optional or global dependencies.
+func portableFactories() backendFactories {
+	return backendFactories{search.Keyword, search.Integer, search.UpsertMutation, search.DeleteMutation}
+}
+
+// runBackend executes the contract through independently testable reporting and fixture construction.
+func runBackend(t backendTest, provision backendProvision, factories backendFactories) {
+	t.Helper()
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 	seen := map[string]bool{}
-	run := func(name string, test func(*testing.T)) bool { seen[name] = true; return t.Run(name, test) }
+	run := func(name string, test func(backendTest)) bool { seen[name] = true; return t.Run(name, test) }
 	defer func() {
 		for _, name := range ScenarioNames() {
 			if !seen[name] {
@@ -58,7 +113,7 @@ func RunBackend(t *testing.T, provision Provision) {
 			t.Error(err)
 		}
 	})
-	run("empty-provisioned-text", func(t *testing.T) {
+	run("empty-provisioned-text", func(t backendTest) {
 		result, err := idx.Search(ctx, search.Query{Text: "anything"})
 		if err != nil || result.Total.Value != 0 || len(result.Hits) != 0 {
 			t.Fatal(result, err)
@@ -84,14 +139,14 @@ func RunBackend(t *testing.T, provision Provision) {
 		}
 	}
 	kw := func(s string) search.Value {
-		v, e := search.Keyword(s)
+		v, e := factories.Keyword(s)
 		if e != nil {
 			t.Fatal(e)
 		}
 		return v
 	}
 	integer := func(n int64) search.Value {
-		v, e := search.Integer(n)
+		v, e := factories.Integer(n)
 		if e != nil {
 			t.Fatal(e)
 		}
@@ -133,7 +188,7 @@ func RunBackend(t *testing.T, provision Provision) {
 		{"facet-before-pagination", search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "tags", Field: "tags"}}}, []string{"A"}, 4},
 	}
 	for _, tc := range cases {
-		run(tc.name, func(t *testing.T) {
+		run(tc.name, func(t backendTest) {
 			r, e := idx.Search(ctx, tc.q)
 			if e != nil {
 				t.Fatal(e)
@@ -170,7 +225,7 @@ func RunBackend(t *testing.T, provision Provision) {
 			}
 		})
 	}
-	run("safe-highlights", func(t *testing.T) {
+	run("safe-highlights", func(t backendTest) {
 		r, e := idx.Search(ctx, search.Query{Text: "red", Highlight: []search.Highlight{{Field: "title"}}})
 		if e != nil {
 			t.Fatal(e)
@@ -187,7 +242,7 @@ func RunBackend(t *testing.T, provision Provision) {
 			t.Fatal("no matched segments")
 		}
 	})
-	run("replace-and-delete", func(t *testing.T) {
+	run("replace-and-delete", func(t backendTest) {
 		r, e := idx.Upsert(ctx, search.Document{ID: "A", Body: json.RawMessage(`{"active":true,"rank":1,"code":"x"}`)})
 		if e != nil {
 			t.Fatal(e)
@@ -209,11 +264,11 @@ func RunBackend(t *testing.T, provision Provision) {
 			}
 		}
 	})
-	run("bulk-order", func(t *testing.T) {
+	run("bulk-order", func(t backendTest) {
 		ms := []search.Mutation{}
 		for n := 0; n < 3; n++ {
 			doc := search.Document{ID: search.DocumentID(fmt.Sprintf("bulk%d", n)), Body: json.RawMessage(`{"active":true,"rank":1,"code":"x"}`)}
-			m, e := search.UpsertMutation(doc)
+			m, e := factories.UpsertMutation(doc)
 			if e != nil {
 				t.Fatal(e)
 			}
@@ -236,19 +291,19 @@ func RunBackend(t *testing.T, provision Provision) {
 			}
 		}
 	})
-	run("canceled", func(t *testing.T) {
+	run("canceled", func(t backendTest) {
 		c, cancel := context.WithCancel(ctx)
 		cancel()
 		if _, e := idx.Search(c, search.Query{}); e != context.Canceled {
 			t.Fatal(e)
 		}
 	})
-	run("mixed-bulk", func(t *testing.T) {
-		deletion, err := search.DeleteMutation("bulk0")
+	run("mixed-bulk", func(t backendTest) {
+		deletion, err := factories.DeleteMutation("bulk0")
 		if err != nil {
 			t.Fatal(err)
 		}
-		replacement, err := search.UpsertMutation(search.Document{ID: "mixed", Body: json.RawMessage(`{"active":true,"rank":1,"code":"x"}`)})
+		replacement, err := factories.UpsertMutation(search.Document{ID: "mixed", Body: json.RawMessage(`{"active":true,"rank":1,"code":"x"}`)})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -268,7 +323,7 @@ func RunBackend(t *testing.T, provision Provision) {
 			}
 		}
 	})
-	run("concurrent-calls", func(t *testing.T) {
+	run("concurrent-calls", func(t backendTest) {
 		var workers sync.WaitGroup
 		for n := 0; n < 8; n++ {
 			workers.Add(1)
@@ -293,7 +348,7 @@ func RunBackend(t *testing.T, provision Provision) {
 		workers.Wait()
 	})
 
-	run("facet-truncation-ties", func(t *testing.T) {
+	run("facet-truncation-ties", func(t backendTest) {
 		definition := Definition()
 		definition.Name = "facets"
 		index, cleanup, err := provision(ctx, definition)
@@ -309,7 +364,7 @@ func RunBackend(t *testing.T, provision Provision) {
 			mutations := []search.Mutation{}
 			for n := start; n < min(start+500, 1700); n++ {
 				body := fmt.Sprintf(`{"active":true,"rank":0,"code":"x","category":"tag%04d"}`, n)
-				mutation, err := search.UpsertMutation(search.Document{ID: search.DocumentID(fmt.Sprintf("facet%04d", n)), Body: json.RawMessage(body)})
+				mutation, err := factories.UpsertMutation(search.Document{ID: search.DocumentID(fmt.Sprintf("facet%04d", n)), Body: json.RawMessage(body)})
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -339,7 +394,7 @@ func RunBackend(t *testing.T, provision Provision) {
 		}
 	})
 
-	run("keyword-only-nested-index", func(t *testing.T) {
+	run("keyword-only-nested-index", func(t backendTest) {
 		definition := search.Definition{Name: "nested", Fields: []search.Field{{Name: "code", Path: "/nested/a~1b/0/~0key", Type: search.KeywordField, Required: true, Filterable: true, Sortable: true, Facetable: true}}}
 		index, cleanup, err := provision(ctx, definition)
 		if err != nil {
@@ -357,7 +412,7 @@ func RunBackend(t *testing.T, provision Provision) {
 		if outcome, err := index.Wait(ctx, receipt); err != nil || outcome.State != search.OutcomeSucceeded {
 			t.Fatal(outcome, err)
 		}
-		value, err := search.Keyword("one")
+		value, err := factories.Keyword("one")
 		if err != nil {
 			t.Fatal(err)
 		}
