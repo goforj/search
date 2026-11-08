@@ -37,7 +37,7 @@ func EvidenceMarkdown(root string) (string, error) {
 		return "", fmt.Errorf("driver evidence is stale; run make test-integration")
 	}
 	var out strings.Builder
-	out.WriteString("| Driver | Tested engine | Mutation visibility | Bulk precision | Topology |\n| --- | --- | --- | --- | --- |\n")
+	out.WriteString("| Driver | Tested version | Mutation visibility | Bulk precision | Topology |\n| --- | --- | --- | --- | --- |\n")
 	for _, driver := range evidence.Drivers {
 		visibility, precision, topology := "synchronous", "per item", "shared service"
 		if driver.Name == "bleve" {
@@ -59,7 +59,11 @@ func EvidenceMarkdown(root string) (string, error) {
 		if driver.Name == "redis" {
 			topology = "standalone service; at most 4096 matches"
 		}
-		fmt.Fprintf(&out, "| %s | %s | %s | %s | %s |\n", driver.Name, driver.Version, visibility, precision, topology)
+		badge, err := driverBadge(root, driver.Name)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&out, "| %s | `%s` | %s | %s | %s |\n", badge, driver.Version, visibility, precision, topology)
 	}
 	out.WriteString("\nAll listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.\n")
 	return out.String(), nil

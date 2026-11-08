@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="103" height="22" role="img" aria-label="Typesense">
+  <title>Typesense</title>
+  <rect width="103" height="22" rx="4" fill="#9A3412"/>
+  <g fill="#fff" transform="translate(7 3) scale(.666667)"><path d="M3 3h7v7H3ZM14 3h7v7h-7ZM3 14h7v7H3ZM14 14h7v7h-7Z"/></g>
+  <text x="31" y="15" fill="#fff" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">Typesense</text>
+</svg>

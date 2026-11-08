@@ -68,6 +68,10 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	result, err = gen.Replace(result, "features", gen.FeaturesMarkdown())
+	if err != nil {
+		return err
+	}
 	badges, err := gen.TestBadges(root)
 	if err != nil {
 		return err

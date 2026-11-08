@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="75" height="22" role="img" aria-label="Bleve">
+  <title>Bleve</title>
+  <rect width="75" height="22" rx="4" fill="#156C4A"/>
+  <g fill="#fff" transform="translate(7 3) scale(.666667)"><path d="M10 2a8 8 0 1 0 4.9 14.3L21 22l1-1-5.7-6.1A8 8 0 0 0 10 2ZM10 4a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"/></g>
+  <text x="31" y="15" fill="#fff" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">Bleve</text>
+</svg>

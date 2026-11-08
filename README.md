@@ -24,6 +24,25 @@
 
 The root package has no third-party dependencies. Bleve is isolated in its own module so service clients do not inherit an embedded search engine.
 
+## Features
+
+<!-- features:embed:start -->
+| Feature | What you get | Example or API |
+| --- | --- | --- |
+| **🔎 Literal search** | Require every analyzed term, with explicit searchable fields. | [Typed search example](examples/search/main.go) |
+| **🎛️ Typed filters** | Combine Boolean logic, exact values, integer ranges, and array membership. | [Filter example](examples/filters/main.go) |
+| **↕️ Stable sorting** | Order by up to two declared fields, followed by the document ID. | [`Sort`](definition.go) |
+| **📄 Pagination** | Use bounded offsets and limits with explicit total-count precision. | [`Query`](query.go) |
+| **📊 Term facets** | Count matching documents before pagination, deduplicating repeated array terms. | [Facet example](examples/facets/main.go) |
+| **🖍️ Structured highlights** | Render untrusted text segments with explicit match markers. | [Highlight example](examples/highlights/main.go) |
+| **📦 Bulk operations** | Retain input positions and honest per-item or aggregate outcomes. | [Bulk example](examples/bulk/main.go) |
+| **⏳ Visibility receipts** | Wait for accepted writes to become searchable and retain recovery evidence. | [`Receipt` and `Outcome`](mutation.go) |
+| **🧩 Typed documents** | Use typed Go values while keeping document IDs separate from JSON bodies. | [Typed search example](examples/search/main.go) |
+| **🗂️ Explicit schemas** | Provision deliberately and detect schema drift without runtime migration. | [`Definition`](definition.go) |
+| **📡 Safe observability** | Observe classified events with panic isolation and optional bounded async delivery. | [`Observer`](observer.go) · [`AsyncObserver`](observer_async.go) |
+| **🧪 Isolated testing** | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
+<!-- features:embed:end -->
+
 ## Status
 
 This is an unreleased implementation. Local examples and development use the checked-in workspace. Installation commands below describe the module layout; they become usable after the first release is published.
@@ -70,16 +89,16 @@ Keep search data rebuildable. Search is not the authoritative database or an aut
 ## Drivers
 
 <!-- drivers:embed:start -->
-| Driver | Tested engine | Mutation visibility | Bulk precision | Topology |
+| Driver | Tested version | Mutation visibility | Bulk precision | Topology |
 | --- | --- | --- | --- | --- |
-| bleve | v2.6.3 | synchronous | per item | single process; memory or disk |
-| meilisearch | v1.17.0 | asynchronous receipt | aggregate task | shared service |
-| typesense | 30.0 | synchronous | per item | shared service |
-| opensearch | 3.9.0 | refresh-waiting | per item | shared service |
-| elasticsearch | 9.5.6 | refresh-waiting | per item | shared service |
-| postgres | 18.6 | synchronous | per item | application-owned SQL pool |
-| sqlite | 3.54.1 | synchronous | per item | embedded SQL; application-owned pool |
-| redis | 8.10.3 | synchronous | per item | standalone service; at most 4096 matches |
+| [![Bleve](docs/assets/badges/driver-bleve.svg)](driver/blevesearch) | `v2.6.3` | synchronous | per item | single process; memory or disk |
+| [![Meilisearch](docs/assets/badges/driver-meilisearch.svg)](driver/meilisearch) | `v1.17.0` | asynchronous receipt | aggregate task | shared service |
+| [![Typesense](docs/assets/badges/driver-typesense.svg)](driver/typesensesearch) | `30.0` | synchronous | per item | shared service |
+| [![OpenSearch](docs/assets/badges/driver-opensearch.svg)](driver/opensearch) | `3.9.0` | refresh-waiting | per item | shared service |
+| [![Elasticsearch](docs/assets/badges/driver-elasticsearch.svg)](driver/elasticsearch) | `9.5.6` | refresh-waiting | per item | shared service |
+| [![PostgreSQL FTS](docs/assets/badges/driver-postgres.svg)](driver/postgressearch) | `18.6` | synchronous | per item | application-owned SQL pool |
+| [![SQLite FTS5](docs/assets/badges/driver-sqlite.svg)](driver/sqlitesearch) | `3.54.1` | synchronous | per item | embedded SQL; application-owned pool |
+| [![Redis Search](docs/assets/badges/driver-redis.svg)](driver/redissearch) | `8.10.3` | synchronous | per item | standalone service; at most 4096 matches |
 
 All listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.
 <!-- drivers:embed:end -->
