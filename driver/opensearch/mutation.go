@@ -82,7 +82,7 @@ func (d *Driver) Upsert(ctx context.Context, definition search.Definition, docum
 	if err := d.http.Do(ctx, "PUT", path, body, &result, true); err != nil {
 		return search.Receipt{}, documentError(err)
 	}
-	if result.ID != driverutil.IDKey(document.ID) || result.Index != d.name || result.Shards.Failed != 0 || result.Shards.Total == 0 || result.Shards.Successful != result.Shards.Total || (result.Result != "created" && result.Result != "updated") {
+	if result.ID != driverutil.IDKey(document.ID) || result.Index != d.name || !result.visible("index") {
 		return search.Receipt{}, search.ErrOutcomeUnknown
 	}
 	return d.ledger.Complete(search.Outcome{State: search.OutcomeSucceeded})
@@ -106,7 +106,7 @@ func (d *Driver) Delete(ctx context.Context, definition search.Definition, id se
 		}
 	} else if err != nil {
 		return search.Receipt{}, err
-	} else if result.ID != driverutil.IDKey(id) || result.Index != d.name || result.Result != "deleted" || result.Shards.Failed != 0 || result.Shards.Total == 0 || result.Shards.Successful != result.Shards.Total {
+	} else if result.ID != driverutil.IDKey(id) || result.Index != d.name || !result.visible("delete") {
 		return search.Receipt{}, search.ErrOutcomeUnknown
 	}
 	return d.ledger.Complete(search.Outcome{State: search.OutcomeSucceeded})
@@ -147,30 +147,34 @@ func (d *Driver) Bulk(ctx context.Context, definition search.Definition, mutatio
 	var result struct {
 		Items []map[string]writeResult `json:"items"`
 	}
-	if err := json.Unmarshal(response, &result); err != nil || len(result.Items) != len(mutations) {
+	if err := json.Unmarshal(response, &result); err != nil {
 		return search.BulkResult{}, search.ErrOutcomeUnknown
 	}
 	items := make([]search.ItemResult, len(mutations))
 	terminal := make([]search.ItemResult, len(mutations))
 	state := search.OutcomeSucceeded
-	for position, entry := range result.Items {
+	protocolMismatch := len(result.Items) != len(mutations)
+	for position, entry := range result.Items[:min(len(result.Items), len(mutations))] {
 		action := "delete"
 		if mutations[position].Kind() == search.MutationUpsert {
 			action = "index"
 		}
 		proof, ok := entry[action]
 		if !ok || len(entry) != 1 || proof.ID != driverutil.IDKey(mutations[position].ID()) || proof.Index != d.name {
-			return search.BulkResult{}, search.ErrOutcomeUnknown
+			return d.partialBulkOutcome(mutations, terminal)
 		}
 		item := search.ItemResult{Position: position, ID: mutations[position].ID(), Status: search.ItemAccepted}
 		final := item
 		final.Status = search.ItemSucceeded
-		missingDelete := action == "delete" && proof.Status == 404 && proof.Result == "not_found" && len(proof.Error) == 0
-		if proof.Shards.Failed > 0 || proof.Status >= 500 || proof.Status >= 200 && proof.Status < 300 && (proof.Shards.Total == 0 || proof.Shards.Successful != proof.Shards.Total) {
+		hasError := proof.hasError()
+		missingDelete := action == "delete" && proof.Status == 404 && proof.Result == "not_found" && !hasError
+		successfulStatus := proof.Status >= 200 && proof.Status < 300
+		unprovenSuccess := successfulStatus && !proof.visible(action)
+		if proof.Shards.Total < 0 || proof.Shards.Successful < 0 || proof.Shards.Failed != 0 || proof.Status < 200 || proof.Status >= 300 && proof.Status < 400 || proof.Status >= 500 || unprovenSuccess {
 			item.Status, final.Status = search.ItemUnknown, search.ItemUnknown
 			item.Error, final.Error = search.ErrOutcomeUnknown, search.ErrOutcomeUnknown
 			state = search.OutcomeUnknown
-		} else if !missingDelete && (proof.Status < 200 || proof.Status >= 300 || len(proof.Error) != 0) {
+		} else if !missingDelete && !successfulStatus {
 			item.Status, final.Status = search.ItemRejected, search.ItemFailed
 			item.Error = classifyStatus(proof.Status)
 			final.Error = item.Error
@@ -179,6 +183,9 @@ func (d *Driver) Bulk(ctx context.Context, definition search.Definition, mutatio
 			}
 		}
 		items[position], terminal[position] = item, final
+	}
+	if protocolMismatch {
+		return d.partialBulkOutcome(mutations, terminal)
 	}
 	var failure error
 	if state == search.OutcomeFailed {
@@ -230,4 +237,38 @@ func (d *Driver) Wait(ctx context.Context, receipt search.Receipt) (search.Outco
 		return search.Outcome{}, search.ErrClosed
 	}
 	return d.ledger.Wait(ctx, receipt)
+}
+
+// partialBulkOutcome retains proven item evidence when a later native response cannot be correlated safely.
+func (d *Driver) partialBulkOutcome(mutations []search.Mutation, terminal []search.ItemResult) (search.BulkResult, error) {
+	known := false
+	for _, item := range terminal {
+		if item.Status == search.ItemSucceeded || item.Status == search.ItemFailed {
+			known = true
+		}
+	}
+	if !known {
+		return search.BulkResult{}, search.ErrOutcomeUnknown
+	}
+	for position, mutation := range mutations {
+		if terminal[position].Status == "" {
+			terminal[position] = search.ItemResult{Position: position, ID: mutation.ID(), Status: search.ItemUnknown, Error: search.ErrOutcomeUnknown}
+		}
+	}
+	receipt, err := d.ledger.Complete(search.Outcome{State: search.OutcomeUnknown, Error: search.ErrOutcomeUnknown, Bulk: &search.BulkOutcome{Precision: search.PerItem, Items: terminal}})
+	if err != nil {
+		return search.BulkResult{}, search.ErrOutcomeUnknown
+	}
+	return search.BulkResult{}, search.NewUnknownOutcomeError(receipt)
+}
+
+// hasError treats an explicit JSON null as absence while retaining contradictory native error objects.
+func (r writeResult) hasError() bool {
+	return len(r.Error) != 0 && !bytes.Equal(r.Error, []byte("null"))
+}
+
+// visible requires coherent operation results and successful nonnegative shard acknowledgement.
+func (r writeResult) visible(action string) bool {
+	result := action == "index" && (r.Result == "created" || r.Result == "updated") || action == "delete" && r.Result == "deleted"
+	return result && !r.hasError() && r.Shards.Total > 0 && r.Shards.Successful == r.Shards.Total && r.Shards.Failed == 0
 }
