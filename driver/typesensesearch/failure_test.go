@@ -2,6 +2,7 @@ package typesensesearch
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -165,5 +166,28 @@ func TestSearchRequiresCountEvidence(t *testing.T) {
 	}
 	if _, err := index.Search(context.Background(), search.Query{}); !errors.Is(err, search.ErrUnavailable) {
 		t.Fatal(err)
+	}
+}
+
+// TestSchemaNamesRejectMalformedKeys handles invalid native name types without using them as Go map keys.
+func TestSchemaNamesRejectMalformedKeys(t *testing.T) {
+	for name, badName := range map[string]any{"array": []string{"invalid"}, "object": map[string]string{"invalid": "name"}, "missing": nil, "duplicate": "duplicate"} {
+		t.Run(name, func(t *testing.T) {
+			var driver *Driver
+			var definition search.Definition
+			driver, definition = fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
+				actual := schema(driver.name, definition)
+				fields := actual["fields"].([]map[string]any)
+				if name == "duplicate" {
+					fields[1]["name"] = fields[0]["name"]
+				} else {
+					fields[0]["name"] = badName
+				}
+				json.NewEncoder(w).Encode(actual)
+			})
+			if err := driver.ValidateIndex(context.Background(), definition); !errors.Is(err, search.ErrSchemaDrift) {
+				t.Fatal(err)
+			}
+		})
 	}
 }

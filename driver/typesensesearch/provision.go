@@ -106,13 +106,20 @@ func (d *Driver) validate(ctx context.Context, def search.Definition) error {
 	if len(actual.Fields) != len(wanted) {
 		return search.ErrSchemaDrift
 	}
-	byName := map[any]map[string]any{}
-	for _, f := range actual.Fields {
-		byName[f["name"]] = f
+	byName := map[string]map[string]any{}
+	for _, field := range actual.Fields {
+		name, ok := field["name"].(string)
+		if !ok {
+			return search.ErrSchemaDrift
+		}
+		if _, exists := byName[name]; exists {
+			return search.ErrSchemaDrift
+		}
+		byName[name] = field
 	}
 	for _, f := range wanted {
 		for key, value := range f {
-			if byName[f["name"]][key] != value {
+			if byName[f["name"].(string)][key] != value {
 				return search.ErrSchemaDrift
 			}
 		}
