@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -39,6 +40,53 @@ func TestHTTPStatusRedaction(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// roundTripFunc injects transport outcomes without depending on socket timing.
+type roundTripFunc func(*http.Request) (*http.Response, error)
+
+// RoundTrip forwards one request to its explicitly configured protocol fixture.
+func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
+
+// TestHTTPEncodingAndTransportFailures exercises errors before and after native submission.
+func TestHTTPEncodingAndTransportFailures(t *testing.T) {
+	client, err := NewHTTP("http://localhost", "", "", &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return nil, errors.New("private transport failure")
+	})})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := client.Do(context.Background(), "POST", "/", make(chan int), nil, true); !errors.Is(err, search.ErrInvalidDocument) {
+		t.Fatal(err)
+	}
+	if _, err := client.DoBytes(context.Background(), "bad\nmethod", "/", "text/plain", nil, false); !errors.Is(err, search.ErrUnavailable) {
+		t.Fatal(err)
+	}
+	if err := client.Do(context.Background(), "GET", "/", nil, nil, false); !errors.Is(err, search.ErrUnavailable) {
+		t.Fatal(err)
+	}
+	for _, mutation := range []bool{false, true} {
+		ctx, cancel := context.WithCancel(context.Background())
+		client.Client.Transport = roundTripFunc(func(*http.Request) (*http.Response, error) {
+			cancel()
+			return nil, context.Canceled
+		})
+		err := client.Do(ctx, "POST", "/", nil, nil, mutation)
+		if !errors.Is(err, context.Canceled) || mutation && !errors.Is(err, search.ErrOutcomeUnknown) {
+			t.Fatal(err)
+		}
+	}
+	client.Authorization = "Basic fixture"
+	client.Client.Transport = roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if r.Header.Get("Authorization") != "Basic fixture" {
+			t.Error("explicit authorization was not applied")
+		}
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader("not-json")), Header: http.Header{}}, nil
+	})
+	var out map[string]any
+	if err := client.Do(context.Background(), "GET", "/", nil, &out, false); !errors.Is(err, search.ErrUnavailable) {
+		t.Fatal(err)
 	}
 }
 

@@ -21,9 +21,7 @@ type Ledger struct {
 // Complete retains a terminal outcome under a random content-free identity.
 func (l *Ledger) Complete(o search.Outcome) (search.Receipt, error) {
 	var key [16]byte
-	if _, err := rand.Read(key[:]); err != nil {
-		return search.Receipt{}, search.ErrUnavailable
-	}
+	rand.Read(key[:])
 	token := hex.EncodeToString(key[:])
 	l.mu.Lock()
 	defer l.mu.Unlock()
