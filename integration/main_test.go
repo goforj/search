@@ -4,8 +4,6 @@ package integration
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"os"
 	"sync"
@@ -38,9 +36,24 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
-// fixturePrefix isolates native indexes while allowing all tests for an engine to reuse one container.
+// fixtureNamespaces assigns fresh physical namespaces even when go test repeats the same test name.
+var fixtureNamespaces = struct {
+	sync.Mutex
+	next   uint64
+	values map[*testing.T]string
+}{values: make(map[*testing.T]string)}
+
+// fixturePrefix keeps each test invocation isolated while remaining stable for all of its native operations.
 func fixturePrefix(t *testing.T) string {
 	t.Helper()
-	hash := sha256.Sum256([]byte(t.Name()))
-	return "t" + hex.EncodeToString(hash[:6]) + "_"
+	fixtureNamespaces.Lock()
+	defer fixtureNamespaces.Unlock()
+	if prefix, ok := fixtureNamespaces.values[t]; ok {
+		return prefix
+	}
+	fixtureNamespaces.next++
+	prefix := fmt.Sprintf("t%012x_", fixtureNamespaces.next)
+	fixtureNamespaces.values[t] = prefix
+	t.Cleanup(func() { fixtureNamespaces.Lock(); delete(fixtureNamespaces.values, t); fixtureNamespaces.Unlock() })
+	return prefix
 }
