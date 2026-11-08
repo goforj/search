@@ -37,6 +37,11 @@ const testOpenSearchPassword = "Search-Fixture-Only-2026!"
 // startServer provisions an isolated real server with pinned image, random port, and bounded readiness.
 func startServer(t *testing.T, engine string) string {
 	t.Helper()
+	fixturePool.Lock()
+	defer fixturePool.Unlock()
+	if endpoint, ok := fixturePool.endpoints[engine]; ok {
+		return endpoint
+	}
 	ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
 	defer cancel()
 	var versions map[string]engineVersion
@@ -75,13 +80,7 @@ func startServer(t *testing.T, engine string) string {
 	request.WaitingFor = readiness
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{ContainerRequest: request, Started: true})
 	if container != nil {
-		t.Cleanup(func() {
-			cleanup, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			defer cancel()
-			if err := container.Terminate(cleanup); err != nil {
-				t.Error(err)
-			}
-		})
+		fixturePool.containers = append(fixturePool.containers, container)
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -91,6 +90,8 @@ func startServer(t *testing.T, engine string) string {
 		t.Fatal(err)
 	}
 	verifyServerVersion(t, ctx, engine, endpoint, version.Version)
+	fixturePool.endpoints[engine] = endpoint
+	t.Logf("started shared %s container", engine)
 	return endpoint
 }
 
@@ -98,7 +99,7 @@ func startServer(t *testing.T, engine string) string {
 func TestMeilisearchContract(t *testing.T) {
 	endpoint := startServer(t, "meilisearch")
 	searchtest.RunBackend(t, func(ctx context.Context, def search.Definition) (*search.Index, func(context.Context) error, error) {
-		driver, err := meilisearch.New(meilisearch.Config{URL: endpoint, APIKey: testAPIKey})
+		driver, err := meilisearch.New(meilisearch.Config{URL: endpoint, Prefix: fixturePrefix(t), APIKey: testAPIKey})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -119,7 +120,7 @@ func TestMeilisearchContract(t *testing.T) {
 func TestTypesenseContract(t *testing.T) {
 	endpoint := startServer(t, "typesense")
 	searchtest.RunBackend(t, func(ctx context.Context, def search.Definition) (*search.Index, func(context.Context) error, error) {
-		driver, err := typesensesearch.New(typesensesearch.Config{URL: endpoint, APIKey: testAPIKey})
+		driver, err := typesensesearch.New(typesensesearch.Config{URL: endpoint, Prefix: fixturePrefix(t), APIKey: testAPIKey})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -145,21 +146,21 @@ func TestServiceAuthentication(t *testing.T) {
 			defer cancel()
 			var err error
 			if engine == "meilisearch" {
-				driver, e := meilisearch.New(meilisearch.Config{URL: endpoint, APIKey: "wrong"})
+				driver, e := meilisearch.New(meilisearch.Config{URL: endpoint, Prefix: fixturePrefix(t), APIKey: "wrong"})
 				if e != nil {
 					t.Fatal(e)
 				}
 				defer driver.Close()
 				err = driver.ValidateIndex(ctx, searchtest.Definition())
 			} else if engine == "opensearch" {
-				driver, e := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: "wrong"})
+				driver, e := opensearch.New(opensearch.Config{URL: endpoint, Prefix: fixturePrefix(t), Username: "admin", Password: "wrong"})
 				if e != nil {
 					t.Fatal(e)
 				}
 				defer driver.Close()
 				err = driver.ValidateIndex(ctx, searchtest.Definition())
 			} else {
-				driver, e := typesensesearch.New(typesensesearch.Config{URL: endpoint, APIKey: "wrong"})
+				driver, e := typesensesearch.New(typesensesearch.Config{URL: endpoint, Prefix: fixturePrefix(t), APIKey: "wrong"})
 				if e != nil {
 					t.Fatal(e)
 				}
@@ -218,7 +219,7 @@ func TestMeilisearchAsyncFailure(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 	transport := &rejectingTransport{base: http.DefaultTransport.(*http.Transport).Clone()}
-	driver, err := meilisearch.New(meilisearch.Config{URL: endpoint, APIKey: testAPIKey, HTTPClient: &http.Client{Transport: transport}})
+	driver, err := meilisearch.New(meilisearch.Config{URL: endpoint, Prefix: fixturePrefix(t), APIKey: testAPIKey, HTTPClient: &http.Client{Transport: transport}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -247,7 +248,7 @@ func TestTypesensePartialImport(t *testing.T) {
 	endpoint := startServer(t, "typesense")
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	driver, err := typesensesearch.New(typesensesearch.Config{URL: endpoint, APIKey: testAPIKey})
+	driver, err := typesensesearch.New(typesensesearch.Config{URL: endpoint, Prefix: fixturePrefix(t), APIKey: testAPIKey})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -370,7 +371,7 @@ func verifyServerVersion(t *testing.T, ctx context.Context, engine, endpoint, ex
 func TestOpenSearchContract(t *testing.T) {
 	endpoint := startServer(t, "opensearch")
 	searchtest.RunBackend(t, func(ctx context.Context, definition search.Definition) (*search.Index, func(context.Context) error, error) {
-		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, RefreshInterval: 100 * time.Millisecond})
+		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Prefix: fixturePrefix(t), Username: "admin", Password: testOpenSearchPassword, RefreshInterval: 100 * time.Millisecond})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -387,7 +388,7 @@ func TestOpenSearchContract(t *testing.T) {
 func TestOpenSearchMultiShardContract(t *testing.T) {
 	endpoint := startServer(t, "opensearch")
 	searchtest.RunBackend(t, func(ctx context.Context, definition search.Definition) (*search.Index, func(context.Context) error, error) {
-		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, Shards: 2, RefreshInterval: 100 * time.Millisecond})
+		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Prefix: fixturePrefix(t), Username: "admin", Password: testOpenSearchPassword, Shards: 2, RefreshInterval: 100 * time.Millisecond})
 		if err != nil {
 			return nil, nil, err
 		}
@@ -405,7 +406,7 @@ func TestOpenSearchPartialBulk(t *testing.T) {
 	endpoint := startServer(t, "opensearch")
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, RefreshInterval: 100 * time.Millisecond})
+	driver, err := opensearch.New(opensearch.Config{URL: endpoint, Prefix: fixturePrefix(t), Username: "admin", Password: testOpenSearchPassword, RefreshInterval: 100 * time.Millisecond})
 	if err != nil {
 		t.Fatal(err)
 	}

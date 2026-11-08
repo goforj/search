@@ -33,6 +33,7 @@ type administeredBackend interface {
 // serviceDriver constructs one concrete backend without coupling the shared corpus to administration.
 func serviceDriver(t *testing.T, engine, endpoint, prefix string) administeredBackend {
 	t.Helper()
+	prefix += fixturePrefix(t)
 	if engine == "meilisearch" {
 		driver, err := meilisearch.New(meilisearch.Config{URL: endpoint, APIKey: testAPIKey, Prefix: prefix, HTTPClient: &http.Client{Transport: &classificationTransport{t: t, base: http.DefaultTransport.(*http.Transport).Clone()}}})
 		if err != nil {
@@ -124,10 +125,10 @@ func TestServiceOwnershipAndActualDrift(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			physical := "first_s_" + driverutil.FieldKey(search.FieldName(definition.Name))
+			physical := "first_" + fixturePrefix(t) + "s_" + driverutil.FieldKey(search.FieldName(definition.Name))
 			if engine == "opensearch" {
 				var observed map[string]any
-				if err := admin.Do(ctx, "GET", "/first_*/_mapping", nil, &observed, false); err != nil {
+				if err := admin.Do(ctx, "GET", "/first_"+fixturePrefix(t)+"*/_mapping", nil, &observed, false); err != nil {
 					t.Fatal(err)
 				}
 				if len(observed) != 1 {

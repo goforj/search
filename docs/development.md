@@ -44,7 +44,7 @@ make test-integration opensearch
 
 `integration/versions.json` owns service versions and digest-pinned images. The harness checks each running server's reported version against that file. OpenSearch uses its security plugin with disposable Basic credentials and runs the complete contract with both one and two primary shards. Native bulk rejection is tested against the real server.
 
-A focused run does not refresh the all-driver support report. The complete run uses Testcontainers with disposable credentials, random host ports, bounded readiness, isolated containers, and cleanup registered before assertions. Docker must be available; missing infrastructure fails the run instead of silently skipping it.
+A focused run does not refresh the all-driver support report. The complete run starts one Testcontainers container per engine for the entire package run. Tests use distinct physical index namespaces inside that container. Fixtures use disposable credentials, random host ports, bounded readiness, and package-level cleanup registered before assertions. The shared contract, authentication checks, schema drift, and native failure tests all reuse their engine container. Docker must be available; missing infrastructure fails the run instead of silently skipping it.
 
 The checked-in `go.work` supports editor navigation. Tooling modules intentionally replace unpublished siblings with local source. Published modules have no local replacement. Validation scripts use `GOWORK=off`; the isolated driver receives a temporary modfile replacement only while testing unpublished root changes.
 
