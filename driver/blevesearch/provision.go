@@ -37,7 +37,12 @@ func (d *Driver) CreateIndex(ctx context.Context, def search.Definition) error {
 		return search.ErrUnavailable
 	}
 	fp, _ := def.Fingerprint()
-	if err = d.index.SetInternal([]byte("_forj_schema"), []byte(fp)); err != nil {
+	return d.initialize(fp)
+}
+
+// initialize closes a newly created index if its ownership metadata cannot be committed.
+func (d *Driver) initialize(fp string) error {
+	if err := d.index.SetInternal([]byte("_forj_schema"), []byte(fp)); err != nil {
 		_ = d.index.Close()
 		d.index = nil
 		return search.ErrUnavailable
