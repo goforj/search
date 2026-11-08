@@ -20,19 +20,31 @@
 <!-- test-count:embed:end -->
 </p>
 
-[Quick Start](#quick-start) · [Features](#features) · [Drivers](#drivers) · [Behavior](#behavior-contract) · [Testing](#testing) · [Examples](#runnable-examples) · [API](#api-index)
+[Features](#features) · [Quick Start](#quick-start) · [Drivers](#drivers) · [Installation](#installation) · [Examples](#runnable-examples) · [API](#api-index)
 
-## What search is
+## Features
 
-`search` gives application services one explicit contract for text queries, typed filters, sorting, pagination, term facets, and structured highlights. Applications own their definitions and source records. Drivers own backend translation and ranking.
+<!-- features:embed:start -->
+| Feature | What you get | Example or API |
+| --- | --- | --- |
+| ![Literal search](docs/assets/badges/feature-search.svg) | Require every analyzed term, with explicit searchable fields. | [Typed search example](examples/search/main.go) |
+| ![Typed filters](docs/assets/badges/feature-filters.svg) | Combine Boolean logic, exact values, integer ranges, and array membership. | [Filter example](examples/filters/main.go) |
+| ![Stable sorting](docs/assets/badges/feature-sorting.svg) | Order by up to two declared fields, followed by the document ID. | [`Sort`](definition.go) |
+| ![Pagination](docs/assets/badges/feature-pagination.svg) | Use bounded offsets and limits with explicit total-count precision. | [`Query`](query.go) |
+| ![Term facets](docs/assets/badges/feature-facets.svg) | Count matching documents before pagination, deduplicating repeated array terms. | [Facet example](examples/facets/main.go) |
+| ![Structured highlights](docs/assets/badges/feature-highlights.svg) | Render untrusted text segments with explicit match markers. | [Highlight example](examples/highlights/main.go) |
+| ![Bulk operations](docs/assets/badges/feature-bulk.svg) | Retain input positions and honest per-item or aggregate outcomes. | [Bulk example](examples/bulk/main.go) |
+| ![Visibility receipts](docs/assets/badges/feature-receipts.svg) | Wait for accepted writes to become searchable and retain recovery evidence. | [`Receipt` and `Outcome`](mutation.go) |
+| ![Typed documents](docs/assets/badges/feature-documents.svg) | Use typed Go values while keeping document IDs separate from JSON bodies. | [Typed search example](examples/search/main.go) |
+| ![Explicit schemas](docs/assets/badges/feature-schemas.svg) | Provision deliberately and detect schema drift without runtime migration. | [`Definition`](definition.go) |
+| ![Safe observability](docs/assets/badges/feature-observability.svg) | Observe classified events with panic isolation and optional bounded async delivery. | [`Observer`](observer.go) · [`AsyncObserver`](observer_async.go) |
+| ![Isolated testing](docs/assets/badges/feature-testing.svg) | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
+<!-- features:embed:end -->
 
-The root package has no third-party dependencies. Bleve is isolated in its own module so service clients do not inherit an embedded search engine.
+<!-- quickstart:embed:start -->
+## Quick Start
 
-## Installation
-
-The root package and service drivers require **Go 1.24 or newer**. The embedded Bleve driver and this repository's runnable examples require **Go 1.25 or newer**.
-
-**Release status:** pre-release, with no published tags. To try the root and embedded modules together, clone this repository and run the quick start:
+Go 1.25+, with no external service required.
 
 ```sh
 git clone https://github.com/goforj/search.git
@@ -40,19 +52,8 @@ cd search
 go run ./examples/quickstart
 ```
 
-After the first release, install the root module and only the optional embedded driver you use:
-
-```sh
-go get github.com/goforj/search
-go get github.com/goforj/search/driver/blevesearch
-```
-
-Service drivers such as `driver/meilisearch` and `driver/postgressearch` are packages in the root module. Bleve has its own module to keep its dependencies separate. See [module ownership and release order](docs/development.md).
-
-<!-- quickstart:embed:start -->
-## Quick Start
-
-Create an in-memory Bleve index, write a typed document, wait for visibility, and query it. This example requires Go 1.25 or newer and runs without an external service.
+<details>
+<summary>View the full Go example</summary>
 
 ```go
 package main
@@ -109,31 +110,12 @@ func main() {
 }
 ```
 
-Keep document IDs separate from application data. `Wait` establishes when an accepted write is searchable; terminal mutation failures are returned in `Outcome`.
+</details>
 <!-- quickstart:embed:end -->
-
-## Features
-
-<!-- features:embed:start -->
-| Feature | What you get | Example or API |
-| --- | --- | --- |
-| ![Literal search](docs/assets/badges/feature-search.svg) | Require every analyzed term, with explicit searchable fields. | [Typed search example](examples/search/main.go) |
-| ![Typed filters](docs/assets/badges/feature-filters.svg) | Combine Boolean logic, exact values, integer ranges, and array membership. | [Filter example](examples/filters/main.go) |
-| ![Stable sorting](docs/assets/badges/feature-sorting.svg) | Order by up to two declared fields, followed by the document ID. | [`Sort`](definition.go) |
-| ![Pagination](docs/assets/badges/feature-pagination.svg) | Use bounded offsets and limits with explicit total-count precision. | [`Query`](query.go) |
-| ![Term facets](docs/assets/badges/feature-facets.svg) | Count matching documents before pagination, deduplicating repeated array terms. | [Facet example](examples/facets/main.go) |
-| ![Structured highlights](docs/assets/badges/feature-highlights.svg) | Render untrusted text segments with explicit match markers. | [Highlight example](examples/highlights/main.go) |
-| ![Bulk operations](docs/assets/badges/feature-bulk.svg) | Retain input positions and honest per-item or aggregate outcomes. | [Bulk example](examples/bulk/main.go) |
-| ![Visibility receipts](docs/assets/badges/feature-receipts.svg) | Wait for accepted writes to become searchable and retain recovery evidence. | [`Receipt` and `Outcome`](mutation.go) |
-| ![Typed documents](docs/assets/badges/feature-documents.svg) | Use typed Go values while keeping document IDs separate from JSON bodies. | [Typed search example](examples/search/main.go) |
-| ![Explicit schemas](docs/assets/badges/feature-schemas.svg) | Provision deliberately and detect schema drift without runtime migration. | [`Definition`](definition.go) |
-| ![Safe observability](docs/assets/badges/feature-observability.svg) | Observe classified events with panic isolation and optional bounded async delivery. | [`Observer`](observer.go) · [`AsyncObserver`](observer_async.go) |
-| ![Isolated testing](docs/assets/badges/feature-testing.svg) | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
-<!-- features:embed:end -->
 
 ## Drivers
 
-Bleve runs inside your process. PostgreSQL FTS and SQLite FTS5 reuse an application-owned SQL pool. The other drivers connect to a shared search service. Choose a concrete driver during application wiring; application services use the same `*search.Index` API.
+Choose an embedded index, an existing SQL pool, or a shared search service.
 
 <!-- drivers:embed:start -->
 | Driver | Tested version | Mutation visibility | Bulk precision | Topology |
@@ -176,6 +158,22 @@ Redis Search targets standalone Redis with its native Search module. It uses nat
 Bleve owns a single index path in one process. Its ownership lock refuses a second writer. Use a shared service when querying and indexing from separate processes. Close concrete drivers at the application lifecycle boundary.
 
 </details>
+
+## Installation
+
+The root package and service drivers require **Go 1.24+** and have no third-party dependencies. The optional Bleve module requires **Go 1.25+**.
+
+**Pre-release:** there are no published tags yet. Use the [workspace quick start](#quick-start) until the first release.
+
+After the first release:
+
+```sh
+go get github.com/goforj/search
+# Optional embedded driver:
+go get github.com/goforj/search/driver/blevesearch
+```
+
+Service drivers are packages in the root module. See [module ownership and release order](docs/development.md).
 
 ## Behavior contract
 

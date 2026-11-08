@@ -101,7 +101,7 @@ func quickStartMarkdown(examples []gen.Example) (string, error) {
 		if example.Name == "quickstart" {
 			_, program, _ := strings.Cut(string(example.Program), "\n")
 			program = strings.ReplaceAll(program, "// main executes the documented workflow.\n", "")
-			return "## Quick Start\n\nCreate an in-memory Bleve index, write a typed document, wait for visibility, and query it. This example requires Go 1.25 or newer and runs without an external service.\n\n```go\n" + program + "```\n\nKeep document IDs separate from application data. `Wait` establishes when an accepted write is searchable; terminal mutation failures are returned in `Outcome`.\n", nil
+			return "## Quick Start\n\nGo 1.25+, with no external service required.\n\n```sh\ngit clone https://github.com/goforj/search.git\ncd search\ngo run ./examples/quickstart\n```\n\n<details>\n<summary>View the full Go example</summary>\n\n```go\n" + program + "```\n\n</details>\n", nil
 		}
 	}
 	return "", fmt.Errorf("missing executable quickstart example")
