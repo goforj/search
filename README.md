@@ -227,20 +227,20 @@ See [development and release notes](docs/development.md) for focused driver test
 <!-- api:embed:start -->
 ## API Index
 
-Choose a backend in [Drivers](#drivers), then use these operations in your application. API names open their source definitions; examples jump to tested usage below.
+Choose a backend in [Drivers](#drivers), then use these operations in your application. API names and example titles jump to tested usage below.
 
 | Task | API | Example |
 | --- | --- | --- |
-| Define an index | [Definition](definition.go#L58) · [NewIndex](index.go#L54) | [Index and search a document](#example-quickstart) |
-| Write and remove documents | [Upsert](document.go#L47) · [Index.Delete](index.go#L132) | [Index and search a document](#example-quickstart) |
-| Search documents | [SearchAs](document.go#L60) · [Index.Search](index.go#L77) · [Query](query.go#L12) | [Search typed documents](#example-search) |
-| Filter results | [Keyword](value.go#L44) · [Integer](value.go#L59) · [And](filter.go#L74) · [Equal](filter.go#L92) | [Filter and sort results](#example-filters) |
-| Sort and paginate | [Query](query.go#L12) · [Sort](definition.go#L40) | [Filter and sort results](#example-filters) |
-| Count facets | [TermFacet](query.go#L29) | [Count facets before pagination](#example-facets) |
-| Highlight matches | [Highlight](query.go#L24) | [Escape structured highlights](#example-highlights) |
-| Write a batch | [Index.Bulk](index.go#L153) · [UpsertMutation](mutation.go#L27) · [DeleteMutation](mutation.go#L37) | [Inspect bulk visibility](#example-bulk) |
-| Wait for visibility | [Index.Wait](index.go#L216) · [Outcome](mutation.go#L144) | [Index and search a document](#example-quickstart) · [Inspect bulk visibility](#example-bulk) |
-| Test application code | [searchfake.New](searchfake/fake.go#L40) · [searchfake.Backend.QueueSearch](searchfake/fake.go#L46) · [searchfake.Backend.Calls](searchfake/fake.go#L54) | [Test an application service](#example-fake) |
+| Define an index | [Definition](#example-quickstart) · [NewIndex](#example-quickstart) | [Index and search a document](#example-quickstart) |
+| Write and remove documents | [Upsert](#example-quickstart) · [Index.Delete](#example-quickstart) | [Index and search a document](#example-quickstart) |
+| Search documents | [SearchAs](#example-search) · [Index.Search](#example-search) · [Query](#example-search) | [Search typed documents](#example-search) |
+| Filter results | [Keyword](#example-filters) · [Integer](#example-filters) · [And](#example-filters) · [Equal](#example-filters) | [Filter and sort results](#example-filters) |
+| Sort and paginate | [Query](#example-filters) · [Sort](#example-filters) | [Filter and sort results](#example-filters) |
+| Count facets | [TermFacet](#example-facets) | [Count facets before pagination](#example-facets) |
+| Highlight matches | [Highlight](#example-highlights) | [Escape structured highlights](#example-highlights) |
+| Write a batch | [Index.Bulk](#example-bulk) · [UpsertMutation](#example-bulk) · [DeleteMutation](#example-bulk) | [Inspect bulk visibility](#example-bulk) |
+| Wait for visibility | [Index.Wait](#example-quickstart) · [Outcome](#example-quickstart) | [Index and search a document](#example-quickstart) · [Inspect bulk visibility](#example-bulk) |
+| Test application code | [searchfake.New](#example-fake) · [searchfake.Backend.QueueSearch](#example-fake) · [searchfake.Backend.Calls](#example-fake) | [Test an application service](#example-fake) |
 
 ## API examples
 

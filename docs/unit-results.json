@@ -95,7 +95,7 @@
     "github.com/goforj/search/docs/gen/TestQualifiedAPIIndex",
     "github.com/goforj/search/docs/gen/TestReplace",
     "github.com/goforj/search/docs/gen/TestSourceFingerprintTracksExecutableOwnership",
-    "github.com/goforj/search/docs/readme/TestAPIIndexLinksToSourceAndInlineExamples",
+    "github.com/goforj/search/docs/readme/TestAPIIndexLinksToInlineExamples",
     "github.com/goforj/search/docs/readme/TestApplicationAPIStaysFocused",
     "github.com/goforj/search/docs/readme/TestCuratedEntriesRejectStaleReferences",
     "github.com/goforj/search/docs/readme/TestQuickStartRequiresTestedSource",

@@ -162,23 +162,29 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 		}
 	}
 	var out strings.Builder
-	out.WriteString("## API Index\n\nChoose a backend in [Drivers](#drivers), then use these operations in your application. API names open their source definitions; examples jump to tested usage below.\n\n| Task | API | Example |\n| --- | --- | --- |\n")
+	out.WriteString("## API Index\n\nChoose a backend in [Drivers](#drivers), then use these operations in your application. API names and example titles jump to tested usage below.\n\n| Task | API | Example |\n| --- | --- | --- |\n")
 	for _, entry := range entries {
 		apis, links := []string{}, []string{}
-		for _, name := range entry.APIs {
-			symbol, ok := known[name]
-			if !ok {
-				return "", fmt.Errorf("API index references unknown API %s", name)
-			}
-			label := strings.TrimPrefix(symbol.Name, "search.")
-			apis = append(apis, fmt.Sprintf("[%s](%s#L%d)", label, symbol.Source, symbol.Line))
+		if len(entry.Examples) == 0 {
+			return "", fmt.Errorf("API index task %s has no example", entry.Task)
 		}
 		for _, name := range entry.Examples {
 			example, ok := byExample[name]
 			if !ok {
 				return "", fmt.Errorf("API index references missing example %s", name)
 			}
+			if example.Snippet == "" {
+				return "", fmt.Errorf("API index references example %s without an inline snippet", name)
+			}
 			links = append(links, fmt.Sprintf("[%s](#example-%s)", example.Title, example.Name))
+		}
+		for _, name := range entry.APIs {
+			symbol, ok := known[name]
+			if !ok {
+				return "", fmt.Errorf("API index references unknown API %s", name)
+			}
+			label := strings.TrimPrefix(symbol.Name, "search.")
+			apis = append(apis, fmt.Sprintf("[%s](#example-%s)", label, entry.Examples[0]))
 		}
 		fmt.Fprintf(&out, "| %s | %s | %s |\n", entry.Task, strings.Join(apis, " · "), strings.Join(links, " · "))
 	}

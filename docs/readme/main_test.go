@@ -28,8 +28,8 @@ func TestQuickStartRequiresTestedSource(t *testing.T) {
 	}
 }
 
-// TestAPIIndexLinksToSourceAndInlineExamples keeps navigation useful before a module is published.
-func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
+// TestAPIIndexLinksToInlineExamples keeps API navigation inside the README.
+func TestAPIIndexLinksToInlineExamples(t *testing.T) {
 	symbols := []gen.Symbol{{Name: "search.Index.Search", Source: "index.go", Line: 79, Group: "Queries", Description: "Search matches text | filters."}}
 	examples := []gen.Example{{Name: "search", Title: "Search documents", Source: "search/main.go", APIs: []string{"search.Index.Search"}, Snippet: "index.Search(ctx, query)\n"}}
 	entries := []apiEntry{{Task: "Search documents", APIs: []string{"search.Index.Search"}, Examples: []string{"search"}}}
@@ -38,7 +38,7 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, expected := range []string{
-		"[Index.Search](index.go#L79)",
+		"[Index.Search](#example-search)",
 		"[Search documents](#example-search)",
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
@@ -47,6 +47,10 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 		if !strings.Contains(markdown, expected) {
 			t.Fatal("missing API navigation or example", expected)
 		}
+	}
+	index, _, _ := strings.Cut(markdown, "## API examples")
+	if strings.Contains(index, "#L") || strings.Contains(index, "](index.go") {
+		t.Fatal("API index links to implementation source")
 	}
 	if strings.Contains(markdown, "[search.Index.Search]") || strings.Contains(markdown, "[`Index.Search`]") || strings.Contains(markdown, "pkg.go.dev") {
 		t.Fatal("API links use code styling or unpublished documentation")
@@ -96,8 +100,13 @@ func TestApplicationAPIStaysFocused(t *testing.T) {
 
 // TestCuratedEntriesRejectStaleReferences catches renamed APIs and examples at generation time.
 func TestCuratedEntriesRejectStaleReferences(t *testing.T) {
-	for _, entry := range []apiEntry{{Task: "Missing API", APIs: []string{"search.Missing"}}, {Task: "Missing example", Examples: []string{"missing"}}} {
-		if _, err := apiMarkdownFor(nil, nil, []apiEntry{entry}); err == nil {
+	for _, entry := range []apiEntry{
+		{Task: "Missing API", APIs: []string{"search.Missing"}, Examples: []string{"example"}},
+		{Task: "Missing example", Examples: []string{"missing"}},
+		{Task: "No example", APIs: []string{"search.Index.Search"}},
+		{Task: "No snippet", Examples: []string{"empty"}},
+	} {
+		if _, err := apiMarkdownFor(nil, []gen.Example{{Name: "example", Snippet: "code"}, {Name: "empty"}}, []apiEntry{entry}); err == nil {
 			t.Fatal("stale curated entry accepted", entry.Task)
 		}
 	}
