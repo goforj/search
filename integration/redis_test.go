@@ -4,6 +4,7 @@ package integration
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/goforj/search"
@@ -128,5 +129,52 @@ func TestRedisLifecycleAndBound(t *testing.T) {
 	}
 	if _, err := index.Search(ctx, search.Query{}); !errors.Is(err, search.ErrIndexNotFound) {
 		t.Fatal(err)
+	}
+}
+
+// TestRedisCustomDocumentLimits preserves application-selected budgets for individual writes and returned documents.
+func TestRedisCustomDocumentLimits(t *testing.T) {
+	endpoint := startTCPServer(t, "redis")
+	driver, err := redissearch.New(redissearch.Config{Addr: endpoint, Password: testAPIKey, Prefix: fixturePrefix(t)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer driver.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	definition := searchtest.Definition()
+	if err := driver.CreateIndex(ctx, definition); err != nil {
+		t.Fatal(err)
+	}
+	index, err := search.NewIndex(driver, definition, search.WithLimits(search.Limits{NameBytes: 2048, DocumentBytes: 2 << 20}))
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := search.DocumentID(strings.Repeat("i", 1800))
+	body, err := json.Marshal(map[string]any{"active": true, "rank": 1, "code": "x", "payload": strings.Repeat("x", 1<<20)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	receipt, err := index.Upsert(ctx, search.Document{ID: id, Body: body})
+	if err != nil {
+		t.Fatal(err)
+	}
+	outcome, err := index.Wait(ctx, receipt)
+	if err != nil || outcome.State != search.OutcomeSucceeded || outcome.Bulk != nil {
+		t.Fatal(outcome, err)
+	}
+	result, err := index.Search(ctx, search.Query{})
+	if err != nil || len(result.Hits) != 1 || result.Hits[0].Document.ID != id {
+		t.Fatal("custom-budget document was not returned", err)
+	}
+	receipt, err = index.Delete(ctx, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if outcome, err := index.Wait(ctx, receipt); err != nil || outcome.State != search.OutcomeSucceeded {
+		t.Fatal(outcome, err)
+	}
+	if result, err := index.Search(ctx, search.Query{}); err != nil || result.Total.Value != 0 {
+		t.Fatal(result, err)
 	}
 }

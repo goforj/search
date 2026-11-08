@@ -55,17 +55,23 @@ func projection(document search.Document, def search.Definition) map[string]stri
 	return result
 }
 
+// write retains an already validated operation without reapplying the mutation factory's default budgets.
+type write struct {
+	id       search.DocumentID
+	document *search.Document
+}
+
 // submit checks native existence and uses one atomic Lua command for all ordered writes.
-func (d *Driver) submit(ctx context.Context, def search.Definition, mutations []search.Mutation, bulk bool) (search.Receipt, error) {
+func (d *Driver) submit(ctx context.Context, def search.Definition, writes []write, bulk bool) (search.Receipt, error) {
 	if _, err := d.command(ctx, false, "FT.INFO", d.name); err != nil {
 		return search.Receipt{}, err
 	}
 	keys := []string{d.name + ":meta"}
 	values := []string{}
-	for _, mutation := range mutations {
-		keys = append(keys, d.name+":doc:"+driverutil.IDKey(mutation.ID()))
-		if document, ok := mutation.Document(); ok {
-			projected := projection(document, def)
+	for _, write := range writes {
+		keys = append(keys, d.name+":doc:"+driverutil.IDKey(write.id))
+		if write.document != nil {
+			projected := projection(*write.document, def)
 			fields := make([]string, 0, len(projected))
 			for field := range projected {
 				fields = append(fields, field)
@@ -87,12 +93,12 @@ func (d *Driver) submit(ctx context.Context, def search.Definition, mutations []
 		return search.Receipt{}, err
 	}
 	count, ok := result.(int64)
-	if !ok || count != int64(len(mutations)) {
+	if !ok || count != int64(len(writes)) {
 		return search.Receipt{}, search.ErrOutcomeUnknown
 	}
-	terminal := make([]search.ItemResult, len(mutations))
-	for n, mutation := range mutations {
-		terminal[n] = search.ItemResult{Position: n, ID: mutation.ID(), Status: search.ItemSucceeded}
+	terminal := make([]search.ItemResult, len(writes))
+	for n, write := range writes {
+		terminal[n] = search.ItemResult{Position: n, ID: write.id, Status: search.ItemSucceeded}
 	}
 	outcome := search.Outcome{State: search.OutcomeSucceeded}
 	if bulk {
@@ -109,11 +115,7 @@ func (d *Driver) Upsert(ctx context.Context, def search.Definition, document sea
 	if err := d.ready(ctx, def); err != nil {
 		return search.Receipt{}, err
 	}
-	mutation, err := search.UpsertMutation(document)
-	if err != nil {
-		return search.Receipt{}, err
-	}
-	return d.submit(ctx, def, []search.Mutation{mutation}, false)
+	return d.submit(ctx, def, []write{{id: document.ID, document: &document}}, false)
 }
 
 // Delete removes the complete native hash idempotently while checking index existence.
@@ -124,11 +126,7 @@ func (d *Driver) Delete(ctx context.Context, def search.Definition, id search.Do
 	if err := d.ready(ctx, def); err != nil {
 		return search.Receipt{}, err
 	}
-	mutation, err := search.DeleteMutation(id)
-	if err != nil {
-		return search.Receipt{}, err
-	}
-	return d.submit(ctx, def, []search.Mutation{mutation}, false)
+	return d.submit(ctx, def, []write{{id: id}}, false)
 }
 
 // Bulk atomically applies ordered mutations and retains exact per-item terminal success evidence.
@@ -139,7 +137,14 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 	if err := d.ready(ctx, def); err != nil {
 		return search.BulkResult{}, err
 	}
-	receipt, err := d.submit(ctx, def, mutations, true)
+	writes := make([]write, len(mutations))
+	for n, mutation := range mutations {
+		writes[n].id = mutation.ID()
+		if document, ok := mutation.Document(); ok {
+			writes[n].document = &document
+		}
+	}
+	receipt, err := d.submit(ctx, def, writes, true)
 	if err != nil {
 		return search.BulkResult{}, err
 	}
