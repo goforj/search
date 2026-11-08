@@ -145,7 +145,7 @@ func TestBulkFailuresRemainData(t *testing.T) {
 	var driver *Driver
 	var definition search.Definition
 	driver, definition = fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
-		fmt.Fprintf(w, `{"errors":true,"items":[{"index":{"_id":"i6f6e65","_index":%q,"status":201,"_shards":{"total":1,"successful":1,"failed":0}}},{"index":{"_id":"i74776f","_index":%q,"status":400,"error":{"type":"mapper_parsing_exception","reason":"private-document-secret"}}}]}`, driver.name, driver.name)
+		fmt.Fprintf(w, `{"errors":true,"items":[{"index":{"_id":"i6f6e65","_index":%q,"status":201,"result":"created","_shards":{"total":1,"successful":1,"failed":0}}},{"index":{"_id":"i74776f","_index":%q,"status":400,"error":{"type":"mapper_parsing_exception","reason":"private-document-secret"}}}]}`, driver.name, driver.name)
 	})
 	index, err := search.NewIndex(driver, definition)
 	if err != nil {
@@ -266,5 +266,179 @@ func TestValidationChecksMaterializedState(t *testing.T) {
 				t.Fatal(err)
 			}
 		})
+	}
+}
+
+// TestPartialBulkRetainsProvenPrefix preserves acknowledgement evidence through malformed later items.
+func TestPartialBulkRetainsProvenPrefix(t *testing.T) {
+	for _, mode := range []string{"wrong-id", "missing-item", "extra-item", "no-proven-items", "rejected-prefix"} {
+		t.Run(mode, func(t *testing.T) {
+			var driver *Driver
+			var definition search.Definition
+			driver, definition = fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
+				items := []map[string]any{{"index": map[string]any{"_id": "i6f6e65", "_index": driver.name, "status": 201, "result": "created", "_shards": map[string]int{"total": 1, "successful": 1, "failed": 0}}}}
+				if mode == "no-proven-items" {
+					items[0]["index"].(map[string]any)["_id"] = "wrong"
+				}
+				if mode == "rejected-prefix" {
+					proof := items[0]["index"].(map[string]any)
+					proof["status"] = 400
+					proof["error"] = map[string]string{"reason": "private"}
+				}
+				if mode != "missing-item" {
+					id := "i74776f"
+					if mode == "wrong-id" || mode == "rejected-prefix" {
+						id = "wrong"
+					}
+					items = append(items, map[string]any{"index": map[string]any{"_id": id, "_index": driver.name, "status": 201, "result": "created", "_shards": map[string]int{"total": 1, "successful": 1, "failed": 0}}})
+				}
+				if mode == "extra-item" {
+					items = append(items, map[string]any{"index": map[string]any{"_id": "extra"}})
+				}
+				json.NewEncoder(w).Encode(map[string]any{"items": items})
+			})
+			index, err := search.NewIndex(driver, definition)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mutations := []search.Mutation{}
+			for _, id := range []search.DocumentID{"one", "two"} {
+				mutation, err := search.UpsertMutation(search.Document{ID: id, Body: []byte(`{"active":true,"rank":0,"code":"x"}`)})
+				if err != nil {
+					t.Fatal(err)
+				}
+				mutations = append(mutations, mutation)
+			}
+			_, err = index.Bulk(context.Background(), mutations)
+			var unknown *search.UnknownOutcomeError
+			if mode == "no-proven-items" {
+				if !errors.Is(err, search.ErrOutcomeUnknown) || errors.As(err, &unknown) {
+					t.Fatal(err)
+				}
+				return
+			}
+			if !errors.As(err, &unknown) {
+				t.Fatal(err)
+			}
+			receipt, ok := unknown.Receipt()
+			if !ok {
+				t.Fatal("proven prefix was lost")
+			}
+			outcome, err := index.Wait(context.Background(), receipt)
+			firstWant := search.ItemSucceeded
+			if mode == "rejected-prefix" {
+				firstWant = search.ItemFailed
+			}
+			if err != nil || outcome.State != search.OutcomeUnknown || outcome.Bulk == nil || outcome.Bulk.Items[0].Status != firstWant || outcome.Bulk.Items[1].ID != "two" {
+				t.Fatal(outcome, err)
+			}
+			want := search.ItemUnknown
+			if mode == "extra-item" {
+				want = search.ItemSucceeded
+			}
+			if outcome.Bulk.Items[1].Status != want {
+				t.Fatal(outcome.Bulk)
+			}
+		})
+	}
+}
+
+// TestBulkRequiresCoherentSuccess rejects missing status, result, and shard evidence without inventing a failed write.
+func TestBulkRequiresCoherentSuccess(t *testing.T) {
+	for _, mode := range []string{"missing-status", "redirect-status", "missing-result", "negative-shards", "error-on-success", "null-error"} {
+		t.Run(mode, func(t *testing.T) {
+			var driver *Driver
+			var definition search.Definition
+			driver, definition = fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
+				proof := map[string]any{"_id": "i6f6e65", "_index": driver.name, "status": 201, "result": "created", "_shards": map[string]int{"total": 1, "successful": 1, "failed": 0}}
+				switch mode {
+				case "missing-status":
+					delete(proof, "status")
+				case "redirect-status":
+					proof["status"] = 302
+				case "missing-result":
+					delete(proof, "result")
+				case "negative-shards":
+					proof["_shards"] = map[string]int{"total": -1, "successful": -1, "failed": 0}
+				case "error-on-success":
+					proof["error"] = map[string]string{"reason": "private"}
+				case "null-error":
+					proof["error"] = nil
+				}
+				json.NewEncoder(w).Encode(map[string]any{"items": []any{map[string]any{"index": proof}}})
+			})
+			index, err := search.NewIndex(driver, definition)
+			if err != nil {
+				t.Fatal(err)
+			}
+			mutation, _ := search.UpsertMutation(search.Document{ID: "one", Body: []byte(`{"active":true,"rank":0,"code":"x"}`)})
+			batch, err := index.Bulk(context.Background(), []search.Mutation{mutation})
+			if err != nil {
+				t.Fatal(err)
+			}
+			outcome, err := index.Wait(context.Background(), batch.Receipt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			want := search.OutcomeUnknown
+			if mode == "null-error" {
+				want = search.OutcomeSucceeded
+			}
+			if outcome.State != want {
+				t.Fatal(outcome)
+			}
+		})
+	}
+}
+
+// TestSingleWriteRejectsContradictoryProof refuses negative shard counts and errors attached to successful results.
+func TestSingleWriteRejectsContradictoryProof(t *testing.T) {
+	for _, mode := range []string{"negative-shards", "error-object", "null-error"} {
+		t.Run(mode, func(t *testing.T) {
+			var driver *Driver
+			var definition search.Definition
+			driver, definition = fixtureDriver(t, func(w http.ResponseWriter, r *http.Request) {
+				result := "created"
+				if r.Method == "DELETE" {
+					result = "deleted"
+				}
+				proof := map[string]any{"_id": "i6f6e65", "_index": driver.name, "result": result, "_shards": map[string]int{"total": 1, "successful": 1, "failed": 0}}
+				if mode == "negative-shards" {
+					proof["_shards"] = map[string]int{"total": -1, "successful": -1, "failed": 0}
+				}
+				if mode == "error-object" {
+					proof["error"] = map[string]string{"reason": "private"}
+				}
+				if mode == "null-error" {
+					proof["error"] = nil
+				}
+				json.NewEncoder(w).Encode(proof)
+			})
+			_, upsertErr := driver.Upsert(context.Background(), definition, search.Document{ID: "one", Body: []byte(`{"active":true,"rank":0,"code":"x"}`)})
+			_, deleteErr := driver.Delete(context.Background(), definition, "one")
+			if mode == "null-error" {
+				if upsertErr != nil || deleteErr != nil {
+					t.Fatal(upsertErr, deleteErr)
+				}
+			} else if !errors.Is(upsertErr, search.ErrOutcomeUnknown) || !errors.Is(deleteErr, search.ErrOutcomeUnknown) {
+				t.Fatal(upsertErr, deleteErr)
+			}
+		})
+	}
+}
+
+// TestSearchRejectsNegativeShardCounts prevents impossible native completeness metadata from proving a complete search.
+func TestSearchRejectsNegativeShardCounts(t *testing.T) {
+	for _, shards := range []string{`{"total":-1,"successful":-1,"failed":0}`, `{"total":1,"successful":1,"failed":-1}`} {
+		driver, definition := fixtureDriver(t, func(w http.ResponseWriter, _ *http.Request) {
+			fmt.Fprintf(w, `{"timed_out":false,"_shards":%s,"hits":{"total":{"value":0,"relation":"eq"},"hits":[]}}`, shards)
+		})
+		index, err := search.NewIndex(driver, definition)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := index.Search(context.Background(), search.Query{}); !errors.Is(err, search.ErrUnavailable) {
+			t.Fatal(err)
+		}
 	}
 }

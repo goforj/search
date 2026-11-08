@@ -89,7 +89,7 @@ func (d *Driver) Search(ctx context.Context, definition search.Definition, query
 		}
 		return search.Result{}, err
 	}
-	if response.TimedOut || response.Shards.Failed > 0 || response.Shards.Total == 0 || response.Shards.Successful != response.Shards.Total {
+	if response.TimedOut || response.Shards.Failed != 0 || response.Shards.Total <= 0 || response.Shards.Successful != response.Shards.Total {
 		return search.Result{}, search.ErrUnavailable
 	}
 	relation := search.TotalExact
