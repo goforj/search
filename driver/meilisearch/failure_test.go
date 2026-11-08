@@ -209,3 +209,58 @@ func TestNativeCutoffIntegrity(t *testing.T) {
 		}
 	}
 }
+
+// TestMissingLaterTaskRetainsRecovery preserves earlier accepted tasks after a later response omits its task ID.
+func TestMissingLaterTaskRetainsRecovery(t *testing.T) {
+	driver, definition := fixtureDriver(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "GET" {
+			fmt.Fprint(w, `{"status":"succeeded"}`)
+			return
+		}
+		if strings.HasSuffix(r.URL.Path, "delete-batch") {
+			fmt.Fprint(w, `{}`)
+			return
+		}
+		fmt.Fprint(w, `{"taskUid":7}`)
+	})
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	first, _ := search.UpsertMutation(search.Document{ID: "one", Body: []byte(`{"active":true,"rank":1,"code":"x"}`)})
+	second, _ := search.DeleteMutation("two")
+	_, err = index.Bulk(context.Background(), []search.Mutation{first, second})
+	var unknown *search.UnknownOutcomeError
+	if !errors.As(err, &unknown) {
+		t.Fatal(err)
+	}
+	receipt, ok := unknown.Receipt()
+	if !ok {
+		t.Fatal("accepted task recovery was lost")
+	}
+	outcome, err := index.Wait(context.Background(), receipt)
+	if err != nil || outcome.State != search.OutcomeUnknown || outcome.Bulk == nil || len(outcome.Bulk.Items) != 2 {
+		t.Fatal(outcome, err)
+	}
+}
+
+// TestExpiredTaskDominatesAggregateFailure keeps mixed task outcomes independent of task order.
+func TestExpiredTaskDominatesAggregateFailure(t *testing.T) {
+	for _, tasks := range [][]uint64{{7, 8}, {8, 7}} {
+		driver, _ := fixtureDriver(t, func(w http.ResponseWriter, r *http.Request) {
+			if strings.HasSuffix(r.URL.Path, "/7") {
+				w.WriteHeader(404)
+				return
+			}
+			fmt.Fprint(w, `{"status":"failed"}`)
+		})
+		receipt, err := driver.rememberTasks(tasks, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		outcome, err := driver.Wait(context.Background(), receipt)
+		if err != nil || outcome.State != search.OutcomeUnknown || !errors.Is(outcome.Error, search.ErrReceiptExpired) {
+			t.Fatal(outcome, err)
+		}
+	}
+}

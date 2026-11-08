@@ -119,18 +119,10 @@ func (d *Driver) Bulk(ctx context.Context, def search.Definition, mutations []se
 		}
 		var task taskRef
 		if err := d.http.Do(ctx, "POST", path, body, &task, true); err != nil {
-			if len(tasks) > 0 {
-				receipt, recoveryErr := d.rememberTasks(tasks, items)
-				if recoveryErr != nil {
-					return search.BulkResult{}, search.ErrOutcomeUnknown
-				}
-				d.pending[string(receipt.Token())].uncertain = true
-				return search.BulkResult{}, errors.Join(search.NewUnknownOutcomeError(receipt), search.SafeError(err))
-			}
-			return search.BulkResult{}, err
+			return search.BulkResult{}, d.interruptedTasks(tasks, items, err)
 		}
 		if task.TaskUID == nil {
-			return search.BulkResult{}, search.ErrOutcomeUnknown
+			return search.BulkResult{}, d.interruptedTasks(tasks, items, search.ErrOutcomeUnknown)
 		}
 		tasks = append(tasks, *task.TaskUID)
 		start = end
@@ -161,8 +153,10 @@ func (d *Driver) Wait(ctx context.Context, r search.Receipt) (search.Outcome, er
 			continue
 		}
 		if errors.Is(err, search.ErrMutationFailed) {
-			o.State = search.OutcomeFailed
-			o.Error = err
+			if o.State != search.OutcomeUnknown {
+				o.State = search.OutcomeFailed
+				o.Error = err
+			}
 		} else if errors.Is(err, search.ErrIndexNotFound) {
 			o.State = search.OutcomeUnknown
 			o.Error = search.ErrReceiptExpired
@@ -182,4 +176,17 @@ func (d *Driver) Wait(ctx context.Context, r search.Receipt) (search.Outcome, er
 		o.Bulk = &search.BulkOutcome{Items: items, Precision: search.BatchOnly}
 	}
 	return o, nil
+}
+
+// interruptedTasks preserves acknowledged work even when a later task response is malformed.
+func (d *Driver) interruptedTasks(tasks []uint64, items []search.ItemResult, cause error) error {
+	if len(tasks) == 0 {
+		return cause
+	}
+	receipt, err := d.rememberTasks(tasks, items)
+	if err != nil {
+		return search.ErrOutcomeUnknown
+	}
+	d.pending[string(receipt.Token())].uncertain = true
+	return errors.Join(search.NewUnknownOutcomeError(receipt), search.SafeError(cause))
 }
