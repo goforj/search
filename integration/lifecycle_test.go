@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/goforj/search"
+	"github.com/goforj/search/driver/elasticsearch"
 	"github.com/goforj/search/driver/meilisearch"
 	"github.com/goforj/search/driver/opensearch"
 	"github.com/goforj/search/driver/typesensesearch"
@@ -46,7 +47,19 @@ func serviceDriver(t *testing.T, engine, endpoint, prefix string) administeredBa
 		})
 		return driver
 	}
-	if engine == "opensearch" {
+	if engine == "elasticsearch" {
+		driver, err := elasticsearch.New(elasticsearch.Config{URL: endpoint, Username: "elastic", Password: testOpenSearchPassword, Prefix: prefix, RefreshInterval: 100 * time.Millisecond})
+		if err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(func() {
+			if err := driver.Close(); err != nil {
+				t.Error(err)
+			}
+		})
+		return driver
+	}
+	if engine == "opensearch" || engine == "elasticsearch" {
 		driver, err := opensearch.New(opensearch.Config{URL: endpoint, Username: "admin", Password: testOpenSearchPassword, Prefix: prefix, RefreshInterval: 100 * time.Millisecond})
 		if err != nil {
 			t.Fatal(err)
@@ -116,17 +129,21 @@ func TestServiceOwnershipAndActualDrift(t *testing.T) {
 				header = "Authorization"
 			}
 			admin, err := driverutil.NewHTTP(endpoint, testAPIKey, header, nil)
-			if engine == "opensearch" {
+			if engine == "opensearch" || engine == "elasticsearch" {
 				admin, err = driverutil.NewHTTP(endpoint, "", "", nil)
 				if err == nil {
-					admin.Authorization = "Basic " + base64.StdEncoding.EncodeToString([]byte("admin:"+testOpenSearchPassword))
+					username := "admin"
+					if engine == "elasticsearch" {
+						username = "elastic"
+					}
+					admin.Authorization = "Basic " + base64.StdEncoding.EncodeToString([]byte(username+":"+testOpenSearchPassword))
 				}
 			}
 			if err != nil {
 				t.Fatal(err)
 			}
 			physical := "first_" + fixturePrefix(t) + "s_" + driverutil.FieldKey(search.FieldName(definition.Name))
-			if engine == "opensearch" {
+			if engine == "opensearch" || engine == "elasticsearch" {
 				var observed map[string]any
 				if err := admin.Do(ctx, "GET", "/first_"+fixturePrefix(t)+"*/_mapping", nil, &observed, false); err != nil {
 					t.Fatal(err)

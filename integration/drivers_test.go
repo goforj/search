@@ -20,6 +20,7 @@ import (
 	"github.com/docker/go-connections/nat"
 	"github.com/goforj/search"
 	"github.com/goforj/search/driver/blevesearch"
+	"github.com/goforj/search/driver/elasticsearch"
 	"github.com/goforj/search/driver/meilisearch"
 	"github.com/goforj/search/driver/opensearch"
 	"github.com/goforj/search/driver/typesensesearch"
@@ -60,6 +61,9 @@ func startServer(t *testing.T, engine string) string {
 	case "typesense":
 		port = "8108/tcp"
 		request.Cmd = []string{"--data-dir=/tmp", "--api-key=" + testAPIKey, "--enable-cors=false"}
+	case "elasticsearch":
+		port, health = "9200/tcp", "/"
+		request.Env = map[string]string{"discovery.type": "single-node", "ELASTIC_PASSWORD": testOpenSearchPassword, "ES_JAVA_OPTS": "-Xms512m -Xmx512m", "xpack.security.enabled": "true", "xpack.security.http.ssl.enabled": "false"}
 	case "opensearch":
 		port, health = "9200/tcp", "/"
 		request.Env = map[string]string{
@@ -74,6 +78,9 @@ func startServer(t *testing.T, engine string) string {
 	}
 	request.ExposedPorts = []string{port}
 	readiness := wait.ForHTTP(health).WithPort(nat.Port(port)).WithStartupTimeout(60 * time.Second)
+	if engine == "elasticsearch" {
+		readiness.WithBasicAuth("elastic", testOpenSearchPassword)
+	}
 	if engine == "opensearch" {
 		readiness.WithBasicAuth("admin", testOpenSearchPassword)
 	}
@@ -81,6 +88,7 @@ func startServer(t *testing.T, engine string) string {
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{ContainerRequest: request, Started: true})
 	if container != nil {
 		fixturePool.containers = append(fixturePool.containers, container)
+		fixturePool.engines[engine] = container
 	}
 	if err != nil {
 		t.Fatal(err)
@@ -152,6 +160,13 @@ func TestServiceAuthentication(t *testing.T) {
 				}
 				defer driver.Close()
 				err = driver.ValidateIndex(ctx, searchtest.Definition())
+			} else if engine == "elasticsearch" {
+				driver, e := elasticsearch.New(elasticsearch.Config{URL: endpoint, Username: "elastic", Password: "wrong"})
+				if e != nil {
+					t.Fatal(e)
+				}
+				defer driver.Close()
+				err = driver.ValidateIndex(ctx, searchtest.Definition())
 			} else if engine == "opensearch" {
 				driver, e := opensearch.New(opensearch.Config{URL: endpoint, Prefix: fixturePrefix(t), Username: "admin", Password: "wrong"})
 				if e != nil {
@@ -170,7 +185,7 @@ func TestServiceAuthentication(t *testing.T) {
 			if !errors.Is(err, search.ErrUnauthorized) {
 				t.Fatal(fmt.Sprintf("classification: %v", err))
 			}
-			if engine == "opensearch" {
+			if engine == "opensearch" || engine == "elasticsearch" {
 				return
 			}
 			response, err := http.Get(endpoint + "/health")
@@ -308,8 +323,12 @@ func selectedServices() []string {
 		return []string{"typesense"}
 	case "opensearch":
 		return []string{"opensearch"}
+	case "elasticsearch":
+		return []string{"elasticsearch"}
+	case "postgres", "sqlite", "redis":
+		return nil
 	default:
-		return []string{"meilisearch", "typesense", "opensearch"}
+		return []string{"meilisearch", "typesense", "opensearch", "elasticsearch"}
 	}
 }
 
@@ -320,7 +339,7 @@ func verifyServerVersion(t *testing.T, ctx context.Context, engine, endpoint, ex
 	if engine == "typesense" {
 		path, header, value = "/debug", "X-TYPESENSE-API-KEY", testAPIKey
 	}
-	if engine == "opensearch" {
+	if engine == "opensearch" || engine == "elasticsearch" {
 		path = "/"
 	}
 	request, err := http.NewRequestWithContext(ctx, "GET", endpoint+path, nil)
@@ -328,6 +347,9 @@ func verifyServerVersion(t *testing.T, ctx context.Context, engine, endpoint, ex
 		t.Fatal(err)
 	}
 	request.Header.Set(header, value)
+	if engine == "elasticsearch" {
+		request.SetBasicAuth("elastic", testOpenSearchPassword)
+	}
 	if engine == "opensearch" {
 		request.SetBasicAuth("admin", testOpenSearchPassword)
 	}
@@ -348,7 +370,7 @@ func verifyServerVersion(t *testing.T, ctx context.Context, engine, endpoint, ex
 		t.Fatal("invalid backend version response")
 	}
 	var actual string
-	if engine == "opensearch" {
+	if engine == "opensearch" || engine == "elasticsearch" {
 		var native struct{ Number string }
 		if err := json.Unmarshal(version.Version, &native); err != nil {
 			t.Fatal(err)
