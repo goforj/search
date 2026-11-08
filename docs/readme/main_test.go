@@ -36,7 +36,7 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 		"[Search documents](#example-search)",
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
-		"[Full program](examples/search/main.go)",
+		`id="example-search"></a>[Search documents](examples/search/main.go)`,
 	} {
 		if !strings.Contains(markdown, expected) {
 			t.Fatal("missing API navigation or example", expected)
@@ -44,6 +44,9 @@ func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 	}
 	if strings.Contains(markdown, "[search.Index.Search]") || strings.Contains(markdown, "[`Index.Search`]") || strings.Contains(markdown, "pkg.go.dev") {
 		t.Fatal("API links use code styling or unpublished documentation")
+	}
+	if strings.Contains(markdown, "[Full program]") || strings.Contains(markdown, "[Executable test]") {
+		t.Fatal("repeated example footers returned")
 	}
 	examples[0].APIs = []string{"search.Missing"}
 	if _, err := apiMarkdownFor(symbols, examples, entries); err == nil {

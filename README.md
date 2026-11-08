@@ -242,9 +242,9 @@ Choose a backend in [Drivers](#drivers), then use these operations in your appli
 
 ## API examples
 
-Each snippet comes from its linked executable test. Open the full program for its index definition and setup.
+Select an example title for its complete runnable program and setup.
 
-### <a id="example-bulk"></a>Inspect bulk visibility
+### <a id="example-bulk"></a>[Inspect bulk visibility](examples/bulk/main.go)
 
 ```go
 first, err := search.DeleteMutation("one")
@@ -270,9 +270,7 @@ for _, item := range outcome.Bulk.Items {
 }
 ```
 
-[Full program](examples/bulk/main.go) · [Executable test](examples/bulk_test.go)
-
-### <a id="example-facets"></a>Count facets before pagination
+### <a id="example-facets"></a>[Count facets before pagination](examples/facets/main.go)
 
 ```go
 result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
@@ -287,9 +285,7 @@ for _, bucket := range result.Facets[0].Buckets {
 }
 ```
 
-[Full program](examples/facets/main.go) · [Executable test](examples/facets_test.go)
-
-### <a id="example-fake"></a>Test an application service
+### <a id="example-fake"></a>[Test an application service](examples/fake/main.go)
 
 ```go
 backend := searchfake.New()
@@ -309,9 +305,7 @@ fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
 // 3 search
 ```
 
-[Full program](examples/fake/main.go) · [Executable test](examples/fake_test.go)
-
-### <a id="example-filters"></a>Filter and sort results
+### <a id="example-filters"></a>[Filter and sort results](examples/filters/main.go)
 
 ```go
 category, err := search.Keyword("kitchen")
@@ -336,9 +330,7 @@ fmt.Println(result.Total.Value)
 // 2
 ```
 
-[Full program](examples/filters/main.go) · [Executable test](examples/filters_test.go)
-
-### <a id="example-highlights"></a>Escape structured highlights
+### <a id="example-highlights"></a>[Escape structured highlights](examples/highlights/main.go)
 
 ```go
 result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
@@ -357,9 +349,7 @@ fmt.Println()
 // <mark>Blue</mark> mug
 ```
 
-[Full program](examples/highlights/main.go) · [Executable test](examples/highlights_test.go)
-
-### <a id="example-quickstart"></a>Index and search a document
+### <a id="example-quickstart"></a>[Index and search a document](examples/quickstart/main.go)
 
 ```go
 ctx := context.Background()
@@ -404,9 +394,7 @@ fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
 // mug-1 Blue mug
 ```
 
-[Full program](examples/quickstart/main.go) · [Executable test](examples/quickstart_test.go)
-
-### <a id="example-search"></a>Search typed documents
+### <a id="example-search"></a>[Search typed documents](examples/search/main.go)
 
 ```go
 page, err := search.SearchAs[struct {
@@ -421,9 +409,7 @@ fmt.Println(page.Total.Value)
 // 1
 ```
 
-[Full program](examples/search/main.go) · [Executable test](examples/search_test.go)
-
-### <a id="example-services"></a>Construct service drivers
+### <a id="example-services"></a>[Construct service drivers](examples/services/main.go)
 
 ```go
 meili, err := meilisearch.New(meilisearch.Config{URL: "http://127.0.0.1:7700"})
@@ -454,6 +440,4 @@ defer redis.Close()
 fmt.Println("Clients constructed without backend I/O")
 // Clients constructed without backend I/O
 ```
-
-[Full program](examples/services/main.go) · [Executable test](examples/services_test.go)
 <!-- api:embed:end -->
