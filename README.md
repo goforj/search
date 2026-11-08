@@ -27,20 +27,20 @@ The root package has no third-party dependencies. Bleve is isolated in its own m
 ## Features
 
 <!-- features:embed:start -->
-| Feature | What you get | Example or API |
-| --- | --- | --- |
-| <img src="docs/assets/icons/features/search.svg" width="20" height="20" alt=""> **Literal search** | Require every analyzed term, with explicit searchable fields. | [Typed search example](examples/search/main.go) |
-| <img src="docs/assets/icons/features/filters.svg" width="20" height="20" alt=""> **Typed filters** | Combine Boolean logic, exact values, integer ranges, and array membership. | [Filter example](examples/filters/main.go) |
-| <img src="docs/assets/icons/features/sorting.svg" width="20" height="20" alt=""> **Stable sorting** | Order by up to two declared fields, followed by the document ID. | [`Sort`](definition.go) |
-| <img src="docs/assets/icons/features/pagination.svg" width="20" height="20" alt=""> **Pagination** | Use bounded offsets and limits with explicit total-count precision. | [`Query`](query.go) |
-| <img src="docs/assets/icons/features/facets.svg" width="20" height="20" alt=""> **Term facets** | Count matching documents before pagination, deduplicating repeated array terms. | [Facet example](examples/facets/main.go) |
-| <img src="docs/assets/icons/features/highlights.svg" width="20" height="20" alt=""> **Structured highlights** | Render untrusted text segments with explicit match markers. | [Highlight example](examples/highlights/main.go) |
-| <img src="docs/assets/icons/features/bulk.svg" width="20" height="20" alt=""> **Bulk operations** | Retain input positions and honest per-item or aggregate outcomes. | [Bulk example](examples/bulk/main.go) |
-| <img src="docs/assets/icons/features/receipts.svg" width="20" height="20" alt=""> **Visibility receipts** | Wait for accepted writes to become searchable and retain recovery evidence. | [`Receipt` and `Outcome`](mutation.go) |
-| <img src="docs/assets/icons/features/documents.svg" width="20" height="20" alt=""> **Typed documents** | Use typed Go values while keeping document IDs separate from JSON bodies. | [Typed search example](examples/search/main.go) |
-| <img src="docs/assets/icons/features/schemas.svg" width="20" height="20" alt=""> **Explicit schemas** | Provision deliberately and detect schema drift without runtime migration. | [`Definition`](definition.go) |
-| <img src="docs/assets/icons/features/observability.svg" width="20" height="20" alt=""> **Safe observability** | Observe classified events with panic isolation and optional bounded async delivery. | [`Observer`](observer.go) · [`AsyncObserver`](observer_async.go) |
-| <img src="docs/assets/icons/features/testing.svg" width="20" height="20" alt=""> **Isolated testing** | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
+| | Feature | What you get | Example or API |
+| :---: | --- | --- | --- |
+| <img src="docs/assets/icons/features/search.svg" width="20" height="20" alt=""> | **Literal search** | Require every analyzed term, with explicit searchable fields. | [Typed search example](examples/search/main.go) |
+| <img src="docs/assets/icons/features/filters.svg" width="20" height="20" alt=""> | **Typed filters** | Combine Boolean logic, exact values, integer ranges, and array membership. | [Filter example](examples/filters/main.go) |
+| <img src="docs/assets/icons/features/sorting.svg" width="20" height="20" alt=""> | **Stable sorting** | Order by up to two declared fields, followed by the document ID. | [`Sort`](definition.go) |
+| <img src="docs/assets/icons/features/pagination.svg" width="20" height="20" alt=""> | **Pagination** | Use bounded offsets and limits with explicit total-count precision. | [`Query`](query.go) |
+| <img src="docs/assets/icons/features/facets.svg" width="20" height="20" alt=""> | **Term facets** | Count matching documents before pagination, deduplicating repeated array terms. | [Facet example](examples/facets/main.go) |
+| <img src="docs/assets/icons/features/highlights.svg" width="20" height="20" alt=""> | **Structured highlights** | Render untrusted text segments with explicit match markers. | [Highlight example](examples/highlights/main.go) |
+| <img src="docs/assets/icons/features/bulk.svg" width="20" height="20" alt=""> | **Bulk operations** | Retain input positions and honest per-item or aggregate outcomes. | [Bulk example](examples/bulk/main.go) |
+| <img src="docs/assets/icons/features/receipts.svg" width="20" height="20" alt=""> | **Visibility receipts** | Wait for accepted writes to become searchable and retain recovery evidence. | [`Receipt` and `Outcome`](mutation.go) |
+| <img src="docs/assets/icons/features/documents.svg" width="20" height="20" alt=""> | **Typed documents** | Use typed Go values while keeping document IDs separate from JSON bodies. | [Typed search example](examples/search/main.go) |
+| <img src="docs/assets/icons/features/schemas.svg" width="20" height="20" alt=""> | **Explicit schemas** | Provision deliberately and detect schema drift without runtime migration. | [`Definition`](definition.go) |
+| <img src="docs/assets/icons/features/observability.svg" width="20" height="20" alt=""> | **Safe observability** | Observe classified events with panic isolation and optional bounded async delivery. | [`Observer`](observer.go) · [`AsyncObserver`](observer_async.go) |
+| <img src="docs/assets/icons/features/testing.svg" width="20" height="20" alt=""> | **Isolated testing** | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
 <!-- features:embed:end -->
 
 ## Status

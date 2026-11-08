@@ -92,9 +92,9 @@ func FeaturesMarkdown() string {
 		{"testing", "Isolated testing", "Script results and inspect recorded calls without running a search engine.", "[Fake backend example](examples/fake/main.go)"},
 	}
 	var out strings.Builder
-	out.WriteString("| Feature | What you get | Example or API |\n| --- | --- | --- |\n")
+	out.WriteString("| | Feature | What you get | Example or API |\n| :---: | --- | --- | --- |\n")
 	for _, row := range rows {
-		fmt.Fprintf(&out, "| <img src=\"docs/assets/icons/features/%s.svg\" width=\"20\" height=\"20\" alt=\"\"> **%s** | %s | %s |\n", row.icon, row.name, row.capability, row.reference)
+		fmt.Fprintf(&out, "| <img src=\"docs/assets/icons/features/%s.svg\" width=\"20\" height=\"20\" alt=\"\"> | **%s** | %s | %s |\n", row.icon, row.name, row.capability, row.reference)
 	}
 	return out.String()
 }
