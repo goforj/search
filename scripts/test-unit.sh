@@ -10,4 +10,5 @@ GOWORK=off go -C docs test -json -count=1 ./... >> .artifacts/unit.json
 GOWORK=off go -C examples test -json -count=1 -coverpkg='github.com/goforj/search/...' -coverprofile="$repo_root/.artifacts/examples.cover" ./... >> .artifacts/unit.json
 GOWORK=off go -C integration test -tags=integration,sqlite_fts5 -run '^$' ./...
 GOWORK=off go -C docs run ./report -events "$repo_root/.artifacts/unit.json" -kind unit
+GOWORK=off go -C docs run ./report -unit-coverage -coverage "$repo_root/.artifacts/root.cover,$repo_root/.artifacts/bleve.cover,$repo_root/.artifacts/examples.cover"
 

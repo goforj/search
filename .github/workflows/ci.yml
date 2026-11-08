@@ -65,5 +65,19 @@ jobs:
         uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
         with:
           files: .artifacts/coverage.out
+          flags: integration
+          disable_search: true
+          fail_ci_if_error: true
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Upload unit-only coverage
+        uses: codecov/codecov-action@e53489f4d376d79066609109e7a95a29eb3740b1 # v7.0.0
+        with:
+          files: .artifacts/unit-coverage.out
+          flags: unit
+          disable_search: true
+          fail_ci_if_error: true
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      - name: Require full unit coverage
+        run: scripts/check-unit-coverage.sh

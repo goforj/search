@@ -61,6 +61,7 @@ func main() {
 	events := flag.String("events", "", "go test -json output")
 	kind := flag.String("kind", "unit", "unit or integration")
 	profiles := flag.String("coverage", "", "comma-separated coverage profiles")
+	unitCoverage := flag.Bool("unit-coverage", false, "write unit-only coverage artifacts without replacing combined evidence")
 	flag.Parse()
 	if *show != "" {
 		if err := showEvents(*show); err != nil {
@@ -74,7 +75,7 @@ func main() {
 		err = recordTests(root, *events, *kind)
 	}
 	if err == nil && *profiles != "" {
-		err = recordCoverage(root, strings.Split(*profiles, ","))
+		err = recordCoverage(root, strings.Split(*profiles, ","), *unitCoverage)
 	}
 	if err == nil && *events == "" && *profiles == "" {
 		err = fmt.Errorf("provide -events or -coverage")
@@ -210,7 +211,7 @@ func bleveVersion(root string) string {
 }
 
 // recordCoverage combines block counts across root, examples, and real backend executions.
-func recordCoverage(root string, profiles []string) error {
+func recordCoverage(root string, profiles []string, unitOnly bool) error {
 	blocks := map[string]coverageBlock{}
 	for _, path := range profiles {
 		file, err := os.Open(path)
@@ -280,10 +281,14 @@ func recordCoverage(root string, profiles []string) error {
 	if err := os.MkdirAll(filepath.Join(root, ".artifacts"), 0755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filepath.Join(root, ".artifacts/coverage.out"), []byte(merged.String()), 0644); err != nil {
+	profilePath, summaryPath := ".artifacts/coverage.out", "docs/coverage.json"
+	if unitOnly {
+		profilePath, summaryPath = ".artifacts/unit-coverage.out", ".artifacts/unit-coverage.json"
+	}
+	if err := os.WriteFile(filepath.Join(root, profilePath), []byte(merged.String()), 0644); err != nil {
 		return err
 	}
-	return writeJSON(filepath.Join(root, "docs/coverage.json"), report)
+	return writeJSON(filepath.Join(root, summaryPath), report)
 }
 
 // writeJSON produces deterministic machine-readable evidence without run-specific timestamps.
