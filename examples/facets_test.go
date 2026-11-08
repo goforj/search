@@ -9,6 +9,7 @@ import (
 
 // Example_facets demonstrates count facets before pagination.
 // @readme Count facets before pagination
+// @api search.TermFacet search.FacetResult search.Bucket search.Value.Keyword
 func Example_facets() {
 
 	ctx := context.Background()
@@ -58,6 +59,7 @@ func Example_facets() {
 		}
 	}
 
+	// snippet:start
 	result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
 	if err != nil {
 		panic(err)
@@ -68,6 +70,8 @@ func Example_facets() {
 		// kitchen 2
 		// books 1
 	}
+
+	// snippet:end
 
 	// Output:
 	// kitchen 2

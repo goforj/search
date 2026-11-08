@@ -9,6 +9,7 @@ import (
 
 // Example_search demonstrates search typed documents.
 // @readme Search typed documents
+// @api search.SearchAs search.Page search.HitOf
 func Example_search() {
 
 	ctx := context.Background()
@@ -58,6 +59,7 @@ func Example_search() {
 		}
 	}
 
+	// snippet:start
 	page, err := search.SearchAs[struct {
 		Title string `json:"title"`
 	}](ctx, index, search.Query{Text: "blue mug"})
@@ -68,6 +70,8 @@ func Example_search() {
 	// Blue mug
 	fmt.Println(page.Total.Value)
 	// 1
+
+	// snippet:end
 
 	// Output:
 	// Blue mug

@@ -10,7 +10,9 @@ import (
 
 // Example_quickstart demonstrates the complete embedded indexing and typed-query lifecycle.
 // @readme Index and search a document
+// @api blevesearch.Open blevesearch.Config blevesearch.Driver blevesearch.Driver.Close search.DocumentID search.Definition search.Field search.NewIndex search.Upsert search.Index.Wait search.Outcome search.OutcomeSucceeded
 func Example_quickstart() {
+	// snippet:start
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -51,6 +53,8 @@ func Example_quickstart() {
 	}
 	fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
 	// mug-1 Blue mug
+
+	// snippet:end
 
 	// Output:
 	// mug-1 Blue mug

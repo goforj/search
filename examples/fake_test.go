@@ -10,7 +10,9 @@ import (
 
 // Example_fake demonstrates application testing with an explicitly scripted backend.
 // @readme Test an application service
+// @api searchfake.New searchfake.Backend.QueueSearch searchfake.Backend.Calls search.Result search.Total search.TotalExact
 func Example_fake() {
+	// snippet:start
 	backend := searchfake.New()
 	backend.QueueSearch(search.Result{Total: search.Total{Value: 3, Relation: search.TotalExact}}, nil)
 	index, err := search.NewIndex(backend, search.Definition{
@@ -26,6 +28,8 @@ func Example_fake() {
 	}
 	fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
 	// 3 search
+
+	// snippet:end
 
 	// Output:
 	// 3 search

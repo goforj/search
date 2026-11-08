@@ -80,15 +80,15 @@ func FeaturesMarkdown(root string) (string, error) {
 	rows := []struct{ icon, name, capability, reference string }{
 		{"search", "Literal search", "Require every analyzed term, with explicit searchable fields.", "[Typed search example](examples/search/main.go)"},
 		{"filters", "Typed filters", "Combine Boolean logic, exact values, integer ranges, and array membership.", "[Filter example](examples/filters/main.go)"},
-		{"sorting", "Stable sorting", "Order by up to two declared fields, followed by the document ID.", "[`Sort`](definition.go)"},
-		{"pagination", "Pagination", "Use bounded offsets and limits with explicit total-count precision.", "[`Query`](query.go)"},
+		{"sorting", "Stable sorting", "Order by up to two declared fields, followed by the document ID.", "[Sort](definition.go)"},
+		{"pagination", "Pagination", "Use bounded offsets and limits with explicit total-count precision.", "[Query](query.go)"},
 		{"facets", "Term facets", "Count matching documents before pagination, deduplicating repeated array terms.", "[Facet example](examples/facets/main.go)"},
 		{"highlights", "Structured highlights", "Render untrusted text segments with explicit match markers.", "[Highlight example](examples/highlights/main.go)"},
 		{"bulk", "Bulk operations", "Retain input positions and honest per-item or aggregate outcomes.", "[Bulk example](examples/bulk/main.go)"},
 		{"receipts", "Visibility receipts", "Wait for accepted writes to become searchable and retain recovery evidence.", "[`Receipt` and `Outcome`](mutation.go)"},
 		{"documents", "Typed documents", "Use typed Go values while keeping document IDs separate from JSON bodies.", "[Typed search example](examples/search/main.go)"},
-		{"schemas", "Explicit schemas", "Provision deliberately and detect schema drift without runtime migration.", "[`Definition`](definition.go)"},
-		{"observability", "Safe observability", "Observe classified events with panic isolation and optional bounded async delivery.", "[`Observer`](observer.go) · [`AsyncObserver`](observer_async.go)"},
+		{"schemas", "Explicit schemas", "Provision deliberately and detect schema drift without runtime migration.", "[Definition](definition.go)"},
+		{"observability", "Safe observability", "Observe classified events with panic isolation and optional bounded async delivery.", "[Observer](observer.go) · [AsyncObserver](observer_async.go)"},
 		{"testing", "Isolated testing", "Script results and inspect recorded calls without running a search engine.", "[Fake backend example](examples/fake/main.go)"},
 	}
 	var out strings.Builder

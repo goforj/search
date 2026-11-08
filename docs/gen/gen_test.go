@@ -73,6 +73,15 @@ func TestQualifiedAPIIndex(t *testing.T) {
 		if found[symbol.Name] {
 			t.Fatal("colliding qualified symbol", symbol.Name)
 		}
+		data, err := os.ReadFile(filepath.Join(root, symbol.Source))
+		if err != nil {
+			t.Fatal("missing source link", symbol.Name, err)
+		}
+		lines := strings.Split(string(data), "\n")
+		name := symbol.Name[strings.LastIndex(symbol.Name, ".")+1:]
+		if symbol.Line < 1 || symbol.Line > len(lines) || !strings.Contains(lines[symbol.Line-1], name) {
+			t.Fatal("source link misses declaration", symbol.Name, symbol.Source, symbol.Line)
+		}
 		found[symbol.Name] = true
 	}
 	for _, name := range []string{"search.Value.Keyword", "search.Keyword", "blevesearch.Driver.Search", "meilisearch.Driver.Search", "typesensesearch.Driver.Search", "opensearch.Driver.Search", "elasticsearch.Driver.Search", "postgressearch.Driver.Search", "sqlitesearch.Driver.Search", "redissearch.Driver.Search", "searchfake.New"} {
@@ -96,6 +105,16 @@ func TestExamplesMatchStandalonePrograms(t *testing.T) {
 		t.Fatal("missing executable examples")
 	}
 	for _, example := range examples {
+		if len(example.APIs) == 0 || example.Snippet == "" {
+			t.Fatal("missing documented API example", example.Name)
+		}
+		if strings.Contains(example.Snippet, "snippet:") || strings.Contains(string(example.Program), "snippet:") {
+			t.Fatal("snippet markers leaked into generated documentation", example.Name)
+		}
+		program := strings.ReplaceAll(string(example.Program), "\n\t", "\n")
+		if !strings.Contains(program, strings.TrimSpace(example.Snippet)) {
+			t.Fatal("API snippet differs from its executable program", example.Name)
+		}
 		data, err := os.ReadFile(filepath.Join(root, "examples", example.Name, "main.go"))
 		if err != nil {
 			t.Fatal(err)
@@ -106,6 +125,29 @@ func TestExamplesMatchStandalonePrograms(t *testing.T) {
 		if strings.Contains(string(data), "// Output:") {
 			t.Fatal("test-only output marker leaked into standalone program")
 		}
+	}
+}
+
+// TestExampleSnippetBoundaries rejects malformed annotations before publishing incomplete API examples.
+func TestExampleSnippetBoundaries(t *testing.T) {
+	for _, body := range []string{
+		"unmarked code",
+		"// snippet:start\ncode",
+		"// snippet:end\n// snippet:start\ncode",
+		"// snippet:start\n\t// snippet:end",
+		"// snippet:start\ncode\n// snippet:end\n// snippet:end",
+	} {
+		if _, err := exampleSnippet(body, true); err == nil {
+			t.Fatalf("accepted malformed snippet %q", body)
+		}
+	}
+	if snippet, err := exampleSnippet("unmarked code", false); err != nil || snippet != "" {
+		t.Fatal(snippet, err)
+	}
+	input := "\t// snippet:start\n\tif ok {\n\t\tfmt.Println(1)\n\t}\n\t// snippet:end\n"
+	want := "if ok {\n\tfmt.Println(1)\n}\n"
+	if snippet, err := exampleSnippet(input, true); err != nil || snippet != want {
+		t.Fatal(snippet, err)
 	}
 }
 

@@ -14,7 +14,7 @@ The root supports Go 1.24. The embedded driver, examples, and integration harnes
 
 ## Source ownership
 
-GoDoc owns API descriptions and `@group` classification. `examples/*_test.go` owns executable examples and expected output. `docs/examplegen` projects those sources into `examples/<name>/main.go`; `docs/readme` projects the quick start and a linked example index into the README alongside its GoDoc-derived API index. Edit the sources and run `make generate`.
+GoDoc owns API descriptions and `@group` classification. `examples/*_test.go` owns executable examples and expected output. `docs/examplegen` projects those sources into `examples/<name>/main.go`; `docs/readme` projects the quick start and a linked example index into the README alongside its GoDoc-derived API index. Example `@api` annotations associate symbols with code between `// snippet:start` and `// snippet:end`; the API index links those tested snippets and the exact source declaration. Edit the sources and run `make generate`.
 
 `searchtest.ScenarioNames` inventories mandatory conformance fixtures. The shared runner verifies that inventory against executed subtests. Every real driver must execute the same fixtures without skips before `docs/report` can generate a support claim. Driver evidence includes a hash of library sources, tests, integration fixtures, and module pins. Editing those files makes existing evidence stale until the full integration suite passes again.
 

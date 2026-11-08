@@ -28,17 +28,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	var api strings.Builder
-	api.WriteString("## API Index\n\nGenerated from GoDoc. Edit the owning Go source and run `make generate`.\n")
-	group := ""
-	for _, symbol := range symbols {
-		if group != symbol.Group {
-			group = symbol.Group
-			fmt.Fprintf(&api, "\n### %s\n\n| API | Description |\n| --- | --- |\n", group)
-		}
-		fmt.Fprintf(&api, "| [`%s`](https://pkg.go.dev/%s#%s) | %s |\n", symbol.Name, symbol.Package, symbol.Anchor, strings.ReplaceAll(symbol.Description, "|", "\\|"))
-	}
 	examples, err := gen.Examples(root)
+	if err != nil {
+		return err
+	}
+	api, err := apiMarkdown(symbols, examples)
 	if err != nil {
 		return err
 	}
@@ -56,7 +50,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	result, err := gen.Replace(string(data), "api", api.String())
+	result, err := gen.Replace(string(data), "api", api)
 	if err != nil {
 		return err
 	}
@@ -105,4 +99,43 @@ func quickStartMarkdown(examples []gen.Example) (string, error) {
 		}
 	}
 	return "", fmt.Errorf("missing executable quickstart example")
+}
+
+// apiMarkdown links declarations to checked-in source and associates APIs with their tested inline examples.
+func apiMarkdown(symbols []gen.Symbol, examples []gen.Example) (string, error) {
+	known := map[string]bool{}
+	for _, symbol := range symbols {
+		known[symbol.Name] = true
+	}
+	related := map[string][]gen.Example{}
+	for _, example := range examples {
+		for _, name := range example.APIs {
+			if !known[name] {
+				return "", fmt.Errorf("example %s references unknown API %s", example.Name, name)
+			}
+			related[name] = append(related[name], example)
+		}
+	}
+	var out strings.Builder
+	out.WriteString("## API Index\n\nAPI names open their source definitions. Example links jump to tested usage below.\n")
+	group := ""
+	for _, symbol := range symbols {
+		if group != symbol.Group {
+			group = symbol.Group
+			fmt.Fprintf(&out, "\n### %s\n\n| API | Description | Example |\n| --- | --- | --- |\n", group)
+		}
+		links := []string{}
+		for _, example := range related[symbol.Name] {
+			links = append(links, fmt.Sprintf("[%s](#example-%s)", example.Title, example.Name))
+		}
+		fmt.Fprintf(&out, "| [%s](%s#L%d) | %s | %s |\n", symbol.Name, symbol.Source, symbol.Line, strings.ReplaceAll(symbol.Description, "|", "\\|"), strings.Join(links, " · "))
+	}
+	out.WriteString("\n## API examples\n\nEach snippet comes from its linked executable test. Open the full program for its index definition and setup.\n")
+	for _, example := range examples {
+		if example.Snippet == "" {
+			continue
+		}
+		fmt.Fprintf(&out, "\n### <a id=\"example-%s\"></a>%s\n\n```go\n%s```\n\n[Full program](examples/%s/main.go) · [Executable test](examples/%s)\n", example.Name, example.Title, example.Snippet, example.Name, example.Source)
+	}
+	return out.String(), nil
 }

@@ -9,6 +9,7 @@ import (
 
 // Example_filters demonstrates filter and sort results.
 // @readme Filter and sort results
+// @api search.Index.Search search.Query search.Keyword search.Integer search.And search.Equal search.LessThan search.Sort search.Ascending
 func Example_filters() {
 
 	ctx := context.Background()
@@ -58,6 +59,7 @@ func Example_filters() {
 		}
 	}
 
+	// snippet:start
 	category, err := search.Keyword("kitchen")
 	if err != nil {
 		panic(err)
@@ -78,6 +80,8 @@ func Example_filters() {
 	// two
 	fmt.Println(result.Total.Value)
 	// 2
+
+	// snippet:end
 
 	// Output:
 	// two

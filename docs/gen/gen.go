@@ -24,6 +24,8 @@ type Symbol struct {
 	Anchor      string
 	Group       string
 	Description string
+	Source      string
+	Line        int
 }
 
 // Example is an executable Go example and its standalone program projection.
@@ -32,6 +34,8 @@ type Example struct {
 	Title   string
 	Source  string
 	Program []byte
+	APIs    []string
+	Snippet string
 }
 
 // Root locates the library rather than accidentally selecting the tooling module.
@@ -92,7 +96,7 @@ func Symbols(root string) ([]Symbol, error) {
 					if target != "." {
 						path += "/" + target
 					}
-					symbols = append(symbols, Symbol{Name: pkg.Name + "." + name, Package: path, Anchor: anchor, Group: selected, Description: description})
+					symbols = append(symbols, Symbol{Name: pkg.Name + "." + name, Package: path, Anchor: anchor, Group: selected, Description: description, Source: filepath.ToSlash(filepath.Join(target, filepath.Base(filename))), Line: set.Position(doc.End()).Line + 1})
 					return nil
 				}
 				for _, decl := range file.Decls {
@@ -202,9 +206,13 @@ func Examples(root string) ([]Example, error) {
 			}
 			name := strings.TrimPrefix(fn.Name.Name, "Example_")
 			title := name
+			var apis []string
 			for _, line := range strings.Split(fn.Doc.Text(), "\n") {
 				if value, ok := strings.CutPrefix(strings.TrimSpace(line), "@readme "); ok {
 					title = value
+				}
+				if value, ok := strings.CutPrefix(strings.TrimSpace(line), "@api "); ok {
+					apis = append(apis, strings.Fields(value)...)
 				}
 			}
 			start, end := set.Position(fn.Body.Lbrace).Offset+1, set.Position(fn.Body.Rbrace).Offset
@@ -212,6 +220,12 @@ func Examples(root string) ([]Example, error) {
 			if output := strings.Index(body, "// Output:"); output >= 0 {
 				body = body[:output]
 			}
+			snippet, err := exampleSnippet(body, len(apis) > 0)
+			if err != nil {
+				return nil, fmt.Errorf("example %s: %w", name, err)
+			}
+			body = strings.ReplaceAll(body, "\t// snippet:start\n", "")
+			body = strings.ReplaceAll(body, "\t// snippet:end\n", "")
 			var program bytes.Buffer
 			program.WriteString("// Code generated from examples/" + filepath.Base(filename) + "; DO NOT EDIT.\npackage main\n\n")
 			for _, declaration := range file.Decls {
@@ -227,11 +241,34 @@ func Examples(root string) ([]Example, error) {
 			if err != nil {
 				return nil, fmt.Errorf("example %s: %w", name, err)
 			}
-			examples = append(examples, Example{Name: name, Title: title, Source: filepath.Base(filename), Program: formatted})
+			examples = append(examples, Example{Name: name, Title: title, Source: filepath.Base(filename), Program: formatted, APIs: apis, Snippet: snippet})
 		}
 	}
 	sort.Slice(examples, func(i, j int) bool { return examples[i].Name < examples[j].Name })
 	return examples, nil
+}
+
+// exampleSnippet extracts a complete marked region without copying setup into every API example.
+func exampleSnippet(body string, required bool) (string, error) {
+	const start, end = "// snippet:start\n", "// snippet:end"
+	if !required && !strings.Contains(body, start) && !strings.Contains(body, end) {
+		return "", nil
+	}
+	if strings.Count(body, start) != 1 || strings.Count(body, end) != 1 {
+		return "", fmt.Errorf("expected one snippet marker pair")
+	}
+	left, right := strings.Index(body, start)+len(start), strings.Index(body, end)
+	if right < left {
+		return "", fmt.Errorf("reversed snippet markers")
+	}
+	if strings.TrimSpace(body[left:right]) == "" {
+		return "", fmt.Errorf("empty example snippet")
+	}
+	lines := strings.Split(strings.Trim(body[left:right], "\n\t "), "\n")
+	for n := 1; n < len(lines); n++ {
+		lines[n] = strings.TrimPrefix(lines[n], "\t")
+	}
+	return strings.Join(lines, "\n") + "\n", nil
 }
 
 // Replace updates one exact generated region and rejects missing or ambiguous markers.

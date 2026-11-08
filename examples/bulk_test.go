@@ -9,6 +9,7 @@ import (
 
 // Example_bulk demonstrates inspect bulk visibility.
 // @readme Inspect bulk visibility
+// @api search.Index.Bulk search.DeleteMutation search.BulkResult search.BulkOutcome search.ItemResult
 func Example_bulk() {
 
 	ctx := context.Background()
@@ -58,6 +59,7 @@ func Example_bulk() {
 		}
 	}
 
+	// snippet:start
 	first, err := search.DeleteMutation("one")
 	if err != nil {
 		panic(err)
@@ -79,6 +81,8 @@ func Example_bulk() {
 		// one succeeded
 		// two succeeded
 	}
+
+	// snippet:end
 
 	// Output:
 	// one succeeded

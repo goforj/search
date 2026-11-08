@@ -10,6 +10,7 @@ import (
 
 // Example_highlights demonstrates escape structured highlights.
 // @readme Escape structured highlights
+// @api search.Highlight search.Fragment search.Segment
 func Example_highlights() {
 
 	ctx := context.Background()
@@ -59,6 +60,7 @@ func Example_highlights() {
 		}
 	}
 
+	// snippet:start
 	result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
 	if err != nil {
 		panic(err)
@@ -73,6 +75,8 @@ func Example_highlights() {
 	}
 	fmt.Println()
 	// <mark>Blue</mark> mug
+
+	// snippet:end
 
 	// Output:
 	// <mark>Blue</mark> mug
