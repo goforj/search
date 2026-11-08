@@ -14,7 +14,7 @@ The root supports Go 1.24. The embedded driver, examples, and integration harnes
 
 ## Source ownership
 
-GoDoc owns API descriptions and `@group` classification. `examples/*_test.go` owns executable examples and expected output. `docs/examplegen` projects those sources into `examples/<name>/main.go`; `docs/readme` projects them into the README alongside its GoDoc-derived API index. Edit the sources and run `make generate`.
+GoDoc owns API descriptions and `@group` classification. `examples/*_test.go` owns executable examples and expected output. `docs/examplegen` projects those sources into `examples/<name>/main.go`; `docs/readme` projects the quick start and a linked example index into the README alongside its GoDoc-derived API index. Edit the sources and run `make generate`.
 
 `searchtest.ScenarioNames` inventories mandatory conformance fixtures. The shared runner verifies that inventory against executed subtests. Every real driver must execute the same fixtures without skips before `docs/report` can generate a support claim. Driver evidence includes a hash of library sources, tests, integration fixtures, and module pins. Editing those files makes existing evidence stale until the full integration suite passes again.
 
@@ -59,6 +59,8 @@ Run `scripts/tidy-modules.sh --check` to check every module without changing the
 This checkout has not been released. The embedded driver currently requires the unpublished root at `v0.0.0`; release checks refuse that placeholder.
 
 Before a first release:
+
+Replace the pre-release README notice and its authoritative `docs/assets/status.svg` badge with the published version information when tagging the first release.
 
 1. Select a release version and replace the embedded driver's root requirement with that exact version. Update tooling requirements to match. Regenerate module sums and rerun all checks against staged siblings.
 2. Run `make release-plan v0.1.0` with the chosen version after the pins are aligned. The plan reads `scripts/module-manifest.txt` and excludes tooling modules.

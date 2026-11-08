@@ -26,5 +26,4 @@ func main() {
 	}
 	fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
 	// 3 search
-
 }

@@ -12,7 +12,7 @@
   <a href="https://github.com/goforj/search/actions/workflows/ci.yml"><img src="https://github.com/goforj/search/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.24%2B-blue?logo=go" alt="Go 1.24 or newer"></a>
   <a href="https://codecov.io/gh/goforj/search"><img src="https://codecov.io/gh/goforj/search/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://github.com/goforj/search/tags"><img src="https://img.shields.io/github/v/tag/goforj/search?label=version&sort=semver&filter=%21driver%2A" alt="Latest tag"></a>
+  <a href="https://github.com/goforj/search/tags"><img src="docs/assets/status.svg" alt="Unreleased"></a>
 <!-- test-count:embed:start -->
 <img src="docs/assets/badges/unit-tests.svg" alt="Executed unit tests, including subtests">
   <img src="docs/assets/badges/integration-tests.svg" alt="Executed integration tests, including subtests">
@@ -20,9 +20,97 @@
 <!-- test-count:embed:end -->
 </p>
 
+[Quick Start](#quick-start) · [Features](#features) · [Drivers](#drivers) · [Behavior](#behavior-contract) · [Testing](#testing) · [Examples](#runnable-examples) · [API](#api-index)
+
+## What search is
+
 `search` gives application services one explicit contract for text queries, typed filters, sorting, pagination, term facets, and structured highlights. Applications own their definitions and source records. Drivers own backend translation and ranking.
 
 The root package has no third-party dependencies. Bleve is isolated in its own module so service clients do not inherit an embedded search engine.
+
+## Installation
+
+The root package and service drivers require **Go 1.24 or newer**. The embedded Bleve driver and this repository's runnable examples require **Go 1.25 or newer**.
+
+**Release status:** pre-release, with no published tags. To try the root and embedded modules together, clone this repository and run the quick start:
+
+```sh
+git clone https://github.com/goforj/search.git
+cd search
+go run ./examples/quickstart
+```
+
+After the first release, install the root module and only the optional embedded driver you use:
+
+```sh
+go get github.com/goforj/search
+go get github.com/goforj/search/driver/blevesearch
+```
+
+Service drivers such as `driver/meilisearch` and `driver/postgressearch` are packages in the root module. Bleve has its own module to keep its dependencies separate. See [module ownership and release order](docs/development.md).
+
+<!-- quickstart:embed:start -->
+## Quick Start
+
+Create an in-memory Bleve index, write a typed document, wait for visibility, and query it. This example requires Go 1.25 or newer and runs without an external service.
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+
+	"github.com/goforj/search"
+	"github.com/goforj/search/driver/blevesearch"
+)
+
+func main() {
+	ctx := context.Background()
+	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
+	if err != nil {
+		panic(err)
+	}
+	defer driver.Close()
+
+	definition := search.Definition{
+		Name:   "products",
+		Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+	}
+	if err := driver.CreateIndex(ctx, definition); err != nil {
+		panic(err)
+	}
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		panic(err)
+	}
+
+	type product struct {
+		Title string `json:"title"`
+	}
+	receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+	if err != nil {
+		panic(err)
+	}
+	outcome, err := index.Wait(ctx, receipt)
+	if err != nil {
+		panic(err)
+	}
+	if outcome.State != search.OutcomeSucceeded {
+		panic(outcome.Error)
+	}
+
+	page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+	// mug-1 Blue mug
+}
+```
+
+Keep document IDs separate from application data. `Wait` establishes when an accepted write is searchable; terminal mutation failures are returned in `Outcome`.
+<!-- quickstart:embed:end -->
 
 ## Features
 
@@ -43,50 +131,9 @@ The root package has no third-party dependencies. Bleve is isolated in its own m
 | ![Isolated testing](docs/assets/badges/feature-testing.svg) | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
 <!-- features:embed:end -->
 
-## Status
-
-This is an unreleased implementation. Local examples and development use the checked-in workspace. Installation commands below describe the module layout; they become usable after the first release is published.
-
-## Installation
-
-The root and service drivers require Go 1.24 or newer:
-
-```sh
-go get github.com/goforj/search
-```
-
-The embedded driver requires Go 1.25 because Bleve v2.6.3 requires it:
-
-```sh
-go get github.com/goforj/search/driver/blevesearch
-```
-
-Service drivers are packages in the root module:
-
-```go
-import "github.com/goforj/search/driver/meilisearch"
-import "github.com/goforj/search/driver/typesensesearch"
-import "github.com/goforj/search/driver/opensearch"
-import "github.com/goforj/search/driver/elasticsearch"
-import "github.com/goforj/search/driver/redissearch"
-import "github.com/goforj/search/driver/postgressearch"
-import "github.com/goforj/search/driver/sqlitesearch"
-```
-
-## Contract
-
-- Declare an explicit `Definition`, provision it with a concrete driver's `CreateIndex`, then construct a portable `*search.Index`.
-- Construction performs no backend I/O. Runtime validation never alters an existing schema. Definition changes require an explicit rebuild from authoritative records.
-- Upserts replace complete documents. Deletes are idempotent. Call `Wait` to establish visibility after accepted writes; cancellation of a wait does not cancel accepted work.
-- Text is literal, with every analyzed term required. Ranking and tokenization vary across engines. Driver changes preserve the application workflow, not identical results.
-- Sorts are field-primary, followed by an ascending document-ID tie-break. Sortable fields must be required. Stable pages assume the index has not changed between queries.
-- Integers use the exact common range from -9007199254740991 to 9007199254740991. Keywords retain UTF-8 byte order. Missing and null values are absent to filters; negation uses ordinary two-valued Boolean logic.
-- Facets count matching documents before hit pagination. Repeated array values count once per document. Highlights contain untrusted text segments, never trusted HTML.
-- Backend errors and observer events omit query text, documents, credentials, and server prose.
-
-Keep search data rebuildable. Search is not the authoritative database or an authorization boundary. Apply trusted tenant predicates before querying so hits, totals, and facets all respect access policy.
-
 ## Drivers
+
+Bleve runs inside your process. PostgreSQL FTS and SQLite FTS5 reuse an application-owned SQL pool. The other drivers connect to a shared search service. Choose a concrete driver during application wiring; application services use the same `*search.Index` API.
 
 <!-- drivers:embed:start -->
 | Driver | Tested version | Mutation visibility | Bulk precision | Topology |
@@ -103,28 +150,78 @@ Keep search data rebuildable. Search is not the authoritative database or an aut
 All listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.
 <!-- drivers:embed:end -->
 
+<details>
+<summary>Driver behavior and limits</summary>
+
+### Meilisearch
+
 Meilisearch facets support at most 4096 distinct terms per requested field after filtering. Higher cardinality returns `ErrUnsupported`; it does not return an incorrectly chosen top bucket. The driver collects a bounded complete distribution because the engine does not preserve portable lexical ties at its native count cutoff.
 
 Meilisearch accepts at most ten backend words. Queries in scripts with finer native segmentation use a conservative rune bound to prevent silent truncation. Its validated server search cutoff exceeds the enforced 30-second maximum HTTP deadline, so the client fails before the engine can return a silently timed-out response. As with schema validation, this assumes administrators do not change settings behind a running client.
 
+### Elasticsearch and OpenSearch
+
 Elasticsearch and OpenSearch each have an independent driver and tested version matrix. Their writes wait for refresh and active shard copies before reporting visibility. Native bulk responses retain per-item failures even when HTTP succeeds. Queries reject timeouts and partial shard responses. Multi-shard facet counts retain the engine's estimated precision when native error bounds are nonzero. Keyword values are limited to 16382 UTF-8 bytes because their ordered encoding must fit Lucene's term limit. Provisioning defaults to one primary shard and no replicas; configure replicas explicitly for a production cluster.
+
+### PostgreSQL FTS and SQLite FTS5
 
 PostgreSQL FTS and SQLite FTS5 accept an application-owned `*sql.DB`. The application selects and registers its SQL client, configures the pool, and closes it. The search driver creates dedicated tables, native full-text projections, and schema ownership metadata. Writes and their projections commit in one transaction. Queries compute hits, totals, and facets from one database snapshot. PostgreSQL uses the `simple` text-search configuration and byte-order collation. SQLite requires an FTS5-enabled provider. Driver `Close` preserves the injected pool.
 
-```go
-postgres, err := postgressearch.New(postgressearch.Config{DB: postgresDB, Prefix: "catalog_"})
-// postgresDB is the application's PostgreSQL pool.
-sqlite, err := sqlitesearch.New(sqlitesearch.Config{DB: sqliteDB, Prefix: "catalog_"})
-// sqliteDB is the application's FTS5-enabled SQLite pool.
-```
+### Redis Search
 
 Redis Search targets standalone Redis with its native Search module. It uses native literal matching and typed filtering, then collects at most 4096 matching documents to provide deterministic multiple sorts and exact array facets. More matches return `ErrUnsupported`. Mutations execute as one Lua command, and interrupted or failed scripts report uncertainty rather than implying rollback. Native query timeout exceeds the enforced maximum client deadline to avoid accepting partial timed-out results. Cluster routing is not supported by this driver.
 
+### Bleve
+
 Bleve owns a single index path in one process. Its ownership lock refuses a second writer. Use a shared service when querying and indexing from separate processes. Close concrete drivers at the application lifecycle boundary.
+
+</details>
+
+## Behavior contract
+
+- Declare an explicit `Definition`, provision it with a concrete driver's `CreateIndex`, then construct a portable `*search.Index`.
+- Construction performs no backend I/O. Runtime validation never alters an existing schema. Definition changes require an explicit rebuild from authoritative records.
+- Upserts replace complete documents. Deletes are idempotent. Call `Wait` to establish visibility after accepted writes; cancellation of a wait does not cancel accepted work.
+- Text is literal, with every analyzed term required. Ranking and tokenization vary across engines. Driver changes preserve the application workflow, not identical results.
+- Sorts are field-primary, followed by an ascending document-ID tie-break. Sortable fields must be required. Stable pages assume the index has not changed between queries.
+- Integers use the exact common range from -9007199254740991 to 9007199254740991. Keywords retain UTF-8 byte order. Missing and null values are absent to filters; negation uses ordinary two-valued Boolean logic.
+- Facets count matching documents before hit pagination. Repeated array values count once per document. Highlights contain untrusted text segments, never trusted HTML.
+- Backend errors and observer events omit query text, documents, credentials, and server prose.
+
+Keep search data rebuildable. Search is not the authoritative database or an authorization boundary. Apply trusted tenant predicates before querying so hits, totals, and facets all respect access policy.
+
+### Lifecycle and credentials
 
 Service credentials stay on the server. Use provisioning credentials only for explicit administration, then validate and serve with appropriately scoped runtime credentials. HTTP clients do not follow redirects, bound response bodies, and preserve TLS verification by default.
 
 Receipts are process-local and bounded. Drivers retain the latest 4096 submissions. A retained receipt caches its first terminal result after `Wait`; an expired unobserved receipt reports `ErrReceiptExpired` as an unknown outcome. Recover after process loss by reconciling or replaying idempotent work from the source.
+
+## Testing
+
+Use [`searchfake`](searchfake) to queue search results and inspect recorded calls in application tests. It implements `search.Backend` without a running search engine. The [fake backend example](examples/fake/main.go) shows the complete workflow.
+
+Driver authors can reuse [`searchtest`](searchtest) to verify the portable behavior contract. Integration tests run against real Bleve indexes and SQLite FTS5 databases, plus Testcontainers with pinned Meilisearch, Typesense, OpenSearch, Elasticsearch, PostgreSQL, and Redis images. Each service container starts once per run; tests use separate index namespaces. OpenSearch and Elasticsearch run with authentication enabled and execute the shared contract with one and two primary shards.
+
+See the [executed driver evidence](docs/driver-results.json), [unit test inventory](docs/unit-results.json), and [integration test inventory](docs/integration-results.json) for the scenarios that actually ran.
+
+Run `make bench` for allocation-aware [document validation benchmarks](validation_test.go) and [embedded search over 1,000 documents](examples/benchmark_test.go).
+
+<!-- examples:embed:start -->
+## Runnable examples
+
+Each example is executed as a Go example test and generated into a standalone program under [`examples/`](examples). Run these commands from the repository root with Go 1.25 or newer.
+
+| Example | Run | Tested source |
+| --- | --- | --- |
+| [Inspect bulk visibility](examples/bulk/main.go) | `go run ./examples/bulk` | [Example test](examples/bulk_test.go) |
+| [Count facets before pagination](examples/facets/main.go) | `go run ./examples/facets` | [Example test](examples/facets_test.go) |
+| [Test an application service](examples/fake/main.go) | `go run ./examples/fake` | [Example test](examples/fake_test.go) |
+| [Filter and sort results](examples/filters/main.go) | `go run ./examples/filters` | [Example test](examples/filters_test.go) |
+| [Escape structured highlights](examples/highlights/main.go) | `go run ./examples/highlights` | [Example test](examples/highlights_test.go) |
+| [Index and search a document](examples/quickstart/main.go) | `go run ./examples/quickstart` | [Example test](examples/quickstart_test.go) |
+| [Search typed documents](examples/search/main.go) | `go run ./examples/search` | [Example test](examples/search_test.go) |
+| [Construct service drivers](examples/services/main.go) | `go run ./examples/services` | [Example test](examples/services_test.go) |
+<!-- examples:embed:end -->
 
 ## Development
 
@@ -133,512 +230,14 @@ make test
 make test-race
 make vet
 make test-integration
+make test-coverage
 make generate
 make check-generated
 ```
 
-Integration tests use Testcontainers with pinned Meilisearch, Typesense, OpenSearch, Elasticsearch, PostgreSQL, and Redis images, plus real Bleve indexes and SQLite FTS5 databases. Each service container starts once per run; tests use separate index namespaces. OpenSearch and Elasticsearch run with authentication enabled and execute the shared contract with one and two primary shards. See [development and release notes](docs/development.md) for module ownership and release order.
+API descriptions come from GoDoc. Runnable examples and their expected output come from `examples/*_test.go`. Edit those sources and run `make generate`; generation refreshes the standalone programs, quick start, example index, feature badges, and API index. CI checks that regeneration produces no diff.
 
-<!-- examples:embed:start -->
-## Examples
-
-These examples run as Go example tests. Standalone programs live under `examples/`.
-
-### Inspect bulk visibility
-
-```go
-// Code generated from examples/bulk_test.go; DO NOT EDIT.
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/goforj/search"
-	"github.com/goforj/search/driver/blevesearch"
-)
-
-// main executes the documented workflow.
-func main() {
-
-	ctx := context.Background()
-	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
-	if err != nil {
-		panic(err)
-	}
-	defer driver.Close()
-	definition := search.Definition{
-		Name: "products",
-		Fields: []search.Field{
-			{Name: "title", Type: search.TextField, Searchable: true},
-			{Name: "category", Type: search.KeywordField, Filterable: true, Facetable: true},
-			{Name: "price", Type: search.IntegerField, Required: true, Sortable: true, Filterable: true},
-		},
-	}
-	if err := driver.CreateIndex(ctx, definition); err != nil {
-		panic(err)
-	}
-	index, err := search.NewIndex(driver, definition)
-	if err != nil {
-		panic(err)
-	}
-	for _, product := range []struct {
-		ID, Title, Category string
-		Price               int
-	}{
-		{"one", "Blue mug", "kitchen", 1200},
-		{"two", "Red mug", "kitchen", 900},
-		{"three", "Go guide", "books", 2500},
-	} {
-		value := struct {
-			Title    string `json:"title"`
-			Category string `json:"category"`
-			Price    int    `json:"price"`
-		}{product.Title, product.Category, product.Price}
-		receipt, err := search.Upsert(ctx, index, search.DocumentID(product.ID), value)
-		if err != nil {
-			panic(err)
-		}
-		outcome, err := index.Wait(ctx, receipt)
-		if err != nil {
-			panic(err)
-		}
-		if outcome.State != search.OutcomeSucceeded {
-			panic(outcome.Error)
-		}
-	}
-
-	first, err := search.DeleteMutation("one")
-	if err != nil {
-		panic(err)
-	}
-	second, err := search.DeleteMutation("two")
-	if err != nil {
-		panic(err)
-	}
-	batch, err := index.Bulk(ctx, []search.Mutation{first, second})
-	if err != nil {
-		panic(err)
-	}
-	outcome, err := index.Wait(ctx, batch.Receipt)
-	if err != nil {
-		panic(err)
-	}
-	for _, item := range outcome.Bulk.Items {
-		fmt.Println(item.ID, item.Status)
-		// one succeeded
-		// two succeeded
-	}
-
-}
-```
-
-### Count facets before pagination
-
-```go
-// Code generated from examples/facets_test.go; DO NOT EDIT.
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/goforj/search"
-	"github.com/goforj/search/driver/blevesearch"
-)
-
-// main executes the documented workflow.
-func main() {
-
-	ctx := context.Background()
-	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
-	if err != nil {
-		panic(err)
-	}
-	defer driver.Close()
-	definition := search.Definition{
-		Name: "products",
-		Fields: []search.Field{
-			{Name: "title", Type: search.TextField, Searchable: true},
-			{Name: "category", Type: search.KeywordField, Filterable: true, Facetable: true},
-			{Name: "price", Type: search.IntegerField, Required: true, Sortable: true, Filterable: true},
-		},
-	}
-	if err := driver.CreateIndex(ctx, definition); err != nil {
-		panic(err)
-	}
-	index, err := search.NewIndex(driver, definition)
-	if err != nil {
-		panic(err)
-	}
-	for _, product := range []struct {
-		ID, Title, Category string
-		Price               int
-	}{
-		{"one", "Blue mug", "kitchen", 1200},
-		{"two", "Red mug", "kitchen", 900},
-		{"three", "Go guide", "books", 2500},
-	} {
-		value := struct {
-			Title    string `json:"title"`
-			Category string `json:"category"`
-			Price    int    `json:"price"`
-		}{product.Title, product.Category, product.Price}
-		receipt, err := search.Upsert(ctx, index, search.DocumentID(product.ID), value)
-		if err != nil {
-			panic(err)
-		}
-		outcome, err := index.Wait(ctx, receipt)
-		if err != nil {
-			panic(err)
-		}
-		if outcome.State != search.OutcomeSucceeded {
-			panic(outcome.Error)
-		}
-	}
-
-	result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
-	if err != nil {
-		panic(err)
-	}
-	for _, bucket := range result.Facets[0].Buckets {
-		value, _ := bucket.Value.Keyword()
-		fmt.Println(value, bucket.Count)
-		// kitchen 2
-		// books 1
-	}
-
-}
-```
-
-### Test an application service
-
-```go
-// Code generated from examples/fake_test.go; DO NOT EDIT.
-package main
-
-import (
-	"context"
-	"fmt"
-
-	"github.com/goforj/search"
-	"github.com/goforj/search/searchfake"
-)
-
-// main executes the documented workflow.
-func main() {
-	backend := searchfake.New()
-	backend.QueueSearch(search.Result{Total: search.Total{Value: 3, Relation: search.TotalExact}}, nil)
-	index, err := search.NewIndex(backend, search.Definition{
-		Name:   "products",
-		Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
-	})
-	if err != nil {
-		panic(err)
-	}
-	result, err := index.Search(context.Background(), search.Query{Text: "mug"})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
-	// 3 search
-
-}
-```
-
-### Filter and sort results
-
-```go
-// Code generated from examples/filters_test.go; DO NOT EDIT.
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/goforj/search"
-	"github.com/goforj/search/driver/blevesearch"
-)
-
-// main executes the documented workflow.
-func main() {
-
-	ctx := context.Background()
-	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
-	if err != nil {
-		panic(err)
-	}
-	defer driver.Close()
-	definition := search.Definition{
-		Name: "products",
-		Fields: []search.Field{
-			{Name: "title", Type: search.TextField, Searchable: true},
-			{Name: "category", Type: search.KeywordField, Filterable: true, Facetable: true},
-			{Name: "price", Type: search.IntegerField, Required: true, Sortable: true, Filterable: true},
-		},
-	}
-	if err := driver.CreateIndex(ctx, definition); err != nil {
-		panic(err)
-	}
-	index, err := search.NewIndex(driver, definition)
-	if err != nil {
-		panic(err)
-	}
-	for _, product := range []struct {
-		ID, Title, Category string
-		Price               int
-	}{
-		{"one", "Blue mug", "kitchen", 1200},
-		{"two", "Red mug", "kitchen", 900},
-		{"three", "Go guide", "books", 2500},
-	} {
-		value := struct {
-			Title    string `json:"title"`
-			Category string `json:"category"`
-			Price    int    `json:"price"`
-		}{product.Title, product.Category, product.Price}
-		receipt, err := search.Upsert(ctx, index, search.DocumentID(product.ID), value)
-		if err != nil {
-			panic(err)
-		}
-		outcome, err := index.Wait(ctx, receipt)
-		if err != nil {
-			panic(err)
-		}
-		if outcome.State != search.OutcomeSucceeded {
-			panic(outcome.Error)
-		}
-	}
-
-	category, err := search.Keyword("kitchen")
-	if err != nil {
-		panic(err)
-	}
-	maximum, err := search.Integer(1500)
-	if err != nil {
-		panic(err)
-	}
-	result, err := index.Search(ctx, search.Query{
-		Filter: search.And(search.Equal("category", category), search.LessThan("price", maximum)),
-		Sort:   []search.Sort{{Field: "price", Direction: search.Ascending}},
-		Limit:  1,
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(result.Hits[0].Document.ID)
-	// two
-	fmt.Println(result.Total.Value)
-	// 2
-
-}
-```
-
-### Escape structured highlights
-
-```go
-// Code generated from examples/highlights_test.go; DO NOT EDIT.
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/goforj/search"
-	"github.com/goforj/search/driver/blevesearch"
-	"html"
-)
-
-// main executes the documented workflow.
-func main() {
-
-	ctx := context.Background()
-	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
-	if err != nil {
-		panic(err)
-	}
-	defer driver.Close()
-	definition := search.Definition{
-		Name: "products",
-		Fields: []search.Field{
-			{Name: "title", Type: search.TextField, Searchable: true},
-			{Name: "category", Type: search.KeywordField, Filterable: true, Facetable: true},
-			{Name: "price", Type: search.IntegerField, Required: true, Sortable: true, Filterable: true},
-		},
-	}
-	if err := driver.CreateIndex(ctx, definition); err != nil {
-		panic(err)
-	}
-	index, err := search.NewIndex(driver, definition)
-	if err != nil {
-		panic(err)
-	}
-	for _, product := range []struct {
-		ID, Title, Category string
-		Price               int
-	}{
-		{"one", "Blue mug", "kitchen", 1200},
-		{"two", "Red mug", "kitchen", 900},
-		{"three", "Go guide", "books", 2500},
-	} {
-		value := struct {
-			Title    string `json:"title"`
-			Category string `json:"category"`
-			Price    int    `json:"price"`
-		}{product.Title, product.Category, product.Price}
-		receipt, err := search.Upsert(ctx, index, search.DocumentID(product.ID), value)
-		if err != nil {
-			panic(err)
-		}
-		outcome, err := index.Wait(ctx, receipt)
-		if err != nil {
-			panic(err)
-		}
-		if outcome.State != search.OutcomeSucceeded {
-			panic(outcome.Error)
-		}
-	}
-
-	result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
-	if err != nil {
-		panic(err)
-	}
-	for _, segment := range result.Hits[0].Highlights["title"][0].Segments {
-		text := html.EscapeString(segment.Text)
-		if segment.Matched {
-			fmt.Print("<mark>" + text + "</mark>")
-		} else {
-			fmt.Print(text)
-		}
-	}
-	fmt.Println()
-	// <mark>Blue</mark> mug
-
-}
-```
-
-### Search typed documents
-
-```go
-// Code generated from examples/search_test.go; DO NOT EDIT.
-package main
-
-import (
-	"context"
-	"fmt"
-	"github.com/goforj/search"
-	"github.com/goforj/search/driver/blevesearch"
-)
-
-// main executes the documented workflow.
-func main() {
-
-	ctx := context.Background()
-	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
-	if err != nil {
-		panic(err)
-	}
-	defer driver.Close()
-	definition := search.Definition{
-		Name: "products",
-		Fields: []search.Field{
-			{Name: "title", Type: search.TextField, Searchable: true},
-			{Name: "category", Type: search.KeywordField, Filterable: true, Facetable: true},
-			{Name: "price", Type: search.IntegerField, Required: true, Sortable: true, Filterable: true},
-		},
-	}
-	if err := driver.CreateIndex(ctx, definition); err != nil {
-		panic(err)
-	}
-	index, err := search.NewIndex(driver, definition)
-	if err != nil {
-		panic(err)
-	}
-	for _, product := range []struct {
-		ID, Title, Category string
-		Price               int
-	}{
-		{"one", "Blue mug", "kitchen", 1200},
-		{"two", "Red mug", "kitchen", 900},
-		{"three", "Go guide", "books", 2500},
-	} {
-		value := struct {
-			Title    string `json:"title"`
-			Category string `json:"category"`
-			Price    int    `json:"price"`
-		}{product.Title, product.Category, product.Price}
-		receipt, err := search.Upsert(ctx, index, search.DocumentID(product.ID), value)
-		if err != nil {
-			panic(err)
-		}
-		outcome, err := index.Wait(ctx, receipt)
-		if err != nil {
-			panic(err)
-		}
-		if outcome.State != search.OutcomeSucceeded {
-			panic(outcome.Error)
-		}
-	}
-
-	page, err := search.SearchAs[struct {
-		Title string `json:"title"`
-	}](ctx, index, search.Query{Text: "blue mug"})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(page.Hits[0].Value.Title)
-	// Blue mug
-	fmt.Println(page.Total.Value)
-	// 1
-
-}
-```
-
-### Construct service drivers
-
-```go
-// Code generated from examples/services_test.go; DO NOT EDIT.
-package main
-
-import (
-	"fmt"
-
-	"github.com/goforj/search/driver/elasticsearch"
-	"github.com/goforj/search/driver/meilisearch"
-	"github.com/goforj/search/driver/opensearch"
-	"github.com/goforj/search/driver/redissearch"
-	"github.com/goforj/search/driver/typesensesearch"
-)
-
-// main executes the documented workflow.
-func main() {
-	meili, err := meilisearch.New(meilisearch.Config{URL: "http://127.0.0.1:7700"})
-	if err != nil {
-		panic(err)
-	}
-	defer meili.Close()
-	typesense, err := typesensesearch.New(typesensesearch.Config{URL: "http://127.0.0.1:8108"})
-	if err != nil {
-		panic(err)
-	}
-	defer typesense.Close()
-	openSearch, err := opensearch.New(opensearch.Config{URL: "http://127.0.0.1:9200"})
-	if err != nil {
-		panic(err)
-	}
-	defer openSearch.Close()
-	elastic, err := elasticsearch.New(elasticsearch.Config{URL: "http://127.0.0.1:9200"})
-	if err != nil {
-		panic(err)
-	}
-	defer elastic.Close()
-	redis, err := redissearch.New(redissearch.Config{Addr: "127.0.0.1:6379"})
-	if err != nil {
-		panic(err)
-	}
-	defer redis.Close()
-	fmt.Println("Clients constructed without backend I/O")
-	// Clients constructed without backend I/O
-
-}
-```
-<!-- examples:embed:end -->
+See [development and release notes](docs/development.md) for focused driver tests, module boundaries, and publishing. Report problems or request features in [GitHub issues](https://github.com/goforj/search/issues).
 
 <!-- api:embed:start -->
 ## API Index

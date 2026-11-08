@@ -222,7 +222,7 @@ func Examples(root string) ([]Example, error) {
 					program.WriteString("\n\n")
 				}
 			}
-			program.WriteString("// main executes the documented workflow.\nfunc main() {" + body + "\n}\n")
+			program.WriteString("// main executes the documented workflow.\nfunc main() {\n" + strings.TrimSpace(body) + "\n}\n")
 			formatted, err := format.Source(program.Bytes())
 			if err != nil {
 				return nil, fmt.Errorf("example %s: %w", name, err)

@@ -10,7 +10,6 @@ import (
 
 // main executes the documented workflow.
 func main() {
-
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -78,5 +77,4 @@ func main() {
 	// two
 	fmt.Println(result.Total.Value)
 	// 2
-
 }

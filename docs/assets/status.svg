@@ -1,0 +1,10 @@
+<!-- Authoritative release-status artwork; update alongside the README when publishing the first release. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="20" role="img" aria-label="status: unreleased">
+  <title>status: unreleased</title>
+  <rect width="128" height="20" rx="3" fill="#555"/>
+  <path fill="#9a6700" d="M49 0h79v20H49z"/>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
+    <text x="24" y="14">status</text>
+    <text x="88" y="14">unreleased</text>
+  </g>
+</svg>
