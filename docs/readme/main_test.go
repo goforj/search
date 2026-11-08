@@ -17,6 +17,9 @@ func TestQuickStartRequiresTestedSource(t *testing.T) {
 	if err != nil || !strings.Contains(markdown, "package main") || !strings.Contains(markdown, "fmt.Println(1)") {
 		t.Fatal(markdown, err)
 	}
+	if strings.Contains(markdown, "<details>") {
+		t.Fatal("quickstart must be visible without expanding a disclosure")
+	}
 	if !strings.Contains(markdown, "}\n```\n") {
 		t.Fatal("quickstart code fence must start on a new line")
 	}
@@ -112,5 +115,23 @@ func TestCuratedEntriesRejectStaleReferences(t *testing.T) {
 		if _, err := apiMarkdownFor(nil, []gen.Example{{Name: "example", Snippet: "code"}, {Name: "empty"}}, []apiEntry{entry}); err == nil {
 			t.Fatal("stale curated entry accepted", entry.Task)
 		}
+	}
+}
+
+// TestAPIIndexRequiresMatchingExamples prevents valid anchors from hiding unrelated usage.
+func TestAPIIndexRequiresMatchingExamples(t *testing.T) {
+	symbols := []gen.Symbol{{Name: "search.Upsert"}, {Name: "search.Index.Wait"}}
+	examples := []gen.Example{
+		{Name: "write", APIs: []string{"search.Upsert"}, Snippet: "search.Upsert(ctx, index, id, value)"},
+		{Name: "wait", APIs: []string{"search.Index.Wait"}, Snippet: "index.Wait(ctx, receipt)"},
+	}
+	entries := []apiEntry{{Task: "Write and wait", APIs: []string{"search.Upsert", "search.Index.Wait"}, Examples: []string{"write", "wait"}}}
+	markdown, err := apiMarkdownFor(symbols, examples, entries)
+	if err != nil || !strings.Contains(markdown, "[Index.Wait](#example-wait)") {
+		t.Fatal(markdown, err)
+	}
+	entries[0].Examples = []string{"write"}
+	if _, err := apiMarkdownFor(symbols, examples, entries); err == nil {
+		t.Fatal("unrelated inline example accepted")
 	}
 }

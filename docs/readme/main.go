@@ -114,7 +114,7 @@ func quickStartMarkdown(examples []gen.Example) (string, error) {
 				return "", fmt.Errorf("format quickstart: %w", err)
 			}
 			program := string(formatted)
-			return "## Quick Start\n\nGo 1.25+, with no external service required.\n\n```sh\ngit clone https://github.com/goforj/search.git\ncd search\ngo run ./examples/quickstart\n```\n\n<details>\n<summary>View the full Go example</summary>\n\n```go\n" + program + "```\n\n</details>\n", nil
+			return "## Quick Start\n\nGo 1.25+, with no external service required.\n\n```sh\ngit clone https://github.com/goforj/search.git\ncd search\ngo run ./examples/quickstart\n```\n\n```go\n" + program + "```\n", nil
 		}
 	}
 	return "", fmt.Errorf("missing executable quickstart example")
@@ -130,13 +130,13 @@ type apiEntry struct {
 // applicationAPI keeps the README centered on the operations application services call.
 var applicationAPI = []apiEntry{
 	{"Define an index", []string{"search.Definition", "search.NewIndex"}, []string{"quickstart"}},
-	{"Write and remove documents", []string{"search.Upsert", "search.Index.Delete"}, []string{"quickstart"}},
-	{"Search documents", []string{"search.SearchAs", "search.Index.Search", "search.Query"}, []string{"search"}},
-	{"Filter results", []string{"search.Keyword", "search.Integer", "search.And", "search.Equal"}, []string{"filters"}},
+	{"Write documents", []string{"search.Upsert"}, []string{"quickstart"}},
+	{"Search documents", []string{"search.SearchAs", "search.Query"}, []string{"search"}},
+	{"Filter results", []string{"search.Index.Search", "search.Keyword", "search.Integer", "search.And", "search.Equal"}, []string{"filters"}},
 	{"Sort and paginate", []string{"search.Query", "search.Sort"}, []string{"filters"}},
 	{"Count facets", []string{"search.TermFacet"}, []string{"facets"}},
 	{"Highlight matches", []string{"search.Highlight"}, []string{"highlights"}},
-	{"Write a batch", []string{"search.Index.Bulk", "search.UpsertMutation", "search.DeleteMutation"}, []string{"bulk"}},
+	{"Write a batch", []string{"search.Index.Bulk", "search.DeleteMutation"}, []string{"bulk"}},
 	{"Wait for visibility", []string{"search.Index.Wait", "search.Outcome"}, []string{"quickstart", "bulk"}},
 	{"Test application code", []string{"searchfake.New", "searchfake.Backend.QueueSearch", "searchfake.Backend.Calls"}, []string{"fake"}},
 }
@@ -183,8 +183,23 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 			if !ok {
 				return "", fmt.Errorf("API index references unknown API %s", name)
 			}
+			target := ""
+			for _, exampleName := range entry.Examples {
+				for _, api := range byExample[exampleName].APIs {
+					if api == name {
+						target = exampleName
+						break
+					}
+				}
+				if target != "" {
+					break
+				}
+			}
+			if target == "" {
+				return "", fmt.Errorf("API index references API %s without a matching example", name)
+			}
 			label := strings.TrimPrefix(symbol.Name, "search.")
-			apis = append(apis, fmt.Sprintf("[%s](#example-%s)", label, entry.Examples[0]))
+			apis = append(apis, fmt.Sprintf("[%s](#example-%s)", label, target))
 		}
 		fmt.Fprintf(&out, "| %s | %s | %s |\n", entry.Task, strings.Join(apis, " · "), strings.Join(links, " · "))
 	}

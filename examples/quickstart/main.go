@@ -15,16 +15,20 @@ import (
 func main() {
 	// snippet:start
 	ctx := context.Background()
+
+	// Use an in-memory index so this example needs no files or search service.
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
 		panic(err)
 	}
 	defer driver.Close()
 
+	// Declare which document fields participate in full-text search.
 	definition := search.Definition{
 		Name:   "products",
 		Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
 	}
+	// Provision the schema explicitly before creating an application handle.
 	if err := driver.CreateIndex(ctx, definition); err != nil {
 		panic(err)
 	}
@@ -33,6 +37,7 @@ func main() {
 		panic(err)
 	}
 
+	// Keep the document ID separate from the application JSON.
 	type product struct {
 		Title string `json:"title"`
 	}
@@ -40,6 +45,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// A receipt acknowledges the write; Wait establishes search visibility.
 	outcome, err := index.Wait(ctx, receipt)
 	if err != nil {
 		panic(err)
@@ -48,6 +54,7 @@ func main() {
 		panic(outcome.Error)
 	}
 
+	// Require both search terms and decode hits directly into the application type.
 	page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
 	if err != nil {
 		panic(err)

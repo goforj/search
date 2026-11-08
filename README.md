@@ -54,9 +54,6 @@ cd search
 go run ./examples/quickstart
 ```
 
-<details>
-<summary>View the full Go example</summary>
-
 ```go
 // Command quickstart demonstrates embedded indexing and search.
 package main
@@ -72,16 +69,20 @@ import (
 // main demonstrates the complete embedded indexing and typed-query lifecycle.
 func main() {
 	ctx := context.Background()
+
+	// Use an in-memory index so this example needs no files or search service.
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
 		panic(err)
 	}
 	defer driver.Close()
 
+	// Declare which document fields participate in full-text search.
 	definition := search.Definition{
 		Name:   "products",
 		Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
 	}
+	// Provision the schema explicitly before creating an application handle.
 	if err := driver.CreateIndex(ctx, definition); err != nil {
 		panic(err)
 	}
@@ -90,6 +91,7 @@ func main() {
 		panic(err)
 	}
 
+	// Keep the document ID separate from the application JSON.
 	type product struct {
 		Title string `json:"title"`
 	}
@@ -97,6 +99,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	// A receipt acknowledges the write; Wait establishes search visibility.
 	outcome, err := index.Wait(ctx, receipt)
 	if err != nil {
 		panic(err)
@@ -105,6 +108,7 @@ func main() {
 		panic(outcome.Error)
 	}
 
+	// Require both search terms and decode hits directly into the application type.
 	page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
 	if err != nil {
 		panic(err)
@@ -113,8 +117,6 @@ func main() {
 	// mug-1 Blue mug
 }
 ```
-
-</details>
 <!-- quickstart:embed:end -->
 
 ## Drivers
@@ -232,13 +234,13 @@ Choose a backend in [Drivers](#drivers), then use these operations in your appli
 | Task | API | Example |
 | --- | --- | --- |
 | Define an index | [Definition](#example-quickstart) · [NewIndex](#example-quickstart) | [Index and search a document](#example-quickstart) |
-| Write and remove documents | [Upsert](#example-quickstart) · [Index.Delete](#example-quickstart) | [Index and search a document](#example-quickstart) |
-| Search documents | [SearchAs](#example-search) · [Index.Search](#example-search) · [Query](#example-search) | [Search typed documents](#example-search) |
-| Filter results | [Keyword](#example-filters) · [Integer](#example-filters) · [And](#example-filters) · [Equal](#example-filters) | [Filter and sort results](#example-filters) |
+| Write documents | [Upsert](#example-quickstart) | [Index and search a document](#example-quickstart) |
+| Search documents | [SearchAs](#example-search) · [Query](#example-search) | [Search typed documents](#example-search) |
+| Filter results | [Index.Search](#example-filters) · [Keyword](#example-filters) · [Integer](#example-filters) · [And](#example-filters) · [Equal](#example-filters) | [Filter and sort results](#example-filters) |
 | Sort and paginate | [Query](#example-filters) · [Sort](#example-filters) | [Filter and sort results](#example-filters) |
 | Count facets | [TermFacet](#example-facets) | [Count facets before pagination](#example-facets) |
 | Highlight matches | [Highlight](#example-highlights) | [Escape structured highlights](#example-highlights) |
-| Write a batch | [Index.Bulk](#example-bulk) · [UpsertMutation](#example-bulk) · [DeleteMutation](#example-bulk) | [Inspect bulk visibility](#example-bulk) |
+| Write a batch | [Index.Bulk](#example-bulk) · [DeleteMutation](#example-bulk) | [Inspect bulk visibility](#example-bulk) |
 | Wait for visibility | [Index.Wait](#example-quickstart) · [Outcome](#example-quickstart) | [Index and search a document](#example-quickstart) · [Inspect bulk visibility](#example-bulk) |
 | Test application code | [searchfake.New](#example-fake) · [searchfake.Backend.QueueSearch](#example-fake) · [searchfake.Backend.Calls](#example-fake) | [Test an application service](#example-fake) |
 
@@ -355,16 +357,20 @@ fmt.Println()
 
 ```go
 ctx := context.Background()
+
+// Use an in-memory index so this example needs no files or search service.
 driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 if err != nil {
 	panic(err)
 }
 defer driver.Close()
 
+// Declare which document fields participate in full-text search.
 definition := search.Definition{
 	Name:   "products",
 	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
 }
+// Provision the schema explicitly before creating an application handle.
 if err := driver.CreateIndex(ctx, definition); err != nil {
 	panic(err)
 }
@@ -373,6 +379,7 @@ if err != nil {
 	panic(err)
 }
 
+// Keep the document ID separate from the application JSON.
 type product struct {
 	Title string `json:"title"`
 }
@@ -380,6 +387,7 @@ receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
 if err != nil {
 	panic(err)
 }
+// A receipt acknowledges the write; Wait establishes search visibility.
 outcome, err := index.Wait(ctx, receipt)
 if err != nil {
 	panic(err)
@@ -388,6 +396,7 @@ if outcome.State != search.OutcomeSucceeded {
 	panic(outcome.Error)
 }
 
+// Require both search terms and decode hits directly into the application type.
 page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
 if err != nil {
 	panic(err)

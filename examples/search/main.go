@@ -10,7 +10,7 @@ import (
 
 // main demonstrates search typed documents.
 // @readme Search typed documents
-// @api search.SearchAs search.Page search.HitOf
+// @api search.SearchAs search.Query search.Page search.HitOf
 func main() {
 
 	ctx := context.Background()
