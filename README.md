@@ -175,24 +175,7 @@ go get github.com/goforj/search/driver/blevesearch
 
 Service drivers are packages in the root module. See [module ownership and release order](docs/development.md).
 
-## Behavior contract
-
-- Declare an explicit `Definition`, provision it with a concrete driver's `CreateIndex`, then construct a portable `*search.Index`.
-- Construction performs no backend I/O. Runtime validation never alters an existing schema. Definition changes require an explicit rebuild from authoritative records.
-- Upserts replace complete documents. Deletes are idempotent. Call `Wait` to establish visibility after accepted writes; cancellation of a wait does not cancel accepted work.
-- Text is literal, with every analyzed term required. Ranking and tokenization vary across engines. Driver changes preserve the application workflow, not identical results.
-- Sorts are field-primary, followed by an ascending document-ID tie-break. Sortable fields must be required. Stable pages assume the index has not changed between queries.
-- Integers use the exact common range from -9007199254740991 to 9007199254740991. Keywords retain UTF-8 byte order. Missing and null values are absent to filters; negation uses ordinary two-valued Boolean logic.
-- Facets count matching documents before hit pagination. Repeated array values count once per document. Highlights contain untrusted text segments, never trusted HTML.
-- Backend errors and observer events omit query text, documents, credentials, and server prose.
-
-Keep search data rebuildable. Search is not the authoritative database or an authorization boundary. Apply trusted tenant predicates before querying so hits, totals, and facets all respect access policy.
-
-### Lifecycle and credentials
-
-Service credentials stay on the server. Use provisioning credentials only for explicit administration, then validate and serve with appropriately scoped runtime credentials. HTTP clients do not follow redirects, bound response bodies, and preserve TLS verification by default.
-
-Receipts are process-local and bounded. Drivers retain the latest 4096 submissions. A retained receipt caches its first terminal result after `Wait`; an expired unobserved receipt reports `ErrReceiptExpired` as an unknown outcome. Recover after process loss by reconciling or replaying idempotent work from the source.
+See [search behavior and recovery](docs/development.md#search-behavior) for write visibility, query semantics, and receipt lifetime.
 
 ## Testing
 
