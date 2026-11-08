@@ -13,7 +13,7 @@ import (
 
 // TestSearchProtocol verifies successful native responses, literal request policy, and corrupted stored data.
 func TestSearchProtocol(t *testing.T) {
-	for _, scenario := range []string{"text", "browse", "wrong-id", "corrupt-body", "corrupt-facet", "transport"} {
+	for _, scenario := range []string{"text", "browse", "wrong-id", "corrupt-body", "corrupt-facet", "missing-score", "null-score", "invalid-score", "transport"} {
 		t.Run(scenario, func(t *testing.T) {
 			d, def := fixtureDriver(t, func(w http.ResponseWriter, r *http.Request) {
 				if scenario == "transport" {
@@ -43,7 +43,16 @@ func TestSearchProtocol(t *testing.T) {
 				if scenario == "corrupt-facet" {
 					key = "invalid"
 				}
-				response := map[string]any{"found": 1, "hits": []any{map[string]any{"document": hit, "text_match": 1}}, "facet_counts": []any{map[string]any{"field_name": driverutil.FieldKey("category"), "counts": []any{map[string]any{"value": key, "count": 1}}}}}
+				nativeHit := map[string]any{"document": hit, "text_match": 1}
+				switch scenario {
+				case "missing-score":
+					delete(nativeHit, "text_match")
+				case "null-score":
+					nativeHit["text_match"] = nil
+				case "invalid-score":
+					nativeHit["text_match"] = "not a score"
+				}
+				response := map[string]any{"found": 1, "hits": []any{nativeHit}, "facet_counts": []any{map[string]any{"field_name": driverutil.FieldKey("category"), "counts": []any{map[string]any{"value": key, "count": 1}}}}}
 				json.NewEncoder(w).Encode(response)
 
 			})
@@ -55,7 +64,7 @@ func TestSearchProtocol(t *testing.T) {
 			r, err := d.Search(context.Background(), def, q)
 			want := error(nil)
 			switch scenario {
-			case "wrong-id", "corrupt-body", "corrupt-facet", "transport":
+			case "wrong-id", "corrupt-body", "corrupt-facet", "missing-score", "null-score", "invalid-score", "transport":
 				want = search.ErrUnavailable
 			case "too-many-facets":
 				want = search.ErrUnsupported

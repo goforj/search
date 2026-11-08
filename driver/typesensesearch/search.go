@@ -64,7 +64,7 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, q search.Que
 		SearchCutoff bool `json:"search_cutoff"`
 		Hits         []struct {
 			Document  map[string]json.RawMessage
-			TextMatch float64 `json:"text_match"`
+			TextMatch *float64 `json:"text_match"`
 		}
 		FacetCounts []struct {
 			FieldName string `json:"field_name"`
@@ -91,8 +91,10 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, q search.Que
 		}
 		var score *float64
 		if q.Text != "" {
-			s := hit.TextMatch
-			score = &s
+			if hit.TextMatch == nil {
+				return search.Result{}, search.ErrUnavailable
+			}
+			score = hit.TextMatch
 		}
 		h, err := driverutil.Hit(id, body, def, q, score)
 		if err != nil {
