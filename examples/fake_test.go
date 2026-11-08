@@ -26,6 +26,7 @@ func Example_fake() {
 	}
 	fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
 	// 3 search
+
 	// Output:
 	// 3 search
 }

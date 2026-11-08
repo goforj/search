@@ -68,6 +68,7 @@ func Example_facets() {
 		// kitchen 2
 		// books 1
 	}
+
 	// Output:
 	// kitchen 2
 	// books 1

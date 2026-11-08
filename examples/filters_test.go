@@ -78,6 +78,7 @@ func Example_filters() {
 	// two
 	fmt.Println(result.Total.Value)
 	// 2
+
 	// Output:
 	// two
 	// 2

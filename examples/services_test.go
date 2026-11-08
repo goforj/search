@@ -40,6 +40,7 @@ func Example_services() {
 	defer redis.Close()
 	fmt.Println("Clients constructed without backend I/O")
 	// Clients constructed without backend I/O
+
 	// Output:
 	// Clients constructed without backend I/O
 }

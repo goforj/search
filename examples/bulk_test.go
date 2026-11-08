@@ -79,6 +79,7 @@ func Example_bulk() {
 		// one succeeded
 		// two succeeded
 	}
+
 	// Output:
 	// one succeeded
 	// two succeeded

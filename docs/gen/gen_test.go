@@ -2,6 +2,9 @@ package gen
 
 import (
 	"bytes"
+	"go/doc"
+	"go/parser"
+	"go/token"
 	"os"
 	"path/filepath"
 	"strings"
@@ -18,6 +21,36 @@ func TestReplace(t *testing.T) {
 	for _, source := range []string{"missing", "<!-- api:embed:end --><!-- api:embed:start -->", "<!-- api:embed:start --><!-- api:embed:start --><!-- api:embed:end -->"} {
 		if _, err := Replace(source, "api", "new"); err == nil {
 			t.Fatal("ambiguous marker accepted")
+		}
+	}
+}
+
+// TestExamplesDeclareExecutableOutput catches examples that go test would otherwise compile without executing.
+func TestExamplesDeclareExecutableOutput(t *testing.T) {
+	root, err := Root()
+	if err != nil {
+		t.Fatal(err)
+	}
+	examples, err := Examples(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, example := range examples {
+		file, err := parser.ParseFile(token.NewFileSet(), filepath.Join(root, "examples", example.Source), nil, parser.ParseComments)
+		if err != nil {
+			t.Fatal(err)
+		}
+		found := false
+		for _, executable := range doc.Examples(file) {
+			if executable.Name == "_"+example.Name {
+				found = true
+				if executable.Output == "" && !executable.EmptyOutput {
+					t.Errorf("%s has no executable Output: comment", example.Source)
+				}
+			}
+		}
+		if !found {
+			t.Errorf("%s is not discoverable as a Go example", example.Source)
 		}
 	}
 }

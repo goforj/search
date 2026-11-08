@@ -73,6 +73,7 @@ func Example_highlights() {
 	}
 	fmt.Println()
 	// <mark>Blue</mark> mug
+
 	// Output:
 	// <mark>Blue</mark> mug
 }

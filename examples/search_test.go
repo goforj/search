@@ -68,6 +68,7 @@ func Example_search() {
 	// Blue mug
 	fmt.Println(page.Total.Value)
 	// 1
+
 	// Output:
 	// Blue mug
 	// 1
