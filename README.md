@@ -20,7 +20,9 @@
 <!-- test-count:embed:end -->
 </p>
 
-[Features](#features) · [Quick Start](#quick-start) · [Drivers](#drivers) · [Installation](#installation) · [Examples](#runnable-examples) · [API](#api-index)
+<p align="center">
+  <a href="#features">Features</a> · <a href="#quick-start">Quick Start</a> · <a href="#drivers">Drivers</a> · <a href="#installation">Installation</a> · <a href="#runnable-examples">Examples</a> · <a href="#api-index">API</a>
+</p>
 
 ## Features
 
