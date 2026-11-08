@@ -88,11 +88,13 @@ func classify(err error, mutation bool) error {
 	if err == nil {
 		return nil
 	}
-	if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
-		if mutation {
-			return errors.Join(err, search.ErrOutcomeUnknown)
+	for _, cancellation := range []error{context.Canceled, context.DeadlineExceeded} {
+		if errors.Is(err, cancellation) {
+			if mutation {
+				return errors.Join(cancellation, search.ErrOutcomeUnknown)
+			}
+			return cancellation
 		}
-		return err
 	}
 	var state interface{ SQLState() string }
 	if errors.As(err, &state) {

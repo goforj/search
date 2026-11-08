@@ -3,6 +3,7 @@ package sqlsearch
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -93,6 +94,21 @@ func TestFilterValuesRemainParameters(t *testing.T) {
 		statement := compiler.filter(search.Not(search.Equal("category", keyword)))
 		if len(compiler.args) != 1 || strings.Contains(statement, "DROP") || !strings.Contains(statement, "coalesce") {
 			t.Fatal(statement, compiler.args)
+		}
+	}
+}
+
+// TestWrappedCancellationRedaction preserves context classifications while discarding driver diagnostics.
+func TestWrappedCancellationRedaction(t *testing.T) {
+	for _, cause := range []error{context.Canceled, context.DeadlineExceeded} {
+		for _, mutation := range []bool{true, false} {
+			err := classify(fmt.Errorf("private SQL and credential: %w", cause), mutation)
+			if !errors.Is(err, cause) || strings.Contains(err.Error(), "private") {
+				t.Fatal(err)
+			}
+			if mutation && !errors.Is(err, search.ErrOutcomeUnknown) {
+				t.Fatal(err)
+			}
 		}
 	}
 }
