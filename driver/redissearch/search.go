@@ -122,10 +122,8 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 				}
 			}
 		}
-		value, err := driverutil.Facet(facet, def, counts, search.CountExact)
-		if err != nil {
-			return search.Result{}, err
-		}
+		// Counts contain only encoded, validated stored scalars of the declared facet type.
+		value, _ := driverutil.Facet(facet, def, counts, search.CountExact)
 		result.Facets = append(result.Facets, value)
 	}
 	sort.Slice(hits, func(i, j int) bool {

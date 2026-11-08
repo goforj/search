@@ -233,3 +233,54 @@ func TestTLSVerification(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// deadlineFailureConnection fails before credentials or commands can be transmitted.
+type deadlineFailureConnection struct{ net.Conn }
+
+// SetDeadline reproduces a connection closed between dialing and deadline installation.
+func (deadlineFailureConnection) SetDeadline(time.Time) error {
+	return errors.New("private deadline failure")
+}
+
+// TestTransportEdges verifies bounded encoding and native errors without relying on network races.
+func TestTransportEdges(t *testing.T) {
+	for _, tc := range []struct {
+		frame     string
+		remaining int
+	}{{"$3\r\nfoo\r\n", 8}, {"$3\r\nf", 1024}, {"*1000001\r\n", maxResponseBytes}} {
+		r := reader{input: bufio.NewReader(strings.NewReader(tc.frame)), remaining: tc.remaining}
+		if _, err := r.value(0); err == nil {
+			t.Fatal("malformed or excessive response accepted")
+		}
+	}
+	first, second := net.Pipe()
+	defer first.Close()
+	defer second.Close()
+	d, err := New(Config{Addr: "localhost:6379"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := d.connected(context.Background(), deadlineFailureConnection{Conn: first}, false, []string{"PING"}); !errors.Is(err, search.ErrUnavailable) {
+		t.Fatal(err)
+	}
+	if _, err := exchange(second, []string{strings.Repeat("a", maxResponseBytes+1)}); !errors.Is(err, search.ErrUnsupported) {
+		t.Fatal(err)
+	}
+	if _, err := exchange(second, []string{"PING"}); err == nil {
+		t.Fatal("closed pipe accepted a write")
+	}
+	if err := transportError(context.Background(), search.ErrUnsupported, false); !errors.Is(err, search.ErrUnsupported) {
+		t.Fatal(err)
+	}
+	for _, native := range []nativeError{"NOAUTH private", "query timeout private"} {
+		err := transportError(context.Background(), native, true)
+		if !errors.Is(err, search.ErrOutcomeUnknown) {
+			t.Fatal(err)
+		}
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err := transportError(ctx, errors.New("private"), false); !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+}

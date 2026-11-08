@@ -130,6 +130,11 @@ func (d *Driver) command(ctx context.Context, mutation bool, args ...string) (an
 	if err != nil {
 		return nil, transportError(ctx, err, false)
 	}
+	return d.connected(ctx, connection, mutation, args)
+}
+
+// connected scopes authentication and protocol exchange to one admitted connection.
+func (d *Driver) connected(ctx context.Context, connection net.Conn, mutation bool, args []string) (any, error) {
 	defer connection.Close()
 	stop := context.AfterFunc(ctx, func() { connection.Close() })
 	defer stop()
