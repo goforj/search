@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="172" height="32" viewBox="0 0 172 32" role="img" aria-label="Typed documents">
+  <title>Typed documents</title>
+  <rect x=".5" y=".5" width="171" height="31" rx="6" fill="#182135" stroke="#35415e"/>
+  <g transform="translate(5 4)">
+  <title>Typed documents</title>
+  <rect x=".5" y=".5" width="23" height="23" rx="5" fill="#6a7dff" fill-opacity=".09"/>
+  <g fill="none" fill-opacity="1" stroke-opacity="1" stroke="#6a7dff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h8l4 4v12H6V4Zm8 0v4h4m-8 3-2 2 2 2m4-4 2 2-2 2"/></g>
+</g>
+  <text x="37" y="21" fill="#e9edf5" font-family="Verdana,DejaVu Sans,sans-serif" font-size="13" font-weight="600">Typed documents</text>
+</svg>

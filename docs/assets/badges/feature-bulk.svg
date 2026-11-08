@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="172" height="32" viewBox="0 0 172 32" role="img" aria-label="Bulk operations">
+  <title>Bulk operations</title>
+  <rect x=".5" y=".5" width="171" height="31" rx="6" fill="#182135" stroke="#35415e"/>
+  <g transform="translate(5 4)">
+  <title>Bulk operations</title>
+  <rect x=".5" y=".5" width="23" height="23" rx="5" fill="#6a7dff" fill-opacity=".09"/>
+  <g fill="none" fill-opacity="1" stroke-opacity="1" stroke="#6a7dff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16H4V4h12v2"/><rect x="8" y="8" width="12" height="12" rx="1.5"/><path d="M8 14h12m-6-6v12"/></g>
+</g>
+  <text x="37" y="21" fill="#e9edf5" font-family="Verdana,DejaVu Sans,sans-serif" font-size="13" font-weight="600">Bulk operations</text>
+</svg>

@@ -76,7 +76,7 @@ func driverBadge(root, name string) (string, error) {
 }
 
 // FeaturesMarkdown presents the portable library contract with links to its authoritative examples and APIs.
-func FeaturesMarkdown() string {
+func FeaturesMarkdown(root string) (string, error) {
 	rows := []struct{ icon, name, capability, reference string }{
 		{"search", "Literal search", "Require every analyzed term, with explicit searchable fields.", "[Typed search example](examples/search/main.go)"},
 		{"filters", "Typed filters", "Combine Boolean logic, exact values, integer ranges, and array membership.", "[Filter example](examples/filters/main.go)"},
@@ -92,9 +92,49 @@ func FeaturesMarkdown() string {
 		{"testing", "Isolated testing", "Script results and inspect recorded calls without running a search engine.", "[Fake backend example](examples/fake/main.go)"},
 	}
 	var out strings.Builder
-	out.WriteString("| | Feature | What you get | Example or API |\n| :---: | --- | --- | --- |\n")
+	out.WriteString("| Feature | What you get | Example or API |\n| --- | --- | --- |\n")
 	for _, row := range rows {
-		fmt.Fprintf(&out, "| <img src=\"docs/assets/icons/features/%s.svg\" width=\"20\" height=\"20\" alt=\"\"> | **%s** | %s | %s |\n", row.icon, row.name, row.capability, row.reference)
+		badge, err := featureBadge(root, row.icon, row.name)
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&out, "| %s | %s | %s |\n", badge, row.capability, row.reference)
 	}
-	return out.String()
+	return out.String(), nil
+}
+
+// featureBadge combines original feature artwork and its label in one baseline-independent vector asset.
+func featureBadge(root, name, label string) (string, error) {
+	source, err := os.ReadFile(filepath.Join(root, "docs/assets/icons/features", name+".svg"))
+	if err != nil {
+		return "", err
+	}
+	var icon struct {
+		ViewBox string `xml:"viewBox,attr"`
+		Inner   string `xml:",innerxml"`
+	}
+	if err := xml.Unmarshal(source, &icon); err != nil {
+		return "", err
+	}
+	if icon.ViewBox != "0 0 24 24" {
+		return "", fmt.Errorf("invalid feature icon %q", name)
+	}
+	width := len(label)*8 + 52
+	escaped := html.EscapeString(label)
+	data := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="32" viewBox="0 0 %d 32" role="img" aria-label="%s">
+  <title>%s</title>
+  <rect x=".5" y=".5" width="%d" height="31" rx="6" fill="#182135" stroke="#35415e"/>
+  <g transform="translate(5 4)">%s</g>
+  <text x="37" y="21" fill="#e9edf5" font-family="Verdana,DejaVu Sans,sans-serif" font-size="13" font-weight="600">%s</text>
+</svg>
+`, width, width, escaped, escaped, width-1, icon.Inner, escaped)
+	relative := "docs/assets/badges/feature-" + name + ".svg"
+	absolute := filepath.Join(root, filepath.FromSlash(relative))
+	if err := os.MkdirAll(filepath.Dir(absolute), 0755); err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(absolute, []byte(data), 0644); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("![%s](%s)", label, relative), nil
 }

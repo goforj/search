@@ -68,7 +68,11 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	result, err = gen.Replace(result, "features", gen.FeaturesMarkdown())
+	features, err := gen.FeaturesMarkdown(root)
+	if err != nil {
+		return err
+	}
+	result, err = gen.Replace(result, "features", features)
 	if err != nil {
 		return err
 	}

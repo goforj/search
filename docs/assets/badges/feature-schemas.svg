@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="180" height="32" viewBox="0 0 180 32" role="img" aria-label="Explicit schemas">
+  <title>Explicit schemas</title>
+  <rect x=".5" y=".5" width="179" height="31" rx="6" fill="#182135" stroke="#35415e"/>
+  <g transform="translate(5 4)">
+  <title>Explicit schemas</title>
+  <rect x=".5" y=".5" width="23" height="23" rx="5" fill="#6a7dff" fill-opacity=".09"/>
+  <g fill="none" fill-opacity="1" stroke-opacity="1" stroke="#6a7dff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="10" y="4" width="4" height="4" rx=".8"/><rect x="4" y="15" width="5" height="5" rx=".8"/><rect x="15" y="15" width="5" height="5" rx=".8"/><path d="M12 8v4m-5.5 3v-3h11v3"/></g>
+</g>
+  <text x="37" y="21" fill="#e9edf5" font-family="Verdana,DejaVu Sans,sans-serif" font-size="13" font-weight="600">Explicit schemas</text>
+</svg>
