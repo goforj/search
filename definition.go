@@ -110,6 +110,13 @@ func normalizeDefinition(d Definition, l Limits) (Definition, error) {
 	if !validName(string(d.Name), l.NameBytes) || len(d.Fields) == 0 || len(d.Fields) > l.DefinitionFields || len(d.DefaultSort) > 2 || len(d.DefaultSearchable) > l.QueryFields {
 		return Definition{}, ErrInvalidDefinition
 	}
+	remaining := l.DefinitionBytes
+	for _, field := range d.Fields {
+		if len(field.Path) > remaining {
+			return Definition{}, ErrInvalidDefinition
+		}
+		remaining -= len(field.Path)
+	}
 	d = cloneDefinition(d)
 	fields := map[FieldName]Field{}
 	for x, f := range d.Fields {

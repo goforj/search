@@ -242,3 +242,28 @@ func TestIndexRejectsCorruptResponses(t *testing.T) {
 		t.Fatal(unknown)
 	}
 }
+
+// TestDefinitionPointerBudgetRejectsBeforeCopy prevents oversized schema paths from forcing JSON encoding allocations.
+func TestDefinitionPointerBudgetRejectsBeforeCopy(t *testing.T) {
+	for _, test := range []struct {
+		name          string
+		fields, bytes int
+	}{
+		{"single-pointer", 1, 1 << 20},
+		{"aggregate-pointers", 3, 32 << 10},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			definition := testDefinition()
+			for n := 0; n < test.fields; n++ {
+				definition.Fields[n].Path = JSONPointer("/" + strings.Repeat("x", test.bytes))
+			}
+			limits := DefaultLimits()
+			if _, err := normalizeDefinition(definition, limits); !errors.Is(err, ErrInvalidDefinition) {
+				t.Fatal(err)
+			}
+			if allocations := testing.AllocsPerRun(10, func() { _, _ = normalizeDefinition(definition, limits) }); allocations != 0 {
+				t.Fatalf("rejected oversized schema paths caused %.0f allocations", allocations)
+			}
+		})
+	}
+}
