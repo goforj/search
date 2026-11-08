@@ -221,9 +221,6 @@ func readJSON(d *json.Decoder, depth int, members *int, l Limits) (any, error) {
 			return nil, ErrInvalidDocument
 		}
 	case string:
-		if !utf8.ValidString(v) {
-			return nil, ErrInvalidDocument
-		}
 		return v, nil
 	case json.Number:
 		if _, e := strconv.ParseFloat(string(v), 64); e != nil {

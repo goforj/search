@@ -2,6 +2,7 @@ package searchfake_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/goforj/search"
@@ -31,5 +32,43 @@ func TestScriptedOwnership(t *testing.T) {
 	}
 	if _, err := index.Search(context.Background(), search.Query{}); err != search.ErrUnavailable {
 		t.Fatal(err)
+	}
+}
+
+// TestCancellationStopsEveryOperation verifies direct backend use respects cancellation before recording calls.
+func TestCancellationStopsEveryOperation(t *testing.T) {
+	b := searchfake.New()
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	d := search.Definition{}
+	checks := []func() error{
+		func() error { _, err := b.Search(ctx, d, search.Query{}); return err },
+		func() error { _, err := b.Upsert(ctx, d, search.Document{}); return err },
+		func() error { _, err := b.Delete(ctx, d, "one"); return err },
+		func() error { _, err := b.Bulk(ctx, d, nil); return err },
+	}
+	for _, call := range checks {
+		if err := call(); !errors.Is(err, context.Canceled) {
+			t.Fatal(err)
+		}
+	}
+	if len(b.Calls()) != 0 {
+		t.Fatal("cancelled calls were recorded")
+	}
+}
+
+// TestFacetOwnership protects both queued and returned bucket slices from caller mutation.
+func TestFacetOwnership(t *testing.T) {
+	b := searchfake.New()
+	v, err := search.Keyword("original")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r := search.Result{Facets: []search.FacetResult{{Name: "tags", Buckets: []search.Bucket{{Value: v, Count: 3}}}}}
+	b.QueueSearch(r, nil)
+	r.Facets[0].Buckets[0].Count = 99
+	got, err := b.Search(context.Background(), search.Definition{}, search.Query{})
+	if err != nil || got.Facets[0].Buckets[0].Count != 3 {
+		t.Fatal(got, err)
 	}
 }
