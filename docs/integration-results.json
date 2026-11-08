@@ -1,5 +1,5 @@
 {
-  "executed_tests": 406,
+  "executed_tests": 411,
   "tests": [
     "github.com/goforj/search/integration/TestBleveContract",
     "github.com/goforj/search/integration/TestBleveContract/all",
@@ -363,6 +363,11 @@
     "github.com/goforj/search/integration/TestServiceAuthentication/meilisearch",
     "github.com/goforj/search/integration/TestServiceAuthentication/opensearch",
     "github.com/goforj/search/integration/TestServiceAuthentication/typesense",
+    "github.com/goforj/search/integration/TestServiceCloseDrainsAdmittedSearch",
+    "github.com/goforj/search/integration/TestServiceCloseDrainsAdmittedSearch/elasticsearch",
+    "github.com/goforj/search/integration/TestServiceCloseDrainsAdmittedSearch/meilisearch",
+    "github.com/goforj/search/integration/TestServiceCloseDrainsAdmittedSearch/opensearch",
+    "github.com/goforj/search/integration/TestServiceCloseDrainsAdmittedSearch/typesense",
     "github.com/goforj/search/integration/TestServiceOwnershipAndActualDrift",
     "github.com/goforj/search/integration/TestServiceOwnershipAndActualDrift/elasticsearch",
     "github.com/goforj/search/integration/TestServiceOwnershipAndActualDrift/meilisearch",
