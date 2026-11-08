@@ -1,4 +1,4 @@
-// Code generated from examples/filters_test.go; DO NOT EDIT.
+// Command filters demonstrates filtering and sorting.
 package main
 
 import (
@@ -8,8 +8,11 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
-// main executes the documented workflow.
+// main demonstrates filter and sort results.
+// @readme Filter and sort results
+// @api search.Index.Search search.Query search.Keyword search.Integer search.And search.Equal search.LessThan search.Sort search.Ascending
 func main() {
+
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -57,6 +60,7 @@ func main() {
 		}
 	}
 
+	// snippet:start
 	category, err := search.Keyword("kitchen")
 	if err != nil {
 		panic(err)
@@ -76,5 +80,11 @@ func main() {
 	fmt.Println(result.Hits[0].Document.ID)
 	// two
 	fmt.Println(result.Total.Value)
+	// 2
+
+	// snippet:end
+
+	// Output:
+	// two
 	// 2
 }

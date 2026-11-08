@@ -3,6 +3,7 @@ package main
 
 import (
 	"fmt"
+	"go/format"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,9 +38,9 @@ func run() error {
 		return err
 	}
 	var usage strings.Builder
-	usage.WriteString("## Runnable examples\n\nEach example is executed as a Go example test and generated into a standalone program under [`examples/`](examples). Run these commands from the repository root with Go 1.25 or newer.\n\n| Example | Run | Tested source |\n| --- | --- | --- |\n")
+	usage.WriteString("## Runnable examples\n\nEach program under [`examples/`](examples) is executed by a [shared test runner](examples/example_test.go) that checks its expected output. Run these commands from the repository root with Go 1.25 or newer.\n\n| Example | Run |\n| --- | --- |\n")
 	for _, example := range examples {
-		fmt.Fprintf(&usage, "| [%s](examples/%s/main.go) | `go run ./examples/%s` | [Example test](examples/%s) |\n", example.Title, example.Name, example.Name, example.Source)
+		fmt.Fprintf(&usage, "| [%s](examples/%s/main.go) | `go run ./examples/%s` |\n", example.Title, example.Name, example.Name)
 	}
 	quickstart, err := quickStartMarkdown(examples)
 	if err != nil {
@@ -93,8 +94,26 @@ func run() error {
 func quickStartMarkdown(examples []gen.Example) (string, error) {
 	for _, example := range examples {
 		if example.Name == "quickstart" {
-			_, program, _ := strings.Cut(string(example.Program), "\n")
-			program = strings.ReplaceAll(program, "// main executes the documented workflow.\n", "")
+			var lines []string
+			output := false
+			for _, line := range strings.Split(string(example.Program), "\n") {
+				trimmed := strings.TrimSpace(line)
+				if trimmed == "// Output:" {
+					for len(lines) > 0 && strings.TrimSpace(lines[len(lines)-1]) == "" {
+						lines = lines[:len(lines)-1]
+					}
+					output = true
+				}
+				if strings.HasPrefix(trimmed, "// @") || strings.HasPrefix(trimmed, "// snippet:") || (output && (strings.HasPrefix(trimmed, "//") || trimmed == "")) {
+					continue
+				}
+				lines = append(lines, line)
+			}
+			formatted, err := format.Source([]byte(strings.Join(lines, "\n")))
+			if err != nil {
+				return "", fmt.Errorf("format quickstart: %w", err)
+			}
+			program := string(formatted)
 			return "## Quick Start\n\nGo 1.25+, with no external service required.\n\n```sh\ngit clone https://github.com/goforj/search.git\ncd search\ngo run ./examples/quickstart\n```\n\n<details>\n<summary>View the full Go example</summary>\n\n```go\n" + program + "```\n\n</details>\n", nil
 		}
 	}

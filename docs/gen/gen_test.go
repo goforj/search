@@ -2,7 +2,6 @@ package gen
 
 import (
 	"bytes"
-	"go/doc"
 	"go/parser"
 	"go/token"
 	"os"
@@ -25,7 +24,7 @@ func TestReplace(t *testing.T) {
 	}
 }
 
-// TestExamplesDeclareExecutableOutput catches examples that go test would otherwise compile without executing.
+// TestExamplesDeclareExecutableOutput ensures the runner can verify each canonical program.
 func TestExamplesDeclareExecutableOutput(t *testing.T) {
 	root, err := Root()
 	if err != nil {
@@ -40,17 +39,14 @@ func TestExamplesDeclareExecutableOutput(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		found := false
-		for _, executable := range doc.Examples(file) {
-			if executable.Name == "_"+example.Name {
-				found = true
-				if executable.Output == "" && !executable.EmptyOutput {
-					t.Errorf("%s has no executable Output: comment", example.Source)
-				}
+		outputs := 0
+		for _, group := range file.Comments {
+			if _, ok := strings.CutPrefix(group.Text(), "Output:\n"); ok {
+				outputs++
 			}
 		}
-		if !found {
-			t.Errorf("%s is not discoverable as a Go example", example.Source)
+		if outputs != 1 {
+			t.Errorf("%s must have exactly one executable Output: comment", example.Source)
 		}
 	}
 }
@@ -91,8 +87,8 @@ func TestQualifiedAPIIndex(t *testing.T) {
 	}
 }
 
-// TestExamplesMatchStandalonePrograms catches stale mirrors without rewriting authoritative sources.
-func TestExamplesMatchStandalonePrograms(t *testing.T) {
+// TestExamplesReadCanonicalPrograms keeps generated snippets tied to runnable source.
+func TestExamplesReadCanonicalPrograms(t *testing.T) {
 	root, err := Root()
 	if err != nil {
 		t.Fatal(err)
@@ -108,7 +104,7 @@ func TestExamplesMatchStandalonePrograms(t *testing.T) {
 		if len(example.APIs) == 0 || example.Snippet == "" {
 			t.Fatal("missing documented API example", example.Name)
 		}
-		if strings.Contains(example.Snippet, "snippet:") || strings.Contains(string(example.Program), "snippet:") {
+		if strings.Contains(example.Snippet, "snippet:") {
 			t.Fatal("snippet markers leaked into generated documentation", example.Name)
 		}
 		program := strings.ReplaceAll(string(example.Program), "\n\t", "\n")
@@ -121,9 +117,6 @@ func TestExamplesMatchStandalonePrograms(t *testing.T) {
 		}
 		if !bytes.Equal(data, example.Program) {
 			t.Fatal("stale example", example.Name)
-		}
-		if strings.Contains(string(data), "// Output:") {
-			t.Fatal("test-only output marker leaked into standalone program")
 		}
 	}
 }
@@ -174,5 +167,28 @@ func TestSourceFingerprintTracksExecutableOwnership(t *testing.T) {
 	third, err := SourceFingerprint(root)
 	if err != nil || third == second {
 		t.Fatal("behavior did not change fingerprint", err)
+	}
+}
+
+// TestExamplesRejectInvalidSources prevents malformed canonical programs from becoming documentation.
+func TestExamplesRejectInvalidSources(t *testing.T) {
+	for _, tc := range []struct{ name, source, want string }{
+		{"syntax", "package main\nfunc main( {", "expected"},
+		{"documentation", "package main\nfunc main() {}", "missing main documentation"},
+		{"snippet", "package main\n// main demonstrates indexing.\n// @api search.NewIndex\nfunc main() {}", "expected one snippet marker pair"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := t.TempDir()
+			dir := filepath.Join(root, "examples", "sample")
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(dir, "main.go"), []byte(tc.source), 0644); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := Examples(root); err == nil || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("got %v, want %q", err, tc.want)
+			}
+		})
 	}
 }

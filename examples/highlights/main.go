@@ -1,4 +1,4 @@
-// Code generated from examples/highlights_test.go; DO NOT EDIT.
+// Command highlights demonstrates structured highlights.
 package main
 
 import (
@@ -9,8 +9,11 @@ import (
 	"html"
 )
 
-// main executes the documented workflow.
+// main demonstrates escape structured highlights.
+// @readme Escape structured highlights
+// @api search.Highlight search.Fragment search.Segment
 func main() {
+
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -58,6 +61,7 @@ func main() {
 		}
 	}
 
+	// snippet:start
 	result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
 	if err != nil {
 		panic(err)
@@ -71,5 +75,10 @@ func main() {
 		}
 	}
 	fmt.Println()
+	// <mark>Blue</mark> mug
+
+	// snippet:end
+
+	// Output:
 	// <mark>Blue</mark> mug
 }

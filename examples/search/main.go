@@ -1,4 +1,4 @@
-// Code generated from examples/search_test.go; DO NOT EDIT.
+// Command search demonstrates typed document search.
 package main
 
 import (
@@ -8,8 +8,11 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
-// main executes the documented workflow.
+// main demonstrates search typed documents.
+// @readme Search typed documents
+// @api search.SearchAs search.Page search.HitOf
 func main() {
+
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -57,6 +60,7 @@ func main() {
 		}
 	}
 
+	// snippet:start
 	page, err := search.SearchAs[struct {
 		Title string `json:"title"`
 	}](ctx, index, search.Query{Text: "blue mug"})
@@ -66,5 +70,11 @@ func main() {
 	fmt.Println(page.Hits[0].Value.Title)
 	// Blue mug
 	fmt.Println(page.Total.Value)
+	// 1
+
+	// snippet:end
+
+	// Output:
+	// Blue mug
 	// 1
 }

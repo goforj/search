@@ -1,4 +1,4 @@
-// Code generated from examples/bulk_test.go; DO NOT EDIT.
+// Command bulk demonstrates bulk mutation visibility.
 package main
 
 import (
@@ -8,8 +8,11 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
-// main executes the documented workflow.
+// main demonstrates inspect bulk visibility.
+// @readme Inspect bulk visibility
+// @api search.Index.Bulk search.DeleteMutation search.BulkResult search.BulkOutcome search.ItemResult
 func main() {
+
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -57,6 +60,7 @@ func main() {
 		}
 	}
 
+	// snippet:start
 	first, err := search.DeleteMutation("one")
 	if err != nil {
 		panic(err)
@@ -78,4 +82,10 @@ func main() {
 		// one succeeded
 		// two succeeded
 	}
+
+	// snippet:end
+
+	// Output:
+	// one succeeded
+	// two succeeded
 }

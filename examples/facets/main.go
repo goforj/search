@@ -1,4 +1,4 @@
-// Code generated from examples/facets_test.go; DO NOT EDIT.
+// Command facets demonstrates term facet counts.
 package main
 
 import (
@@ -8,8 +8,11 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
-// main executes the documented workflow.
+// main demonstrates count facets before pagination.
+// @readme Count facets before pagination
+// @api search.TermFacet search.FacetResult search.Bucket search.Value.Keyword
 func main() {
+
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -57,6 +60,7 @@ func main() {
 		}
 	}
 
+	// snippet:start
 	result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
 	if err != nil {
 		panic(err)
@@ -67,4 +71,10 @@ func main() {
 		// kitchen 2
 		// books 1
 	}
+
+	// snippet:end
+
+	// Output:
+	// kitchen 2
+	// books 1
 }

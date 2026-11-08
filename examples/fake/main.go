@@ -1,4 +1,4 @@
-// Code generated from examples/fake_test.go; DO NOT EDIT.
+// Command fake demonstrates testing application search.
 package main
 
 import (
@@ -9,8 +9,11 @@ import (
 	"github.com/goforj/search/searchfake"
 )
 
-// main executes the documented workflow.
+// main demonstrates application testing with an explicitly scripted backend.
+// @readme Test an application service
+// @api searchfake.New searchfake.Backend.QueueSearch searchfake.Backend.Calls search.Result search.Total search.TotalExact
 func main() {
+	// snippet:start
 	backend := searchfake.New()
 	backend.QueueSearch(search.Result{Total: search.Total{Value: 3, Relation: search.TotalExact}}, nil)
 	index, err := search.NewIndex(backend, search.Definition{
@@ -25,5 +28,10 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
+	// 3 search
+
+	// snippet:end
+
+	// Output:
 	// 3 search
 }

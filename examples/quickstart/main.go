@@ -1,4 +1,4 @@
-// Code generated from examples/quickstart_test.go; DO NOT EDIT.
+// Command quickstart demonstrates embedded indexing and search.
 package main
 
 import (
@@ -9,8 +9,11 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
-// main executes the documented workflow.
+// main demonstrates the complete embedded indexing and typed-query lifecycle.
+// @readme Index and search a document
+// @api blevesearch.Open blevesearch.Config blevesearch.Driver blevesearch.Driver.Close search.DocumentID search.Definition search.Field search.NewIndex search.Upsert search.Index.Wait search.Outcome search.OutcomeSucceeded
 func main() {
+	// snippet:start
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
 	if err != nil {
@@ -50,5 +53,10 @@ func main() {
 		panic(err)
 	}
 	fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+	// mug-1 Blue mug
+
+	// snippet:end
+
+	// Output:
 	// mug-1 Blue mug
 }

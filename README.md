@@ -58,6 +58,7 @@ go run ./examples/quickstart
 <summary>View the full Go example</summary>
 
 ```go
+// Command quickstart demonstrates embedded indexing and search.
 package main
 
 import (
@@ -68,6 +69,7 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
+// main demonstrates the complete embedded indexing and typed-query lifecycle.
 func main() {
 	ctx := context.Background()
 	driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
@@ -192,18 +194,18 @@ Run `make bench` for allocation-aware [document validation benchmarks](validatio
 <!-- examples:embed:start -->
 ## Runnable examples
 
-Each example is executed as a Go example test and generated into a standalone program under [`examples/`](examples). Run these commands from the repository root with Go 1.25 or newer.
+Each program under [`examples/`](examples) is executed by a [shared test runner](examples/example_test.go) that checks its expected output. Run these commands from the repository root with Go 1.25 or newer.
 
-| Example | Run | Tested source |
-| --- | --- | --- |
-| [Inspect bulk visibility](examples/bulk/main.go) | `go run ./examples/bulk` | [Example test](examples/bulk_test.go) |
-| [Count facets before pagination](examples/facets/main.go) | `go run ./examples/facets` | [Example test](examples/facets_test.go) |
-| [Test an application service](examples/fake/main.go) | `go run ./examples/fake` | [Example test](examples/fake_test.go) |
-| [Filter and sort results](examples/filters/main.go) | `go run ./examples/filters` | [Example test](examples/filters_test.go) |
-| [Escape structured highlights](examples/highlights/main.go) | `go run ./examples/highlights` | [Example test](examples/highlights_test.go) |
-| [Index and search a document](examples/quickstart/main.go) | `go run ./examples/quickstart` | [Example test](examples/quickstart_test.go) |
-| [Search typed documents](examples/search/main.go) | `go run ./examples/search` | [Example test](examples/search_test.go) |
-| [Construct service drivers](examples/services/main.go) | `go run ./examples/services` | [Example test](examples/services_test.go) |
+| Example | Run |
+| --- | --- |
+| [Inspect bulk visibility](examples/bulk/main.go) | `go run ./examples/bulk` |
+| [Count facets before pagination](examples/facets/main.go) | `go run ./examples/facets` |
+| [Test an application service](examples/fake/main.go) | `go run ./examples/fake` |
+| [Filter and sort results](examples/filters/main.go) | `go run ./examples/filters` |
+| [Escape structured highlights](examples/highlights/main.go) | `go run ./examples/highlights` |
+| [Index and search a document](examples/quickstart/main.go) | `go run ./examples/quickstart` |
+| [Search typed documents](examples/search/main.go) | `go run ./examples/search` |
+| [Construct service drivers](examples/services/main.go) | `go run ./examples/services` |
 <!-- examples:embed:end -->
 
 ## Development
@@ -218,7 +220,7 @@ make generate
 make check-generated
 ```
 
-API descriptions come from GoDoc. Runnable examples and their expected output come from `examples/*_test.go`. Edit those sources and run `make generate`; generation refreshes the standalone programs, quick start, example index, feature badges, and API index. CI checks that regeneration produces no diff.
+API descriptions come from GoDoc. Runnable examples and their expected output live in `examples/<name>/main.go`. A shared test runner executes those programs. Edit those sources and run `make generate`; generation refreshes the quick start, example index, feature badges, and API index. CI checks that regeneration produces no diff.
 
 See [development and release notes](docs/development.md) for focused driver tests, module boundaries, and publishing. Report problems or request features in [GitHub issues](https://github.com/goforj/search/issues).
 

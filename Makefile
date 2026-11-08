@@ -28,8 +28,7 @@ tidy: ## Tidy every module against the unpublished local root.
 modules-check: ## Verify module inventory and published dependency boundaries.
 	@scripts/check-module-manifest.sh
 
-generate: ## Regenerate standalone examples, API index, and evidence badges.
-	@GOWORK=off go -C docs run ./examplegen
+generate: ## Regenerate the API index, example snippets, and evidence badges.
 	@GOWORK=off go -C docs run ./readme
 
 check-generated: ## Verify two generations leave documentation and examples unchanged.

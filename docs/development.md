@@ -6,15 +6,15 @@ The public contract lives in the root module. Service drivers use the standard l
 | --- | --- | --- |
 | `.` | Search contract, service drivers, `searchfake`, `searchtest` | Yes |
 | `driver/blevesearch` | Embedded Bleve driver | Yes |
-| `docs` | GoDoc indexing, example generation, test and coverage reports | No |
-| `examples` | Executable example sources and generated standalone programs | No |
+| `docs` | GoDoc indexing, README generation, test and coverage reports | No |
+| `examples` | Runnable example programs and their shared test runner | No |
 | `integration` | Testcontainers fixtures and real-driver acceptance tests | No |
 
 The root supports Go 1.24. The embedded driver, examples, and integration harness require Go 1.25 because the selected Bleve release requires it. A service-only application does not import Bleve or Testcontainers.
 
 ## Source ownership
 
-GoDoc owns API descriptions and `@group` classification. `examples/*_test.go` owns executable examples and expected output. `docs/examplegen` projects those sources into `examples/<name>/main.go`; `docs/readme` projects the quick start and a linked example index into the README alongside a curated index of application-facing operations. Example `@api` annotations associate symbols with code between `// snippet:start` and `// snippet:end`; the curated API index links the relevant tested snippets and exact source declarations. Edit the sources and run `make generate`.
+GoDoc owns API descriptions and `@group` classification. `examples/<name>/main.go` owns each runnable example and its expected output. A shared test runner executes every program and checks its `Output:` comment. Unit coverage instruments these subprocesses and merges their Go coverage data; race test runs also enable race detection in the programs. `docs/readme` projects the quick start and a linked example index into the README alongside a curated index of application-facing operations. Example `@api` annotations associate symbols with code between `// snippet:start` and `// snippet:end`; the curated API index links the relevant tested snippets and exact source declarations. Edit the sources and run `make generate`.
 
 `searchtest.ScenarioNames` inventories mandatory conformance fixtures. The shared runner verifies that inventory against executed subtests. Every real driver must execute the same fixtures without skips before `docs/report` can generate a support claim. Driver evidence includes a hash of library sources, tests, integration fixtures, and module pins. Editing those files makes existing evidence stale until the full integration suite passes again.
 

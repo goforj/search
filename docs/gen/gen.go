@@ -2,12 +2,10 @@
 package gen
 
 import (
-	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"go/ast"
-	"go/format"
 	"go/parser"
 	"go/token"
 	"io/fs"
@@ -28,7 +26,7 @@ type Symbol struct {
 	Line        int
 }
 
-// Example is an executable Go example and its standalone program projection.
+// Example describes a runnable program and its documentation annotations.
 type Example struct {
 	Name    string
 	Title   string
@@ -182,9 +180,9 @@ func fileGroup(filename string) string {
 	return groups[filename]
 }
 
-// Examples derives runnable programs from the same sources executed by go test.
+// Examples reads documentation directly from the runnable programs tested by the example runner.
 func Examples(root string) ([]Example, error) {
-	files, err := filepath.Glob(filepath.Join(root, "examples/*_test.go"))
+	files, err := filepath.Glob(filepath.Join(root, "examples/*/main.go"))
 	if err != nil {
 		return nil, err
 	}
@@ -201,12 +199,15 @@ func Examples(root string) ([]Example, error) {
 		}
 		for _, decl := range file.Decls {
 			fn, ok := decl.(*ast.FuncDecl)
-			if !ok || !strings.HasPrefix(fn.Name.Name, "Example_") {
+			if !ok || fn.Name.Name != "main" {
 				continue
 			}
-			name := strings.TrimPrefix(fn.Name.Name, "Example_")
+			name := filepath.Base(filepath.Dir(filename))
 			title := name
 			var apis []string
+			if fn.Doc == nil {
+				return nil, fmt.Errorf("example %s: missing main documentation", name)
+			}
 			for _, line := range strings.Split(fn.Doc.Text(), "\n") {
 				if value, ok := strings.CutPrefix(strings.TrimSpace(line), "@readme "); ok {
 					title = value
@@ -216,32 +217,15 @@ func Examples(root string) ([]Example, error) {
 				}
 			}
 			start, end := set.Position(fn.Body.Lbrace).Offset+1, set.Position(fn.Body.Rbrace).Offset
-			body := string(data[start:end])
-			if output := strings.Index(body, "// Output:"); output >= 0 {
-				body = body[:output]
-			}
-			snippet, err := exampleSnippet(body, len(apis) > 0)
+			snippet, err := exampleSnippet(string(data[start:end]), len(apis) > 0)
 			if err != nil {
 				return nil, fmt.Errorf("example %s: %w", name, err)
 			}
-			body = strings.ReplaceAll(body, "\t// snippet:start\n", "")
-			body = strings.ReplaceAll(body, "\t// snippet:end\n", "")
-			var program bytes.Buffer
-			program.WriteString("// Code generated from examples/" + filepath.Base(filename) + "; DO NOT EDIT.\npackage main\n\n")
-			for _, declaration := range file.Decls {
-				if node, ok := declaration.(*ast.GenDecl); ok && node.Tok == token.IMPORT {
-					if err := format.Node(&program, set, node); err != nil {
-						return nil, err
-					}
-					program.WriteString("\n\n")
-				}
-			}
-			program.WriteString("// main executes the documented workflow.\nfunc main() {\n" + strings.TrimSpace(body) + "\n}\n")
-			formatted, err := format.Source(program.Bytes())
+			source, err := filepath.Rel(filepath.Join(root, "examples"), filename)
 			if err != nil {
-				return nil, fmt.Errorf("example %s: %w", name, err)
+				return nil, err
 			}
-			examples = append(examples, Example{Name: name, Title: title, Source: filepath.Base(filename), Program: formatted, APIs: apis, Snippet: snippet})
+			examples = append(examples, Example{Name: name, Title: title, Source: filepath.ToSlash(source), Program: data, APIs: apis, Snippet: snippet})
 		}
 	}
 	sort.Slice(examples, func(i, j int) bool { return examples[i].Name < examples[j].Name })

@@ -12,20 +12,26 @@ func TestQuickStartRequiresTestedSource(t *testing.T) {
 	if _, err := quickStartMarkdown([]gen.Example{{Name: "filters"}}); err == nil {
 		t.Fatal("missing quick start was accepted")
 	}
-	program := "// Code generated from examples/quickstart_test.go; DO NOT EDIT.\npackage main\n\n// main executes the documented workflow.\nfunc main() {}\n"
+	program := "package main\n\n// main demonstrates a workflow.\n// @readme Quickstart\n// @api search.NewIndex\nfunc main() {\n\t// snippet:start\n\tfmt.Println(1)\n\t// 1\n\t// snippet:end\n\n\t// Output:\n\t// 1\n}\n"
 	markdown, err := quickStartMarkdown([]gen.Example{{Name: "quickstart", Program: []byte(program)}})
-	if err != nil || !strings.Contains(markdown, "package main") || !strings.Contains(markdown, "func main() {}") {
+	if err != nil || !strings.Contains(markdown, "package main") || !strings.Contains(markdown, "fmt.Println(1)") {
 		t.Fatal(markdown, err)
 	}
-	if strings.Contains(markdown, "DO NOT EDIT") || strings.Contains(markdown, "// main executes") {
+	if !strings.Contains(markdown, "}\n```\n") {
+		t.Fatal("quickstart code fence must start on a new line")
+	}
+	if strings.Contains(markdown, "@readme") || strings.Contains(markdown, "@api") || strings.Contains(markdown, "snippet:") || strings.Contains(markdown, "Output:") {
 		t.Fatal("generator metadata leaked into the opening example")
+	}
+	if _, err := quickStartMarkdown([]gen.Example{{Name: "quickstart", Program: []byte("invalid Go source")}}); err == nil {
+		t.Fatal("malformed quickstart source was accepted")
 	}
 }
 
 // TestAPIIndexLinksToSourceAndInlineExamples keeps navigation useful before a module is published.
 func TestAPIIndexLinksToSourceAndInlineExamples(t *testing.T) {
 	symbols := []gen.Symbol{{Name: "search.Index.Search", Source: "index.go", Line: 79, Group: "Queries", Description: "Search matches text | filters."}}
-	examples := []gen.Example{{Name: "search", Title: "Search documents", Source: "search_test.go", APIs: []string{"search.Index.Search"}, Snippet: "index.Search(ctx, query)\n"}}
+	examples := []gen.Example{{Name: "search", Title: "Search documents", Source: "search/main.go", APIs: []string{"search.Index.Search"}, Snippet: "index.Search(ctx, query)\n"}}
 	entries := []apiEntry{{Task: "Search documents", APIs: []string{"search.Index.Search"}, Examples: []string{"search"}}}
 	markdown, err := apiMarkdownFor(symbols, examples, entries)
 	if err != nil {
