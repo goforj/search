@@ -1,11 +1,13 @@
 go 1.25.0
+
 use (
- .
- ./driver/blevesearch
- ./docs
- ./examples
- ./integration
+	.
+	./docs
+	./driver/blevesearch
+	./examples
+	./integration
 )
 
-replace github.com/goforj/search v0.0.0 => .
-replace github.com/goforj/search/driver/blevesearch v0.0.0 => ./driver/blevesearch
+replace github.com/goforj/search v0.1.0 => .
+
+replace github.com/goforj/search/driver/blevesearch v0.1.0 => ./driver/blevesearch

@@ -1,5 +1,5 @@
 {
-  "source_sha256": "6275e691b9eacb5e8308fced6d28ed8aef19a84e1ef79074353729b2fea8a401",
+  "source_sha256": "a25282af9c9bb9b217a1a0fdd42e90efa7938a233082a3a63331a3d8411600ed",
   "drivers": [
     {
       "name": "bleve",
@@ -41,6 +41,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index"
       ]
     },
@@ -84,6 +85,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index"
       ]
     },
@@ -127,6 +129,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index"
       ]
     },
@@ -170,6 +173,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index",
         "multi-shard/empty-provisioned-text",
         "multi-shard/all",
@@ -207,6 +211,7 @@
         "multi-shard/mixed-bulk",
         "multi-shard/concurrent-calls",
         "multi-shard/facet-truncation-ties",
+        "multi-shard/cross-field-all-terms",
         "multi-shard/keyword-only-nested-index"
       ]
     },
@@ -250,6 +255,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index",
         "multi-shard/empty-provisioned-text",
         "multi-shard/all",
@@ -287,6 +293,7 @@
         "multi-shard/mixed-bulk",
         "multi-shard/concurrent-calls",
         "multi-shard/facet-truncation-ties",
+        "multi-shard/cross-field-all-terms",
         "multi-shard/keyword-only-nested-index"
       ]
     },
@@ -330,6 +337,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index"
       ]
     },
@@ -373,6 +381,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index"
       ]
     },
@@ -416,6 +425,7 @@
         "mixed-bulk",
         "concurrent-calls",
         "facet-truncation-ties",
+        "cross-field-all-terms",
         "keyword-only-nested-index"
       ]
     }
