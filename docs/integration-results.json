@@ -1,5 +1,5 @@
 {
-  "executed_tests": 425,
+  "executed_tests": 426,
   "tests": [
     "github.com/goforj/search/integration/TestBleveContract",
     "github.com/goforj/search/integration/TestBleveContract/all",
@@ -319,6 +319,7 @@
     "github.com/goforj/search/integration/TestRedisContract/window-edge",
     "github.com/goforj/search/integration/TestRedisCustomDocumentLimits",
     "github.com/goforj/search/integration/TestRedisLifecycleAndBound",
+    "github.com/goforj/search/integration/TestRedisRecreatedIndexIsReady",
     "github.com/goforj/search/integration/TestSQLCorruptStoredBody",
     "github.com/goforj/search/integration/TestSQLCorruptStoredBody/postgres",
     "github.com/goforj/search/integration/TestSQLCorruptStoredBody/sqlite",

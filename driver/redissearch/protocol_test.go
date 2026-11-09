@@ -296,7 +296,7 @@ func TestSchemaProtocol(t *testing.T) {
 				calls := 0
 				metadata := ""
 				exists := existing
-				info := []any{"index_definition", []any{"key_type", "HASH"}, "attributes", []any{}, "index_options", []any{}}
+				info := []any{"index_definition", []any{"key_type", "HASH"}, "attributes", []any{}, "index_options", []any{}, "indexing", int64(0)}
 				layout, err := schema(info)
 				if err != nil {
 					t.Fatal(err)
@@ -346,7 +346,7 @@ func TestSchemaProtocol(t *testing.T) {
 			})
 		}
 	}
-	for _, value := range []any{nil, []any{"attributes", []any{}}, []any{"index_definition", make(chan int), "attributes", []any{}, "index_options", []any{}}} {
+	for _, value := range []any{nil, []any{"attributes", []any{}}, []any{"index_definition", make(chan int), "attributes", []any{}, "index_options", []any{}, "indexing", int64(0)}} {
 		if _, err := schema(value); !errors.Is(err, search.ErrUnavailable) {
 			t.Fatal(err)
 		}
@@ -360,9 +360,9 @@ func TestSchemaDriftAndLifecycle(t *testing.T) {
 			d, def := redisFixture(t, func(args []string) any {
 				if args[0] == "FT.INFO" {
 					if scenario == "bad-info" {
-						return []any{}
+						return []any{"indexing", int64(0)}
 					}
-					return []any{"index_definition", []any{}, "attributes", []any{}, "index_options", []any{}}
+					return []any{"index_definition", []any{}, "attributes", []any{}, "index_options", []any{}, "indexing", int64(0)}
 				}
 				switch scenario {
 				case "missing-meta":
@@ -434,9 +434,79 @@ func TestCreationRejectsInvalidInfo(t *testing.T) {
 		if args[0] == "FT.CREATE" {
 			return "OK"
 		}
-		return []any{}
+		return []any{"indexing", int64(0)}
 	})
 	if err := d.CreateIndex(context.Background(), def); !errors.Is(err, search.ErrUnavailable) {
 		t.Fatal(err)
+	}
+}
+
+// TestIndexScanReadiness rejects malformed progress and bounds pending scans without discarding existing data.
+func TestIndexScanReadiness(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		value any
+		want  error
+	}{
+		{"ready", []any{"indexing", int64(0)}, nil},
+		{"bad-pairs", "invalid", search.ErrUnavailable},
+		{"missing", []any{}, search.ErrUnavailable},
+		{"bad-type", []any{"indexing", "0"}, search.ErrUnavailable},
+		{"bad-value", []any{"indexing", int64(2)}, search.ErrUnavailable},
+		{"native-error", nativeError("private failure"), search.ErrUnavailable},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			d, _ := redisFixture(t, func([]string) any { return tc.value })
+			_, err := d.indexInfo(context.Background(), "owned")
+			if !errors.Is(err, tc.want) {
+				t.Fatal(err)
+			}
+		})
+	}
+	t.Run("finishes", func(t *testing.T) {
+		calls := 0
+		d, _ := redisFixture(t, func([]string) any {
+			calls++
+			if calls == 1 {
+				return []any{"indexing", int64(1)}
+			}
+			return []any{"indexing", int64(0)}
+		})
+		if _, err := d.indexInfo(context.Background(), "owned"); err != nil || calls != 2 {
+			t.Fatal(calls, err)
+		}
+	})
+	t.Run("caller-deadline", func(t *testing.T) {
+		calls := 0
+		d, _ := redisFixture(t, func([]string) any {
+			calls++
+			if calls < 7 {
+				return []any{"indexing", int64(1)}
+			}
+			return []any{"indexing", int64(0)}
+		})
+		d.config.Timeout = 25 * time.Millisecond
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		if _, err := d.indexInfo(ctx, "owned"); err != nil || calls != 7 {
+			t.Fatal("caller deadline must allow scans longer than one command timeout", calls, err)
+		}
+	})
+	for _, canceled := range []bool{false, true} {
+		t.Run(fmt.Sprintf("pending-canceled-%t", canceled), func(t *testing.T) {
+			d, _ := redisFixture(t, func([]string) any { return []any{"indexing", int64(1)} })
+			d.config.Timeout = 55 * time.Millisecond
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			want := context.DeadlineExceeded
+			if canceled {
+				timer := time.AfterFunc(25*time.Millisecond, cancel)
+				defer timer.Stop()
+				want = context.Canceled
+			}
+			if _, err := d.indexInfo(ctx, "owned"); !errors.Is(err, want) {
+				t.Fatal(err)
+			}
+		})
 	}
 }

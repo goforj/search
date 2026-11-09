@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"github.com/goforj/search"
 	"github.com/goforj/search/internal/driverutil"
@@ -30,7 +31,7 @@ func schema(value any) (string, error) {
 	return string(data), nil
 }
 
-// CreateIndex provisions absent native schema with no stemming or stop-word dropping.
+// CreateIndex provisions absent native schema without stemming or stop-word dropping and waits for initial indexing.
 // @group Definitions
 func (d *Driver) CreateIndex(ctx context.Context, def search.Definition) error {
 	d.mu.Lock()
@@ -68,7 +69,7 @@ func (d *Driver) CreateIndex(ctx context.Context, def search.Definition) error {
 	if _, err := d.command(ctx, true, args...); err != nil {
 		return err
 	}
-	info, err := d.command(ctx, false, "FT.INFO", name)
+	info, err := d.indexInfo(ctx, name)
 	if err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func (d *Driver) CreateIndex(ctx context.Context, def search.Definition) error {
 	return d.validate(ctx, def)
 }
 
-// ValidateIndex checks both portable ownership and actual native attributes without changing either.
+// ValidateIndex waits for initial indexing and checks portable ownership and actual native attributes without changing either.
 // @group Definitions
 func (d *Driver) ValidateIndex(ctx context.Context, def search.Definition) error {
 	d.mu.Lock()
@@ -102,7 +103,7 @@ func (d *Driver) ValidateIndex(ctx context.Context, def search.Definition) error
 // validate detects native alteration even when the stored fingerprint remains unchanged.
 func (d *Driver) validate(ctx context.Context, def search.Definition) error {
 	name := d.target(def)
-	info, err := d.command(ctx, false, "FT.INFO", name)
+	info, err := d.indexInfo(ctx, name)
 	if err != nil {
 		return err
 	}
@@ -128,4 +129,37 @@ func (d *Driver) validate(ctx context.Context, def search.Definition) error {
 	}
 	d.name, d.fingerprint = name, fingerprint
 	return nil
+}
+
+// indexInfo waits for the initial keyspace scan so provisioning never advertises partial search visibility.
+func (d *Driver) indexInfo(ctx context.Context, name string) (any, error) {
+	if _, bounded := ctx.Deadline(); !bounded {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, d.config.Timeout)
+		defer cancel()
+	}
+	for {
+		value, err := d.command(ctx, false, "FT.INFO", name)
+		if err != nil {
+			return nil, err
+		}
+		info, err := pairs(value)
+		if err != nil {
+			return nil, err
+		}
+		indexing, ok := info["indexing"].(int64)
+		if !ok || indexing != 0 && indexing != 1 {
+			return nil, search.ErrUnavailable
+		}
+		if indexing == 0 {
+			return value, nil
+		}
+		timer := time.NewTimer(10 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return nil, ctx.Err()
+		case <-timer.C:
+		}
+	}
 }

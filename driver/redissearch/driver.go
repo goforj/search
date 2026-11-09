@@ -21,6 +21,7 @@ const MaxMatches = 4096
 
 // Config owns standalone Redis connection policy without changing persistent client authentication.
 // Addr is a host:port pair. Timeout defaults to ten seconds and cannot exceed thirty seconds.
+// Timeout also bounds initial indexing when the provisioning context has no deadline.
 // TLSConfig is cloned; certificate verification remains enabled unless the caller explicitly changes it.
 type Config struct {
 	Addr      string

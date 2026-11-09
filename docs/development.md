@@ -105,6 +105,8 @@ Keep search data rebuildable. Search is not the authoritative database or an aut
 
 ### Lifecycle and credentials
 
+Redis `CreateIndex` and `ValidateIndex` wait for the native initial keyspace scan before declaring the index ready. Existing hashes are preserved and indexed when recreating a native index. A caller deadline bounds this wait; without one, the driver's configured command timeout also bounds the scan wait. Supply a context with a longer deadline when deliberately rebuilding a large existing keyspace.
+
 Service credentials stay on the server. Use provisioning credentials only for explicit administration, then validate and serve with appropriately scoped runtime credentials. HTTP clients do not follow redirects, bound response bodies, and preserve TLS verification by default.
 
 Receipts are process-local and bounded. Drivers retain the latest 4096 submissions. A retained receipt caches its first terminal result after `Wait`; an expired unobserved receipt reports `ErrReceiptExpired` as an unknown outcome. Recover after process loss by reconciling or replaying idempotent work from the source.

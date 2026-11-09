@@ -180,3 +180,58 @@ func TestRedisCustomDocumentLimits(t *testing.T) {
 		t.Fatal(result, err)
 	}
 }
+
+// TestRedisRecreatedIndexIsReady preserves existing hashes while requiring complete visibility after provisioning.
+func TestRedisRecreatedIndexIsReady(t *testing.T) {
+	endpoint := startTCPServer(t, "redis")
+	prefix := fixturePrefix(t)
+	redisAdmin(t, "EVAL", "for i=1,100000 do redis.call('SET',ARGV[1]..i,'noise') end return 100000", "0", prefix+":noise:")
+	t.Cleanup(func() {
+		redisAdmin(t, "EVAL", "for i=1,100000 do redis.call('DEL',ARGV[1]..i) end return 100000", "0", prefix+":noise:")
+	})
+	driver, err := redissearch.New(redissearch.Config{Addr: endpoint, Password: testAPIKey, Prefix: prefix})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer driver.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	definition := search.Definition{Name: "backfill", Fields: []search.Field{{Name: "code", Type: search.KeywordField, Filterable: true}}}
+	if err := driver.CreateIndex(ctx, definition); err != nil {
+		t.Fatal(err)
+	}
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for batch := 0; batch < 2; batch++ {
+		var mutations []search.Mutation
+		for n := 0; n < 1000; n++ {
+			mutation, err := search.UpsertMutation(search.Document{ID: search.DocumentID(fmt.Sprint(batch*1000 + n)), Body: []byte(`{"code":"one"}`)})
+			if err != nil {
+				t.Fatal(err)
+			}
+			mutations = append(mutations, mutation)
+		}
+		if _, err := index.Bulk(ctx, mutations); err != nil {
+			t.Fatal(err)
+		}
+	}
+	var native string
+	for _, name := range strings.Fields(redisAdmin(t, "FT._LIST")) {
+		if strings.HasPrefix(name, prefix) {
+			native = name
+		}
+	}
+	if native == "" {
+		t.Fatal("owned native index not found")
+	}
+	redisAdmin(t, "FT.DROPINDEX", native)
+	if err := driver.CreateIndex(ctx, definition); err != nil {
+		t.Fatal(err)
+	}
+	result, err := index.Search(ctx, search.Query{})
+	if err != nil || result.Total.Value != 2000 {
+		t.Fatal("CreateIndex returned before the existing hashes were searchable", result.Total, err)
+	}
+}
