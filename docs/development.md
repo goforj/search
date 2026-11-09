@@ -92,6 +92,8 @@ Existing SQL indexes retain their recorded physical layout and remain readable a
 
 ## Search behavior
 
+Default-size faceted SQL searches combine exact totals and requested facets in one aggregate command. Very large facet requests are batched within the same transaction snapshot to respect native compiler limits. Text searches share a narrow database-managed candidate set containing owners and requested scalar facet values. Hit retrieval remains a separate query in the same snapshot, preserving native ranking and sorted pagination. Filter-only aggregates retain independent native index choices. Scalar facets group stored scalar projections directly; arrays retain per-document deduplication. These query optimizations work with existing physical layouts and require no rebuild.
+
 - Declare an explicit `Definition`, provision it with a concrete driver's `CreateIndex`, then construct a portable `*search.Index`.
 - Construction performs no backend I/O. Runtime validation never alters an existing schema. Definition changes require an explicit rebuild from authoritative records.
 - Upserts replace complete documents. Deletes are idempotent. Call `Wait` to establish visibility after accepted writes; cancellation of a wait does not cancel accepted work.

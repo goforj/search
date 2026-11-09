@@ -59,7 +59,7 @@ func (a *sqlAuditTrace) query(query string, values []driver.NamedValue) string {
 	if a.filterFirst && strings.Contains(query, "d."+sqlAuditField("partition")+"=") {
 		query = strings.ReplaceAll(query, " d JOIN ", " d CROSS JOIN ")
 	}
-	if a.capture && (strings.HasPrefix(query, "SELECT count(*) FROM s_") || strings.HasPrefix(query, "SELECT d.original,") || strings.HasPrefix(query, "SELECT v.value,count(")) {
+	if a.capture && (strings.HasPrefix(query, "WITH matches AS") || strings.HasPrefix(query, "SELECT count(*) FROM s_") || strings.HasPrefix(query, "SELECT d.original,") || strings.HasPrefix(query, "SELECT v.value,count(")) {
 		args := make([]any, len(values))
 		for n, value := range values {
 			args[n] = value.Value

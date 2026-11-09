@@ -69,7 +69,12 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 	where := "(" + predicate + ") AND (" + text + ")"
 	from := d.name + " d" + join
 	result := search.Result{Total: search.Total{Relation: search.TotalExact}}
-	if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM "+from+" WHERE "+where, compiler.args...).Scan(&result.Total.Value); err != nil {
+	if len(query.Facets) > 0 {
+		result.Total, result.Facets, err = d.aggregates(ctx, tx, def, query, compiler, from, where)
+		if err != nil {
+			return search.Result{}, err
+		}
+	} else if err := tx.QueryRowContext(ctx, "SELECT count(*) FROM "+from+" WHERE "+where, compiler.args...).Scan(&result.Total.Value); err != nil {
 		return search.Result{}, classify(err, false)
 	}
 	order := []string{}
@@ -84,7 +89,6 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 		order = append(order, "score DESC")
 	}
 	order = append(order, "d.id ASC")
-	arguments := append([]any(nil), compiler.args...)
 	limit, offset := compiler.parameter(query.Limit), compiler.parameter(query.Offset)
 	statement := "SELECT d.original,d.body," + score + " AS score FROM " + from + " WHERE " + where + " ORDER BY " + strings.Join(order, ",") + " LIMIT " + limit + " OFFSET " + offset
 	rows, err := tx.QueryContext(ctx, statement, compiler.args...)
@@ -114,35 +118,7 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 	if err != nil {
 		return search.Result{}, classify(err, false)
 	}
-	for _, facet := range query.Facets {
-		c := compiler
-		c.args = append([]any(nil), arguments...)
-		statement := c.facet(def, facet, from, where)
-		rows, err := tx.QueryContext(ctx, statement, c.args...)
-		if err != nil {
-			return search.Result{}, classify(err, false)
-		}
-		counts := map[string]uint64{}
-		for rows.Next() {
-			var key string
-			var count uint64
-			if err := rows.Scan(&key, &count); err != nil {
-				rows.Close()
-				return search.Result{}, classify(err, false)
-			}
-			counts[key] = count
-		}
-		err = rows.Err()
-		rows.Close()
-		if err != nil {
-			return search.Result{}, classify(err, false)
-		}
-		value, err := driverutil.Facet(facet, def, counts, search.CountExact)
-		if err != nil {
-			return search.Result{}, err
-		}
-		result.Facets = append(result.Facets, value)
-	}
+
 	return result, nil
 }
 
@@ -152,14 +128,14 @@ func (c *compiler) facet(def search.Definition, facet search.TermFacet, from, wh
 		if field.Name == facet.Field && field.Type != search.KeywordsField {
 			key := "d." + fieldKey(field.Name)
 			limit := c.parameter(facet.Limit + 1)
-			return "SELECT " + key + " AS value,count(*) FROM " + from + " WHERE (" + where + ") AND " + key + " IS NOT NULL GROUP BY " + key + " ORDER BY count(*) DESC," + key + " ASC LIMIT " + limit
+			return "SELECT " + key + " AS value,count(*) AS amount FROM " + from + " WHERE (" + where + ") AND " + key + " IS NOT NULL GROUP BY " + key + " ORDER BY count(*) DESC," + key + " ASC LIMIT " + limit
 		}
 	}
 	field := c.parameter(fieldKey(facet.Field))
 	limit := c.parameter(facet.Limit + 1)
 	if !c.driver.postgres {
 		// DISTINCT prevents flattening from repeating the FTS scan for each array value.
-		return "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM " + from + " WHERE " + where + ") d JOIN " + c.driver.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
+		return "SELECT v.value,count(DISTINCT v.owner) AS amount FROM (SELECT DISTINCT d.owner FROM " + from + " WHERE " + where + ") d JOIN " + c.driver.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
 	}
-	return "SELECT v.value,count(DISTINCT v.owner) FROM " + from + " JOIN " + c.driver.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " AND (" + where + ") GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
+	return "SELECT v.value,count(DISTINCT v.owner) AS amount FROM " + from + " JOIN " + c.driver.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " AND (" + where + ") GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
 }

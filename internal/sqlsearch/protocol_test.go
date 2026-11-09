@@ -18,13 +18,14 @@ import (
 
 // sqlProtocol scripts database/sql responses without replacing the SQL compiler or transaction boundaries.
 type sqlProtocol struct {
-	fingerprint string
-	exists      bool
-	calls       int
-	failAt      int
-	mode        string
-	queries     map[int]string
-	statements  []string
+	fingerprint   string
+	exists        bool
+	calls         int
+	failAt        int
+	mode          string
+	queries       map[int]string
+	statements    []string
+	aggregateRows [][]driver.Value
 }
 
 // Connect gives each operation a connection to its isolated protocol fixture.
@@ -103,6 +104,11 @@ func (c *protocolConnection) QueryContext(_ context.Context, q string, _ []drive
 			count = 1
 		}
 		rows = [][]driver.Value{{count}}
+	case strings.HasPrefix(q, "WITH matches AS") || strings.HasPrefix(q, "SELECT -1 AS section"):
+		rows = [][]driver.Value{{int64(-1), "", int64(1)}, {int64(0), "v637570", int64(1)}}
+		if s.aggregateRows != nil {
+			rows = s.aggregateRows
+		}
 	case strings.HasPrefix(q, "SELECT count(*)"):
 		rows = [][]driver.Value{{int64(1)}}
 	case strings.HasPrefix(q, "SELECT d.original"):
@@ -127,6 +133,8 @@ func (c *protocolConnection) QueryContext(_ context.Context, q string, _ []drive
 			rows[0][0] = "corrupt"
 		case "body":
 			rows[0][1] = "[]"
+		case "total":
+			rows[0][2] = int64(2)
 		}
 	}
 	cols := 1
@@ -363,7 +371,7 @@ func TestSQLProjectionCorruption(t *testing.T) {
 		for _, tc := range []struct {
 			step int
 			mode string
-		}{{3, "body"}, {4, "corrupt"}} {
+		}{{3, "body"}, {2, "corrupt"}} {
 			s.calls = 0
 			s.failAt, s.mode = tc.step, tc.mode
 			_, err := d.Search(context.Background(), def, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category", Limit: 1}}})

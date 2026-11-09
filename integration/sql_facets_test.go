@@ -113,6 +113,29 @@ func TestSQLMixedFacets(t *testing.T) {
 					}
 				}
 			}
+			large, err := search.NewIndex(backend, definition, search.WithLimits(search.Limits{Facets: 256}))
+			if err != nil {
+				t.Fatal(err)
+			}
+			many := make([]search.TermFacet, 256)
+			for n := range many {
+				many[n] = search.TermFacet{Name: fmt.Sprintf("facet%d", n), Field: []search.FieldName{"code", "flag", "tags"}[n%3], Limit: 1}
+			}
+			for _, text := range []string{"", "portable"} {
+				result, err := large.Search(ctx, search.Query{Text: text, Facets: many})
+				want := uint64(6)
+				if text != "" {
+					want = 5
+				}
+				if err != nil || result.Total.Value != want || result.Total.Relation != search.TotalExact || len(result.Facets) != len(many) {
+					t.Fatal("maximum supported facet composition failed", result.Total, len(result.Facets), err)
+				}
+				for n, facet := range result.Facets {
+					if facet.Name != many[n].Name || facet.Precision != search.CountExact || !facet.Truncated || len(facet.Buckets) != 1 || facet.Buckets[0].Count != 2 {
+						t.Fatal("incorrect facet in maximum composition", n, facet)
+					}
+				}
+			}
 		})
 	}
 }

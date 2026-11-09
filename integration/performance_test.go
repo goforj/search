@@ -79,7 +79,7 @@ func TestDriverPerformance(t *testing.T) {
 		t.Fatal(err)
 	}
 	versions["bleve"] = engineVersion{Version: "v2.6.3"}
-	report := performanceReport{Schema: "search-performance-v1", Driver: engine, Version: versions[engine], Dataset: "catalog-v1", Documents: count, Batch: 1000, Samples: samples, Warmup: warmup, Started: time.Now().UTC().Format(time.RFC3339), Revision: performanceCommand("git", "rev-parse", "HEAD"), Go: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, CPUs: runtime.NumCPU(), Machine: os.Getenv("SEARCH_BENCH_MACHINE"), Docker: performanceCommand("docker", "info", "--format", "{{.NCPU}} CPUs; {{.MemTotal}} bytes RAM"), Settings: "single client; one engine at a time; default integration fixture; SQLite WAL; Bleve disk; Elasticsearch/OpenSearch 1 shard, 0 replicas, 100ms refresh, 512MiB JVM; Redis persistence disabled"}
+	report := performanceReport{Schema: "search-performance-v1", Driver: engine, Version: versions[engine], Dataset: "catalog-v1", Documents: count, Batch: 1000, Samples: samples, Warmup: warmup, Started: time.Now().UTC().Format(time.RFC3339), Revision: performanceCommand("git", "rev-parse", "HEAD"), Go: runtime.Version(), Platform: runtime.GOOS + "/" + runtime.GOARCH, CPUs: runtime.NumCPU(), Machine: os.Getenv("SEARCH_BENCH_MACHINE"), Docker: performanceCommand("docker", "info", "--format", "{{.OperatingSystem}}; server {{.ServerVersion}}; {{.NCPU}} CPUs; {{.MemTotal}} bytes RAM"), Settings: "single client; one engine at a time; default integration fixture; SQLite WAL; Bleve disk; Elasticsearch/OpenSearch 1 shard, 0 replicas, 100ms refresh, 512MiB JVM; Redis persistence disabled"}
 	path, err := os.Executable()
 	if err != nil {
 		t.Fatal(err)
