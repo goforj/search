@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="161" height="20" role="img" aria-label="elasticsearch: 100.0%">
+  <title>elasticsearch: 100.0%</title>
+  <rect width="161" height="20" rx="3" fill="#555"/>
+  <path fill="#4c1" d="M105 0h56v20H105z"/>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,DejaVu Sans,sans-serif" font-size="11">
+    <text x="52" y="14">elasticsearch</text>
+    <text x="133" y="14">100.0%</text>
+  </g>
+</svg>

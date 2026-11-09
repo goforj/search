@@ -87,6 +87,14 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	coverage, err := gen.PackageCoverageBadges(root)
+	if err != nil {
+		return err
+	}
+	result, err = gen.Replace(result, "package-coverage", coverage)
+	if err != nil {
+		return err
+	}
 	return os.WriteFile(path, []byte(result), 0644)
 }
 

@@ -10,6 +10,7 @@
   <a href="https://pkg.go.dev/github.com/goforj/search"><img src="https://pkg.go.dev/badge/github.com/goforj/search.svg" alt="Go Reference"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License: MIT"></a>
   <a href="https://github.com/goforj/search/actions/workflows/ci.yml"><img src="https://github.com/goforj/search/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://github.com/goforj/search/actions/workflows/security.yml"><img src="https://github.com/goforj/search/actions/workflows/security.yml/badge.svg" alt="Security"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.24%2B-blue?logo=go" alt="Go 1.24 or newer"></a>
   <a href="https://codecov.io/gh/goforj/search"><img src="https://codecov.io/gh/goforj/search/graph/badge.svg" alt="Coverage"></a>
   <a href="https://github.com/goforj/search/tags"><img src="docs/assets/status.svg" alt="Version v0.1.0"></a>
@@ -18,6 +19,20 @@
   <img src="docs/assets/badges/integration-tests.svg" alt="Executed integration tests, including subtests">
   <a href="docs/coverage.json"><img src="docs/assets/badges/coverage.svg" alt="Merged statement coverage"></a>
 <!-- test-count:embed:end -->
+<!-- package-coverage:embed:start -->
+<br>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-search.svg" alt="search statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-blevesearch.svg" alt="blevesearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-elasticsearch.svg" alt="elasticsearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-meilisearch.svg" alt="meilisearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-opensearch.svg" alt="opensearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-postgressearch.svg" alt="postgressearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-redissearch.svg" alt="redissearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-sqlitesearch.svg" alt="sqlitesearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-typesensesearch.svg" alt="typesensesearch statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-searchfake.svg" alt="searchfake statement coverage"></a>
+  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-searchtest.svg" alt="searchtest statement coverage"></a>
+<!-- package-coverage:embed:end -->
 </p>
 
 <p align="center">
