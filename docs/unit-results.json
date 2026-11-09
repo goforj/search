@@ -1,5 +1,5 @@
 {
-  "executed_tests": 1006,
+  "executed_tests": 1007,
   "tests": [
     "github.com/goforj/search/FuzzDocumentValidation",
     "github.com/goforj/search/FuzzDocumentValidation/seed#0",
@@ -745,6 +745,7 @@
     "github.com/goforj/search/internal/driverutil/TestWrappedDefaultTransport",
     "github.com/goforj/search/internal/sqlsearch/TestDigestFiltersRetainExactComparison",
     "github.com/goforj/search/internal/sqlsearch/TestErrorClassification",
+    "github.com/goforj/search/internal/sqlsearch/TestFacetProjection",
     "github.com/goforj/search/internal/sqlsearch/TestFilterProtocol",
     "github.com/goforj/search/internal/sqlsearch/TestFilterProtocol/all",
     "github.com/goforj/search/internal/sqlsearch/TestFilterProtocol/all#01",

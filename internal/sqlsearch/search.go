@@ -117,13 +117,7 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 	for _, facet := range query.Facets {
 		c := compiler
 		c.args = append([]any(nil), arguments...)
-		field := c.parameter(fieldKey(facet.Field))
-		limit := c.parameter(facet.Limit + 1)
-		statement := "SELECT v.value,count(DISTINCT v.owner) FROM " + from + " JOIN " + d.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " AND (" + where + ") GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
-		if !d.postgres {
-			// DISTINCT prevents SQLite from flattening the match set and repeating the FTS scan for each facet value.
-			statement = "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM " + from + " WHERE " + where + ") d JOIN " + d.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
-		}
+		statement := c.facet(def, facet, from, where)
 		rows, err := tx.QueryContext(ctx, statement, c.args...)
 		if err != nil {
 			return search.Result{}, classify(err, false)
@@ -150,4 +144,22 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 		result.Facets = append(result.Facets, value)
 	}
 	return result, nil
+}
+
+// facet groups scalar projections directly while retaining deduplicated document membership for arrays.
+func (c *compiler) facet(def search.Definition, facet search.TermFacet, from, where string) string {
+	for _, field := range def.Fields {
+		if field.Name == facet.Field && field.Type != search.KeywordsField {
+			key := "d." + fieldKey(field.Name)
+			limit := c.parameter(facet.Limit + 1)
+			return "SELECT " + key + " AS value,count(*) FROM " + from + " WHERE (" + where + ") AND " + key + " IS NOT NULL GROUP BY " + key + " ORDER BY count(*) DESC," + key + " ASC LIMIT " + limit
+		}
+	}
+	field := c.parameter(fieldKey(facet.Field))
+	limit := c.parameter(facet.Limit + 1)
+	if !c.driver.postgres {
+		// DISTINCT prevents flattening from repeating the FTS scan for each array value.
+		return "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM " + from + " WHERE " + where + ") d JOIN " + c.driver.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
+	}
+	return "SELECT v.value,count(DISTINCT v.owner) FROM " + from + " JOIN " + c.driver.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " AND (" + where + ") GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
 }

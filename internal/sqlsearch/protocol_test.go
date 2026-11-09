@@ -107,7 +107,7 @@ func (c *protocolConnection) QueryContext(_ context.Context, q string, _ []drive
 		rows = [][]driver.Value{{int64(1)}}
 	case strings.HasPrefix(q, "SELECT d.original"):
 		rows = [][]driver.Value{{"one", `{"title":"red cup","category":"cup","tags":["a","a"],"active":true,"rank":1,"code":"a"}`, float64(1)}}
-	case strings.HasPrefix(q, "SELECT v.value"):
+	case strings.HasPrefix(q, "SELECT v.value") || strings.Contains(q, " AS value,count(*)"):
 		rows = [][]driver.Value{{"v637570", int64(1)}}
 	default:
 		rows = [][]driver.Value{{"stable layout"}}
