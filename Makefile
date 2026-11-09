@@ -2,7 +2,7 @@
 ARGS := $(wordlist 2,$(words $(MAKECMDGOALS)),$(MAKECMDGOALS))
 $(eval $(ARGS):;@:)
 
-.PHONY: help test test-race test-integration test-coverage vet tidy modules-check generate check-generated release-plan release-check bench
+.PHONY: help test test-race test-integration test-coverage vet tidy modules-check generate check-generated release-plan release-check bench bench-drivers bench-render
 
 help: ## Show available commands.
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z_-]+:.*## / {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -30,6 +30,7 @@ modules-check: ## Verify module inventory and published dependency boundaries.
 
 generate: ## Regenerate the API index, example snippets, and evidence badges.
 	@GOWORK=off go -C docs run ./readme
+	@GOWORK=off go -C docs run ./bench/render
 
 check-generated: ## Verify two generations leave documentation and examples unchanged.
 	@scripts/check-generated.sh
@@ -43,3 +44,9 @@ release-check: ## Validate a published release: make release-check v0.1.0.
 bench: ## Benchmark validation and the embedded driver over a fixed corpus.
 	@GOWORK=off go test -run '^$$' -bench . -benchmem
 	@GOWORK=off go -C examples test -run '^$$' -bench . -benchmem
+
+bench-drivers: ## Compare real drivers using the same 1-million-document corpus (Docker required).
+	@scripts/bench-drivers.sh
+
+bench-render: ## Regenerate SVG charts and README content from recorded driver measurements.
+	@GOWORK=off go -C docs run ./bench/render

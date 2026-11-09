@@ -1,5 +1,5 @@
 {
-  "executed_tests": 421,
+  "executed_tests": 422,
   "tests": [
     "github.com/goforj/search/integration/TestBleveContract",
     "github.com/goforj/search/integration/TestBleveContract/all",
@@ -367,6 +367,7 @@
     "github.com/goforj/search/integration/TestSQLiteContract/two-sorts",
     "github.com/goforj/search/integration/TestSQLiteContract/utf8-keyword-order",
     "github.com/goforj/search/integration/TestSQLiteContract/window-edge",
+    "github.com/goforj/search/integration/TestSQLiteLargeTextFacets",
     "github.com/goforj/search/integration/TestServiceAuthentication",
     "github.com/goforj/search/integration/TestServiceAuthentication/elasticsearch",
     "github.com/goforj/search/integration/TestServiceAuthentication/meilisearch",

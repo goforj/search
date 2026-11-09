@@ -21,7 +21,7 @@
 </p>
 
 <p align="center">
-  <a href="#features">Features</a> · <a href="#quick-start">Quick Start</a> · <a href="#drivers">Drivers</a> · <a href="#installation">Installation</a> · <a href="#runnable-examples">Examples</a> · <a href="#api-index">API</a>
+  <a href="#features">Features</a> · <a href="#quick-start">Quick Start</a> · <a href="#drivers">Drivers</a> · <a href="#installation">Installation</a> · <a href="#performance">Performance</a> · <a href="#runnable-examples">Examples</a> · <a href="#api-index">API</a>
 </p>
 
 ## Features
@@ -205,6 +205,43 @@ go get github.com/goforj/search/driver/redissearch
 Install the drivers you need. All drivers except Bleve are packages in the root module and are included when you install `search`; their commands above are provided for convenient copying. Bleve is a separate optional module. See [module ownership and release order](docs/development.md).
 
 See [search behavior and recovery](docs/development.md#search-behavior) for write visibility, query semantics, and receipt lifetime.
+
+<!-- bench:embed:start -->
+## Performance
+
+The same **1,000,000-document synthetic catalog** and query sequence across all eight drivers, using the public `search.Index` API. Latency charts show client-observed p95 from 200 searches after 30 warm-up requests per workload. Latency axes are logarithmic; indexing throughput is linear.
+
+### Literal search
+
+![Literal search benchmark](docs/bench/benchmarks_literal.svg)
+
+### Filter and sort
+
+![Filter and sort benchmark](docs/bench/benchmarks_sort.svg)
+
+### Text and facets
+
+![Text and facets benchmark](docs/bench/benchmarks_facets.svg)
+
+### Indexing throughput
+
+![Indexing throughput benchmark](docs/bench/benchmarks_ingest.svg)
+
+| Driver | Load (s) | Literal p50 / p95 (ms) | Filter + sort p50 / p95 (ms) | Facets p50 / p95 (ms) |
+| ---: | ---: | ---: | ---: | ---: |
+| <img src="docs/assets/badges/driver-bleve.svg" alt="Bleve" height="22"> | 43.8 | 7.226 / 11.975 | 0.802 / 1.581 | 0.883 / 1.393 |
+| <img src="docs/assets/badges/driver-meilisearch.svg" alt="Meilisearch" height="22"> | 298.8 | 1.462 / 2.397 | 1.860 / 2.707 | 1.859 / 2.761 |
+| <img src="docs/assets/badges/driver-typesense.svg" alt="Typesense" height="22"> | 63.7 | 6.306 / 7.030 | 1.642 / 2.291 | 1.836 / 2.286 |
+| <img src="docs/assets/badges/driver-opensearch.svg" alt="OpenSearch" height="22"> | 116.6 | 2.631 / 4.195 | 2.155 / 2.920 | 2.147 / 3.733 |
+| <img src="docs/assets/badges/driver-elasticsearch.svg" alt="Elasticsearch" height="22"> | 109.6 | 2.871 / 4.250 | 2.477 / 3.619 | 2.562 / 4.714 |
+| <img src="docs/assets/badges/driver-postgres.svg" alt="PostgreSQL FTS" height="22"> | 689.3 | 6.680 / 8.463 | 160.948 / 174.616 | 998.463 / 1079.300 |
+| <img src="docs/assets/badges/driver-sqlite.svg" alt="SQLite FTS5" height="22"> | 188.8 | 1061.935 / 1589.125 | 303.523 / 310.451 | 1545.218 / 2614.716 |
+| <img src="docs/assets/badges/driver-redis.svg" alt="Redis Search" height="22"> | 29.6 | 5.134 / 6.015 | 5.037 / 5.953 | 6.792 / 7.883 |
+
+Measured on Apple M4 Max, 16 CPU cores, 48 GiB RAM; Docker Desktop 16 CPUs, 20 GiB RAM. Embedded engines run on the host; service engines run in Docker. These are warmed, single-client, selective searches returning at most 1,024 matches and 20 hits, without concurrent writes. Indexing includes document generation, validation, and waiting for visibility in batches of 1,000.
+
+See [methodology and reproduction](docs/bench/README.md) for workload details, pinned versions, persistence settings, and limitations. The [measurement snapshot](docs/bench/benchmarks_rows.json) contains corpus fingerprints, environment metadata, count precision, and every latency sample. Run `make bench-drivers` to measure or `make bench-render` to redraw the recorded results.
+<!-- bench:embed:end -->
 
 ## Testing
 
