@@ -137,7 +137,7 @@ func featureBadge(root, name, label string) (string, error) {
   <g transform="translate(3 3) scale(.666667)">%s</g>
 </svg>
 `, escaped, escaped, icon.Inner)
-	relative := "docs/assets/badges/feature-" + name + ".svg"
+	relative := "docs/assets/badges/feature-icon-" + name + ".svg"
 	absolute := filepath.Join(root, filepath.FromSlash(relative))
 	if err := os.MkdirAll(filepath.Dir(absolute), 0755); err != nil {
 		return "", err

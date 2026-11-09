@@ -20,10 +20,10 @@ func TestFeatureBadgeKeepsArtworkAccessible(t *testing.T) {
 		t.Fatal(err)
 	}
 	markdown, err := featureBadge(root, "test", "A & B")
-	if err != nil || markdown != `<img src="docs/assets/badges/feature-test.svg" width="22" height="22" alt="" align="absmiddle">` {
+	if err != nil || markdown != `<img src="docs/assets/badges/feature-icon-test.svg" width="22" height="22" alt="" align="absmiddle">` {
 		t.Fatal(markdown, err)
 	}
-	data, err := os.ReadFile(filepath.Join(root, "docs/assets/badges/feature-test.svg"))
+	data, err := os.ReadFile(filepath.Join(root, "docs/assets/badges/feature-icon-test.svg"))
 	if err != nil {
 		t.Fatal(err)
 	}
