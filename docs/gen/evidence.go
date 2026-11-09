@@ -6,7 +6,6 @@ import (
 	"html"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 )
 
@@ -67,45 +66,6 @@ func EvidenceMarkdown(root string) (string, error) {
 		fmt.Fprintf(&out, "| %s | %s | %s | %s | %s |\n", badge, driver.Version, visibility, precision, topology)
 	}
 	out.WriteString("\nAll listed engines pass the same literal all-terms, typed-filter, stable-sort, pagination, facet, highlight, replacement, receipt, bulk, cancellation, and concurrent-call fixtures. See [executed driver evidence](docs/driver-results.json) for exact scenario names and the source fingerprint.\n")
-	return out.String(), nil
-}
-
-// PackageCoverageBadges renders measured coverage for public packages and drivers, following the sibling mail library.
-func PackageCoverageBadges(root string) (string, error) {
-	data, err := os.ReadFile(filepath.Join(root, "docs/coverage.json"))
-	if err != nil {
-		return "", err
-	}
-	var coverage struct {
-		Packages map[string]*float64 `json:"packages"`
-	}
-	if err := json.Unmarshal(data, &coverage); err != nil {
-		return "", err
-	}
-	const module = "github.com/goforj/search"
-	var packages []string
-	for name, percent := range coverage.Packages {
-		if name != module && (!strings.HasPrefix(name, module+"/") || strings.HasPrefix(name, module+"/internal/")) {
-			continue
-		}
-		if percent == nil || *percent < 0 || *percent > 100 {
-			return "", fmt.Errorf("invalid coverage for %s", name)
-		}
-		packages = append(packages, name)
-	}
-	if len(packages) == 0 {
-		return "", fmt.Errorf("coverage evidence contains no public search packages")
-	}
-	sort.Strings(packages)
-	var out strings.Builder
-	for _, name := range packages {
-		label := filepath.Base(name)
-		path, err := writeBadge(root, "coverage-"+label, label, fmt.Sprintf("%.1f%%", *coverage.Packages[name]))
-		if err != nil {
-			return "", err
-		}
-		fmt.Fprintf(&out, "  <a href=\"docs/coverage.json\"><img src=\"%s\" alt=\"%s statement coverage\"></a>\n", path, label)
-	}
 	return out.String(), nil
 }
 

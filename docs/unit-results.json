@@ -1,5 +1,5 @@
 {
-  "executed_tests": 991,
+  "executed_tests": 982,
   "tests": [
     "github.com/goforj/search/FuzzDocumentValidation",
     "github.com/goforj/search/FuzzDocumentValidation/seed#0",
@@ -132,15 +132,6 @@
     "github.com/goforj/search/docs/gen/TestExamplesRejectInvalidSources/syntax",
     "github.com/goforj/search/docs/gen/TestFeatureBadgeKeepsArtworkAccessible",
     "github.com/goforj/search/docs/gen/TestFeatureBadgeRejectsInvalidArtwork",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadges",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/empty",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/internal_only",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/malformed",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/missing",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/negative",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/over_maximum",
-    "github.com/goforj/search/docs/gen/TestPackageCoverageBadgesRejectInvalidEvidence/unknown",
     "github.com/goforj/search/docs/gen/TestQualifiedAPIIndex",
     "github.com/goforj/search/docs/gen/TestReplace",
     "github.com/goforj/search/docs/gen/TestSourceFingerprintTracksExecutableOwnership",
