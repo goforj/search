@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/docker/go-connections v0.6.0
-	github.com/goforj/search v0.1.0
-	github.com/goforj/search/driver/blevesearch v0.1.0
+	github.com/goforj/search v0.1.1
+	github.com/goforj/search/driver/blevesearch v0.1.1
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/mattn/go-sqlite3 v1.14.53
 	github.com/testcontainers/testcontainers-go v0.39.0

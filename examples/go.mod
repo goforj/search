@@ -3,8 +3,8 @@ module github.com/goforj/search/examples
 go 1.25.0
 
 require (
-	github.com/goforj/search v0.1.0
-	github.com/goforj/search/driver/blevesearch v0.1.0
+	github.com/goforj/search v0.1.1
+	github.com/goforj/search/driver/blevesearch v0.1.1
 )
 
 require (

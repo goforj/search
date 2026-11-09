@@ -13,7 +13,7 @@
   <a href="https://github.com/goforj/search/actions/workflows/security.yml"><img src="https://github.com/goforj/search/actions/workflows/security.yml/badge.svg" alt="Security"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.24%2B-blue?logo=go" alt="Go 1.24 or newer"></a>
   <a href="https://codecov.io/gh/goforj/search"><img src="https://codecov.io/gh/goforj/search/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://github.com/goforj/search/tags"><img src="docs/assets/status.svg" alt="Version v0.1.0"></a>
+  <a href="https://github.com/goforj/search/tags"><img src="docs/assets/status.svg" alt="Version v0.1.1"></a>
 <!-- test-count:embed:start -->
 <img src="docs/assets/badges/unit-tests.svg" alt="Executed unit tests, including subtests">
   <img src="docs/assets/badges/integration-tests.svg" alt="Executed integration tests, including subtests">

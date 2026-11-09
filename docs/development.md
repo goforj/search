@@ -56,17 +56,17 @@ Run `scripts/tidy-modules.sh --check` to check every module without changing the
 
 ## Release order
 
-The first release uses `v0.1.0` for both the root module and the optional embedded module. The modules have separate tags; the docs, examples, and integration modules are not published.
+The next patch release uses `v0.1.1` for both the root module and the optional embedded module. The modules have separate tags; the docs, examples, and integration modules are not published.
 
-See the [first release review](release-readiness.md) for verification and publication checks.
+See the [v0.1.1 release candidate](releases/v0.1.1.md) for current preparation and compatibility notes, and the [first release review](release-readiness.md) for the original publication evidence.
 
 For each release, update the README and its authoritative `docs/assets/status.svg` version badge together.
 
 1. Select the release version and align the embedded driver's root requirement, tooling requirements, and version-specific workspace replacements together. Regenerate module sums and rerun all checks against staged siblings.
-2. Run `make release-plan v0.1.0` with the chosen version after the pins are aligned. The plan reads `scripts/module-manifest.txt` and excludes tooling modules.
-3. Commit the reviewed change. Tag the root as `v0.1.0` and the embedded module as `driver/blevesearch/v0.1.0` using `scripts/tag-all-modules.sh v0.1.0 --tag`.
+2. Run `make release-plan v0.1.1` with the chosen version after the pins are aligned. The plan reads `scripts/module-manifest.txt` and excludes tooling modules.
+3. Commit the reviewed change. Tag the root as `v0.1.1` and the embedded module as `driver/blevesearch/v0.1.1` using `scripts/tag-all-modules.sh v0.1.1 --tag`.
 4. Publish the root tag first. Confirm the root is resolvable through the Go module proxy, then publish the embedded driver's tag.
-5. Run `make release-check v0.1.0`. It builds a separate consumer with `GOWORK=off`, rejects replacements, and tests independently downloaded root and embedded modules together.
+5. Run `make release-check v0.1.1`. It builds a separate consumer with `GOWORK=off`, rejects replacements, and tests independently downloaded root and embedded modules together.
 
 Tagging, pushing, GitHub releases, documentation-site registration, framework generation, and external service setup remain explicit maintainer actions. Local passing tests do not prove that a module version is published.
 
