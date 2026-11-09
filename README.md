@@ -27,20 +27,23 @@
 ## Features
 
 <!-- features:embed:start -->
-| Feature | What you get | Example or API |
-| --- | --- | --- |
-| ![Literal search](docs/assets/badges/feature-search.svg) | Require every analyzed term, with explicit searchable fields. | [Typed search example](examples/search/main.go) |
-| ![Typed filters](docs/assets/badges/feature-filters.svg) | Combine Boolean logic, exact values, integer ranges, and array membership. | [Filter example](examples/filters/main.go) |
-| ![Stable sorting](docs/assets/badges/feature-sorting.svg) | Order by up to two declared fields, followed by the document ID. | [Sort](definition.go) |
-| ![Pagination](docs/assets/badges/feature-pagination.svg) | Use bounded offsets and limits with explicit total-count precision. | [Query](query.go) |
-| ![Term facets](docs/assets/badges/feature-facets.svg) | Count matching documents before pagination, deduplicating repeated array terms. | [Facet example](examples/facets/main.go) |
-| ![Structured highlights](docs/assets/badges/feature-highlights.svg) | Render untrusted text segments with explicit match markers. | [Highlight example](examples/highlights/main.go) |
-| ![Bulk operations](docs/assets/badges/feature-bulk.svg) | Retain input positions and honest per-item or aggregate outcomes. | [Bulk example](examples/bulk/main.go) |
-| ![Visibility receipts](docs/assets/badges/feature-receipts.svg) | Wait for accepted writes to become searchable and retain recovery evidence. | [`Receipt` and `Outcome`](mutation.go) |
-| ![Typed documents](docs/assets/badges/feature-documents.svg) | Use typed Go values while keeping document IDs separate from JSON bodies. | [Typed search example](examples/search/main.go) |
-| ![Explicit schemas](docs/assets/badges/feature-schemas.svg) | Provision deliberately and detect schema drift without runtime migration. | [Definition](definition.go) |
-| ![Safe observability](docs/assets/badges/feature-observability.svg) | Observe classified events with panic isolation and optional bounded async delivery. | [Observer](observer.go) · [AsyncObserver](observer_async.go) |
-| ![Isolated testing](docs/assets/badges/feature-testing.svg) | Script results and inspect recorded calls without running a search engine. | [Fake backend example](examples/fake/main.go) |
+<table>
+<thead><tr><th align="left" width="250">Feature</th><th align="left">What you get</th><th align="left">Example or API</th></tr></thead>
+<tbody>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-search.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Literal search</strong></td><td>Require every analyzed term, with explicit searchable fields.</td><td><a href="examples/search/main.go">Typed search example</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-filters.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Typed filters</strong></td><td>Combine Boolean logic, exact values, integer ranges, and array membership.</td><td><a href="examples/filters/main.go">Filter example</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-sorting.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Stable sorting</strong></td><td>Order by up to two declared fields, followed by the document ID.</td><td><a href="definition.go">Sort</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-pagination.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Pagination</strong></td><td>Use bounded offsets and limits with explicit total-count precision.</td><td><a href="query.go">Query</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-facets.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Term facets</strong></td><td>Count matching documents before pagination, deduplicating repeated array terms.</td><td><a href="examples/facets/main.go">Facet example</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-highlights.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Structured highlights</strong></td><td>Render untrusted text segments with explicit match markers.</td><td><a href="examples/highlights/main.go">Highlight example</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-bulk.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Bulk operations</strong></td><td>Retain input positions and honest per-item or aggregate outcomes.</td><td><a href="examples/bulk/main.go">Bulk example</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-receipts.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Visibility receipts</strong></td><td>Wait for accepted writes to become searchable and retain recovery evidence.</td><td><a href="mutation.go">Receipt and Outcome</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-documents.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Typed documents</strong></td><td>Use typed Go values while keeping document IDs separate from JSON bodies.</td><td><a href="examples/search/main.go">Typed search example</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-schemas.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Explicit schemas</strong></td><td>Provision deliberately and detect schema drift without runtime migration.</td><td><a href="definition.go">Definition</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-observability.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Safe observability</strong></td><td>Observe classified events with panic isolation and optional bounded async delivery.</td><td><a href="observer.go">Observer</a> · <a href="observer_async.go">AsyncObserver</a></td></tr>
+<tr><td width="250" nowrap><img src="docs/assets/badges/feature-testing.svg" width="22" height="22" alt="" align="absmiddle"> <strong>Isolated testing</strong></td><td>Script results and inspect recorded calls without running a search engine.</td><td><a href="examples/fake/main.go">Fake backend example</a></td></tr>
+</tbody>
+</table>
 <!-- features:embed:end -->
 
 <!-- quickstart:embed:start -->

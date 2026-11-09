@@ -1,10 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="196" height="32" viewBox="0 0 196 32" role="img" aria-label="Safe observability">
+<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" role="img" aria-label="Safe observability">
   <title>Safe observability</title>
-  <rect x=".5" y=".5" width="195" height="31" rx="6" fill="#182135" stroke="#35415e"/>
-  <g transform="translate(5 4)">
+  <rect x=".5" y=".5" width="21" height="21" rx="4" fill="#f3f4ff" stroke="#d0d5ff"/>
+  <g transform="translate(3 3) scale(.666667)">
   <title>Safe observability</title>
   <rect x=".5" y=".5" width="23" height="23" rx="5" fill="#6a7dff" fill-opacity=".09"/>
   <g fill="none" fill-opacity="1" stroke-opacity="1" stroke="#6a7dff" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="4.5" width="15" height="15" rx="2"/><path d="M5 12h3l2-4 4 8 2-4h3"/></g>
 </g>
-  <text x="37" y="21" fill="#e9edf5" font-family="Verdana,DejaVu Sans,sans-serif" font-size="13" font-weight="600">Safe observability</text>
 </svg>

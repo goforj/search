@@ -8,8 +8,8 @@ import (
 	"testing"
 )
 
-// TestFeatureBadgeKeepsLabelAndArtworkTogether verifies a self-contained accessible SVG and escaped text.
-func TestFeatureBadgeKeepsLabelAndArtworkTogether(t *testing.T) {
+// TestFeatureBadgeKeepsArtworkAccessible verifies compact standalone artwork and an escaped accessible title.
+func TestFeatureBadgeKeepsArtworkAccessible(t *testing.T) {
 	root := t.TempDir()
 	directory := filepath.Join(root, "docs/assets/icons/features")
 	if err := os.MkdirAll(directory, 0755); err != nil {
@@ -20,7 +20,7 @@ func TestFeatureBadgeKeepsLabelAndArtworkTogether(t *testing.T) {
 		t.Fatal(err)
 	}
 	markdown, err := featureBadge(root, "test", "A & B")
-	if err != nil || markdown != "![A & B](docs/assets/badges/feature-test.svg)" {
+	if err != nil || markdown != `<img src="docs/assets/badges/feature-test.svg" width="22" height="22" alt="" align="absmiddle">` {
 		t.Fatal(markdown, err)
 	}
 	data, err := os.ReadFile(filepath.Join(root, "docs/assets/badges/feature-test.svg"))
@@ -32,10 +32,10 @@ func TestFeatureBadgeKeepsLabelAndArtworkTogether(t *testing.T) {
 		Height int    `xml:"height,attr"`
 		Title  string `xml:"title"`
 	}
-	if err := xml.Unmarshal(data, &badge); err != nil || badge.Label != "A & B" || badge.Title != badge.Label || badge.Height != 32 {
+	if err := xml.Unmarshal(data, &badge); err != nil || badge.Label != "A & B" || badge.Title != badge.Label || badge.Height != 22 {
 		t.Fatal(badge, err)
 	}
-	if !strings.Contains(string(data), `<path d="M1 1h20"/>`) || strings.Contains(string(data), "<image") {
+	if !strings.Contains(string(data), `<path d="M1 1h20"/>`) || strings.Contains(string(data), "<image") || strings.Contains(string(data), "<text") {
 		t.Fatal("badge does not contain its original vector artwork")
 	}
 }

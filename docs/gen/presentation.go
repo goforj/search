@@ -75,35 +75,46 @@ func driverBadge(root, name string) (string, error) {
 	return fmt.Sprintf("[![%s](%s)](driver/%s)", presentation.label, relative, presentation.module), nil
 }
 
-// FeaturesMarkdown presents the portable library contract with links to its authoritative examples and APIs.
+// featureLink retains a readable label and its authoritative example or API source.
+type featureLink struct{ label, path string }
+
+// FeaturesMarkdown presents searchable names beside compact icons and authoritative links.
 func FeaturesMarkdown(root string) (string, error) {
-	rows := []struct{ icon, name, capability, reference string }{
-		{"search", "Literal search", "Require every analyzed term, with explicit searchable fields.", "[Typed search example](examples/search/main.go)"},
-		{"filters", "Typed filters", "Combine Boolean logic, exact values, integer ranges, and array membership.", "[Filter example](examples/filters/main.go)"},
-		{"sorting", "Stable sorting", "Order by up to two declared fields, followed by the document ID.", "[Sort](definition.go)"},
-		{"pagination", "Pagination", "Use bounded offsets and limits with explicit total-count precision.", "[Query](query.go)"},
-		{"facets", "Term facets", "Count matching documents before pagination, deduplicating repeated array terms.", "[Facet example](examples/facets/main.go)"},
-		{"highlights", "Structured highlights", "Render untrusted text segments with explicit match markers.", "[Highlight example](examples/highlights/main.go)"},
-		{"bulk", "Bulk operations", "Retain input positions and honest per-item or aggregate outcomes.", "[Bulk example](examples/bulk/main.go)"},
-		{"receipts", "Visibility receipts", "Wait for accepted writes to become searchable and retain recovery evidence.", "[`Receipt` and `Outcome`](mutation.go)"},
-		{"documents", "Typed documents", "Use typed Go values while keeping document IDs separate from JSON bodies.", "[Typed search example](examples/search/main.go)"},
-		{"schemas", "Explicit schemas", "Provision deliberately and detect schema drift without runtime migration.", "[Definition](definition.go)"},
-		{"observability", "Safe observability", "Observe classified events with panic isolation and optional bounded async delivery.", "[Observer](observer.go) · [AsyncObserver](observer_async.go)"},
-		{"testing", "Isolated testing", "Script results and inspect recorded calls without running a search engine.", "[Fake backend example](examples/fake/main.go)"},
+	rows := []struct {
+		icon, name, capability string
+		references             []featureLink
+	}{
+		{"search", "Literal search", "Require every analyzed term, with explicit searchable fields.", []featureLink{{"Typed search example", "examples/search/main.go"}}},
+		{"filters", "Typed filters", "Combine Boolean logic, exact values, integer ranges, and array membership.", []featureLink{{"Filter example", "examples/filters/main.go"}}},
+		{"sorting", "Stable sorting", "Order by up to two declared fields, followed by the document ID.", []featureLink{{"Sort", "definition.go"}}},
+		{"pagination", "Pagination", "Use bounded offsets and limits with explicit total-count precision.", []featureLink{{"Query", "query.go"}}},
+		{"facets", "Term facets", "Count matching documents before pagination, deduplicating repeated array terms.", []featureLink{{"Facet example", "examples/facets/main.go"}}},
+		{"highlights", "Structured highlights", "Render untrusted text segments with explicit match markers.", []featureLink{{"Highlight example", "examples/highlights/main.go"}}},
+		{"bulk", "Bulk operations", "Retain input positions and honest per-item or aggregate outcomes.", []featureLink{{"Bulk example", "examples/bulk/main.go"}}},
+		{"receipts", "Visibility receipts", "Wait for accepted writes to become searchable and retain recovery evidence.", []featureLink{{"Receipt and Outcome", "mutation.go"}}},
+		{"documents", "Typed documents", "Use typed Go values while keeping document IDs separate from JSON bodies.", []featureLink{{"Typed search example", "examples/search/main.go"}}},
+		{"schemas", "Explicit schemas", "Provision deliberately and detect schema drift without runtime migration.", []featureLink{{"Definition", "definition.go"}}},
+		{"observability", "Safe observability", "Observe classified events with panic isolation and optional bounded async delivery.", []featureLink{{"Observer", "observer.go"}, {"AsyncObserver", "observer_async.go"}}},
+		{"testing", "Isolated testing", "Script results and inspect recorded calls without running a search engine.", []featureLink{{"Fake backend example", "examples/fake/main.go"}}},
 	}
 	var out strings.Builder
-	out.WriteString("| Feature | What you get | Example or API |\n| --- | --- | --- |\n")
+	out.WriteString("<table>\n<thead><tr><th align=\"left\" width=\"250\">Feature</th><th align=\"left\">What you get</th><th align=\"left\">Example or API</th></tr></thead>\n<tbody>\n")
 	for _, row := range rows {
 		badge, err := featureBadge(root, row.icon, row.name)
 		if err != nil {
 			return "", err
 		}
-		fmt.Fprintf(&out, "| %s | %s | %s |\n", badge, row.capability, row.reference)
+		var references []string
+		for _, reference := range row.references {
+			references = append(references, fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(reference.path), html.EscapeString(reference.label)))
+		}
+		fmt.Fprintf(&out, "<tr><td width=\"250\" nowrap>%s <strong>%s</strong></td><td>%s</td><td>%s</td></tr>\n", badge, html.EscapeString(row.name), html.EscapeString(row.capability), strings.Join(references, " · "))
 	}
+	out.WriteString("</tbody>\n</table>\n")
 	return out.String(), nil
 }
 
-// featureBadge combines original feature artwork and its label in one baseline-independent vector asset.
+// featureBadge embeds original artwork without baking searchable feature names into an image.
 func featureBadge(root, name, label string) (string, error) {
 	source, err := os.ReadFile(filepath.Join(root, "docs/assets/icons/features", name+".svg"))
 	if err != nil {
@@ -119,15 +130,13 @@ func featureBadge(root, name, label string) (string, error) {
 	if icon.ViewBox != "0 0 24 24" {
 		return "", fmt.Errorf("invalid feature icon %q", name)
 	}
-	width := len(label)*8 + 52
 	escaped := html.EscapeString(label)
-	data := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="%d" height="32" viewBox="0 0 %d 32" role="img" aria-label="%s">
+	data := fmt.Sprintf(`<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22" role="img" aria-label="%s">
   <title>%s</title>
-  <rect x=".5" y=".5" width="%d" height="31" rx="6" fill="#182135" stroke="#35415e"/>
-  <g transform="translate(5 4)">%s</g>
-  <text x="37" y="21" fill="#e9edf5" font-family="Verdana,DejaVu Sans,sans-serif" font-size="13" font-weight="600">%s</text>
+  <rect x=".5" y=".5" width="21" height="21" rx="4" fill="#f3f4ff" stroke="#d0d5ff"/>
+  <g transform="translate(3 3) scale(.666667)">%s</g>
 </svg>
-`, width, width, escaped, escaped, width-1, icon.Inner, escaped)
+`, escaped, escaped, icon.Inner)
 	relative := "docs/assets/badges/feature-" + name + ".svg"
 	absolute := filepath.Join(root, filepath.FromSlash(relative))
 	if err := os.MkdirAll(filepath.Dir(absolute), 0755); err != nil {
@@ -136,5 +145,5 @@ func featureBadge(root, name, label string) (string, error) {
 	if err := os.WriteFile(absolute, []byte(data), 0644); err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("![%s](%s)", label, relative), nil
+	return fmt.Sprintf(`<img src="%s" width="22" height="22" alt="" align="absmiddle">`, relative), nil
 }
