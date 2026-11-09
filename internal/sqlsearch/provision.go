@@ -36,6 +36,26 @@ func (d *Driver) ddl(name string, def search.Definition) []string {
 		"CREATE TABLE " + name + "_values (owner TEXT,field " + scalar + ",value " + scalar + ",digest TEXT,PRIMARY KEY(owner,field,digest))",
 		"CREATE TABLE " + name + "_meta (id INTEGER PRIMARY KEY,fingerprint TEXT NOT NULL,layout TEXT NOT NULL)",
 	}
+	if !d.postgres {
+		statements = append(statements, "CREATE INDEX "+indexName(name, "id")+" ON "+name+" (id)")
+	}
+	for _, field := range def.Fields {
+		if field.Type == search.TextField || field.Type == search.KeywordsField || !field.Filterable && !field.Sortable {
+			continue
+		}
+		key := fieldKey(field.Name)
+		if !d.postgres {
+			// The ID suffix lets SQLite apply scalar filters while probing the FTS-to-document join without reading unrelated document bodies.
+			statements = append(statements, "CREATE INDEX "+indexName(name, key)+" ON "+name+" ("+key+",id)")
+			continue
+		}
+		if field.Filterable {
+			statements = append(statements, "CREATE INDEX "+indexName(name, key+"_hash")+" ON "+name+" (md5("+key+"))")
+		}
+		if field.Type == search.IntegerField || field.Type == search.BooleanField {
+			statements = append(statements, "CREATE INDEX "+indexName(name, key)+" ON "+name+" ("+key+")")
+		}
+	}
 	if d.postgres {
 		for _, key := range texts {
 			statements = append(statements, "CREATE INDEX "+name+"_g"+key+" ON "+name+" USING GIN ("+key+"_ts)")
@@ -47,6 +67,12 @@ func (d *Driver) ddl(name string, def search.Definition) []string {
 		statements = append(statements, "CREATE VIRTUAL TABLE "+name+"_fts USING fts5(id UNINDEXED,"+strings.Join(texts, ",")+",tokenize='unicode61 remove_diacritics 0')")
 	}
 	return statements
+}
+
+// indexName bounds native identifiers independently of caller prefixes and declared field lengths.
+func indexName(table, purpose string) string {
+	digest := sha256.Sum256([]byte(table + "\x00" + purpose))
+	return "s_ix_" + hex.EncodeToString(digest[:16])
 }
 
 // layout hashes materialized columns, constraints, indexes, and native FTS definitions independently of metadata.

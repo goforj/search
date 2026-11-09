@@ -63,14 +63,26 @@ func (c *compiler) filter(filter search.Filter) string {
 		return "(" + strings.Join(children, join) + ")"
 	case search.FilterIn:
 		values := make([]string, len(view.Values))
+		digests := make([]string, len(view.Values))
 		for n, value := range view.Values {
 			values[n] = c.parameter(driverutil.Scalar(value))
+			digests[n] = "md5(" + values[n] + ")"
 		}
-		return "coalesce(" + key + " IN (" + strings.Join(values, ",") + "),false)"
+		predicate := key + " IN (" + strings.Join(values, ",") + ")"
+		if c.driver.postgres {
+			predicate += " AND md5(" + key + ") IN (" + strings.Join(digests, ",") + ")"
+		}
+		return "(" + key + " IS NOT NULL AND " + predicate + ")"
 	case search.FilterBetween:
-		return "coalesce(" + key + " BETWEEN " + c.parameter(driverutil.Scalar(view.Values[0])) + " AND " + c.parameter(driverutil.Scalar(view.Values[1])) + ",false)"
+		return "(" + key + " IS NOT NULL AND " + key + " BETWEEN " + c.parameter(driverutil.Scalar(view.Values[0])) + " AND " + c.parameter(driverutil.Scalar(view.Values[1])) + ")"
 	default:
 		operators := map[search.FilterKind]string{search.FilterEqual: "=", search.FilterLessThan: "<", search.FilterLessThanOrEqual: "<=", search.FilterGreaterThan: ">", search.FilterGreaterThanOrEqual: ">="}
-		return "coalesce(" + key + operators[view.Kind] + c.parameter(driverutil.Scalar(view.Values[0])) + ",false)"
+		value := c.parameter(driverutil.Scalar(view.Values[0]))
+		predicate := key + operators[view.Kind] + value
+		if c.driver.postgres && view.Kind == search.FilterEqual {
+			// PostgreSQL B-trees cannot store every supported wide keyword, so equality uses a bounded digest plus the original comparison.
+			predicate += " AND md5(" + key + ")=md5(" + value + ")"
+		}
+		return "(" + key + " IS NOT NULL AND " + predicate + ")"
 	}
 }

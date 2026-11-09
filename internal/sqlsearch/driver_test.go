@@ -92,7 +92,7 @@ func TestFilterValuesRemainParameters(t *testing.T) {
 		}
 		compiler := compiler{driver: driver}
 		statement := compiler.filter(search.Not(search.Equal("category", keyword)))
-		if len(compiler.args) != 1 || strings.Contains(statement, "DROP") || !strings.Contains(statement, "coalesce") {
+		if len(compiler.args) != 1 || strings.Contains(statement, "DROP") || !strings.Contains(statement, "IS NOT NULL") {
 			t.Fatal(statement, compiler.args)
 		}
 	}

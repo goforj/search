@@ -1,5 +1,5 @@
 {
-  "executed_tests": 422,
+  "executed_tests": 425,
   "tests": [
     "github.com/goforj/search/integration/TestBleveContract",
     "github.com/goforj/search/integration/TestBleveContract/all",
@@ -328,6 +328,9 @@
     "github.com/goforj/search/integration/TestSQLLongValuesAndRollback",
     "github.com/goforj/search/integration/TestSQLLongValuesAndRollback/postgres",
     "github.com/goforj/search/integration/TestSQLLongValuesAndRollback/sqlite",
+    "github.com/goforj/search/integration/TestSQLScalarNullComplements",
+    "github.com/goforj/search/integration/TestSQLScalarNullComplements/postgres",
+    "github.com/goforj/search/integration/TestSQLScalarNullComplements/sqlite",
     "github.com/goforj/search/integration/TestSQLiteContract",
     "github.com/goforj/search/integration/TestSQLiteContract/all",
     "github.com/goforj/search/integration/TestSQLiteContract/array-all",

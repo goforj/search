@@ -82,6 +82,14 @@ Implemented drivers cover Bleve, Meilisearch, Typesense, OpenSearch, Elasticsear
 
 SQL tests additionally prove actual schema drift detection, caller-owned pool lifetime, wide exact IDs and keywords, and rollback after a native constraint rejection. Redis tests prove its 4096-match boundary, authentication failures, native schema alteration, and removed-index detection. Lua commands isolate concurrent visibility but do not provide transactional rollback after a script error; such unproven writes retain unknown outcomes.
 
+### SQL physical indexes
+
+New SQLite indexes include an encoded document-ID index and composite indexes on declared filterable or sortable scalar fields followed by document ID. New PostgreSQL indexes include bounded digest indexes for scalar equality filters, plus direct indexes for filterable or sortable integers and Booleans. Equality still compares the complete original encoded value, so a digest collision cannot produce a match. Wide keyword values and document IDs remain supported without exceeding PostgreSQL's B-tree tuple-size limit. Keyword ranges and keyword ordering may still require scans or sorting.
+
+Scalar predicates preserve missing/null complements while exposing indexable comparisons. SQLite's broad-term text queries still traverse the FTS match set, including when a scalar filter narrows the final results. An index does not guarantee a particular native query plan.
+
+Existing SQL indexes retain their recorded physical layout and remain readable and writable. `CreateIndex` validates them without adding secondary indexes, and `ValidateIndex` continues to detect physical drift. To obtain the new physical indexes for existing data, explicitly provision a fresh namespace and rebuild from the authoritative source, then switch application traffic. Adding or dropping indexes manually changes the recorded layout and is treated as schema drift.
+
 ## Search behavior
 
 - Declare an explicit `Definition`, provision it with a concrete driver's `CreateIndex`, then construct a portable `*search.Index`.
