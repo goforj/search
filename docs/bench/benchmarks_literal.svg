@@ -13,35 +13,35 @@
 <line x1="1050" y1="110" x2="1050" y2="520" stroke="#2A2333"/><text x="1050" y="98" text-anchor="middle" fill="#A9A1B3" font-size="13" font-family="JetBrains Mono, ui-monospace, monospace">10000</text>
 <text x="216" y="142" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">Bleve</text>
 <rect x="230" y="120" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="120" width="340" height="34" rx="6" fill="#FF5E3A"/>
-<text x="579" y="142" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">11.975</text>
+<rect x="230" y="120" width="341" height="34" rx="6" fill="#FF5E3A"/>
+<text x="580" y="142" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">12.130</text>
 <text x="216" y="192" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">Meilisearch</text>
 <rect x="230" y="170" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="170" width="226" height="34" rx="6" fill="#FFC24D"/>
-<text x="465" y="192" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">2.397</text>
+<rect x="230" y="170" width="187" height="34" rx="6" fill="#FFC24D"/>
+<text x="426" y="192" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">1.390</text>
 <text x="216" y="242" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">Typesense</text>
 <rect x="230" y="220" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="220" width="302" height="34" rx="6" fill="#FFC24D"/>
-<text x="541" y="242" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">7.030</text>
+<rect x="230" y="220" width="325" height="34" rx="6" fill="#FFC24D"/>
+<text x="564" y="242" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">9.643</text>
 <text x="216" y="292" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">OpenSearch</text>
 <rect x="230" y="270" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="270" width="266" height="34" rx="6" fill="#FFC24D"/>
-<text x="505" y="292" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">4.195</text>
+<rect x="230" y="270" width="274" height="34" rx="6" fill="#FFC24D"/>
+<text x="513" y="292" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">4.730</text>
 <text x="216" y="342" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">Elasticsearch</text>
 <rect x="230" y="320" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="320" width="267" height="34" rx="6" fill="#FFC24D"/>
-<text x="506" y="342" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">4.250</text>
+<rect x="230" y="320" width="297" height="34" rx="6" fill="#FFC24D"/>
+<text x="536" y="342" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">6.504</text>
 <text x="216" y="392" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">PostgreSQL FTS</text>
 <rect x="230" y="370" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="370" width="316" height="34" rx="6" fill="#FFC24D"/>
-<text x="555" y="392" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">8.463</text>
+<rect x="230" y="370" width="264" height="34" rx="6" fill="#FFC24D"/>
+<text x="503" y="392" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">4.101</text>
 <text x="216" y="442" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">SQLite FTS5</text>
 <rect x="230" y="420" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="420" width="688" height="34" rx="6" fill="#FF5E3A"/>
-<text x="927" y="442" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">1589.125</text>
+<rect x="230" y="420" width="386" height="34" rx="6" fill="#FF5E3A"/>
+<text x="625" y="442" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">22.582</text>
 <text x="216" y="492" text-anchor="end" fill="#A9A1B3" font-size="15" font-family="Inter, system-ui, sans-serif">Redis Search</text>
 <rect x="230" y="470" width="820" height="34" rx="6" fill="#2C2734" stroke="#3D3349"/>
-<rect x="230" y="470" width="291" height="34" rx="6" fill="#FFC24D"/>
-<text x="530" y="492" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">6.015</text>
+<rect x="230" y="470" width="293" height="34" rx="6" fill="#FFC24D"/>
+<text x="532" y="492" fill="#FFFFFF" font-size="14" font-family="JetBrains Mono, ui-monospace, monospace">6.155</text>
 <rect x="230" y="543" width="12" height="12" rx="3" fill="#FF5E3A"/><text x="248" y="554" fill="#A9A1B3" font-size="12" font-family="Inter, system-ui, sans-serif">Embedded</text><rect x="340" y="543" width="12" height="12" rx="3" fill="#FFC24D"/><text x="358" y="554" fill="#A9A1B3" font-size="12" font-family="Inter, system-ui, sans-serif">Service</text>
 </svg>

@@ -230,16 +230,16 @@ The same **1,000,000-document synthetic catalog** and query sequence across all 
 
 | Driver | Load (s) | Literal p50 / p95 (ms) | Filter + sort p50 / p95 (ms) | Facets p50 / p95 (ms) |
 | ---: | ---: | ---: | ---: | ---: |
-| <img src="docs/assets/badges/driver-bleve.svg" alt="Bleve" height="22"> | 43.8 | 7.226 / 11.975 | 0.802 / 1.581 | 0.883 / 1.393 |
-| <img src="docs/assets/badges/driver-meilisearch.svg" alt="Meilisearch" height="22"> | 298.8 | 1.462 / 2.397 | 1.860 / 2.707 | 1.859 / 2.761 |
-| <img src="docs/assets/badges/driver-typesense.svg" alt="Typesense" height="22"> | 63.7 | 6.306 / 7.030 | 1.642 / 2.291 | 1.836 / 2.286 |
-| <img src="docs/assets/badges/driver-opensearch.svg" alt="OpenSearch" height="22"> | 116.6 | 2.631 / 4.195 | 2.155 / 2.920 | 2.147 / 3.733 |
-| <img src="docs/assets/badges/driver-elasticsearch.svg" alt="Elasticsearch" height="22"> | 109.6 | 2.871 / 4.250 | 2.477 / 3.619 | 2.562 / 4.714 |
-| <img src="docs/assets/badges/driver-postgres.svg" alt="PostgreSQL FTS" height="22"> | 689.3 | 6.680 / 8.463 | 160.948 / 174.616 | 998.463 / 1079.300 |
-| <img src="docs/assets/badges/driver-sqlite.svg" alt="SQLite FTS5" height="22"> | 188.8 | 1061.935 / 1589.125 | 303.523 / 310.451 | 1545.218 / 2614.716 |
-| <img src="docs/assets/badges/driver-redis.svg" alt="Redis Search" height="22"> | 29.6 | 5.134 / 6.015 | 5.037 / 5.953 | 6.792 / 7.883 |
+| <img src="docs/assets/badges/driver-bleve.svg" alt="Bleve" height="22"> | 44.6 | 7.595 / 12.130 | 0.865 / 1.347 | 0.871 / 1.135 |
+| <img src="docs/assets/badges/driver-meilisearch.svg" alt="Meilisearch" height="22"> | 290.8 | 0.986 / 1.390 | 1.359 / 1.618 | 1.379 / 1.520 |
+| <img src="docs/assets/badges/driver-typesense.svg" alt="Typesense" height="22"> | 64.6 | 6.746 / 9.643 | 1.578 / 1.951 | 1.589 / 1.751 |
+| <img src="docs/assets/badges/driver-opensearch.svg" alt="OpenSearch" height="22"> | 117.0 | 2.792 / 4.730 | 2.273 / 3.341 | 2.445 / 3.632 |
+| <img src="docs/assets/badges/driver-elasticsearch.svg" alt="Elasticsearch" height="22"> | 110.1 | 3.394 / 6.504 | 3.273 / 5.459 | 3.031 / 4.759 |
+| <img src="docs/assets/badges/driver-postgres.svg" alt="PostgreSQL FTS" height="22"> | 756.5 | 3.411 / 4.101 | 1.774 / 2.398 | 122.009 / 190.906 |
+| <img src="docs/assets/badges/driver-sqlite.svg" alt="SQLite FTS5" height="22"> | 227.0 | 20.758 / 22.582 | 3.180 / 4.312 | 1388.702 / 1627.599 |
+| <img src="docs/assets/badges/driver-redis.svg" alt="Redis Search" height="22"> | 28.6 | 5.159 / 6.155 | 5.040 / 6.229 | 6.927 / 8.912 |
 
-The SQL drivers currently have query-plan limitations that dominate several results. See the [SQL benchmark audit](docs/bench/sql-audit.md) for reproduced timings, captured plans, and controlled comparisons.
+SQL measurements include generated secondary indexes; broad-term facets remain comparatively expensive. The [SQL benchmark audit](docs/bench/sql-audit.md) records the original bottlenecks and subsequent improvements.
 
 Measured on Apple M4 Max, 16 CPU cores, 48 GiB RAM; Docker Desktop 16 CPUs, 20 GiB RAM. Embedded engines run on the host; service engines run in Docker. These are warmed, single-client, selective searches returning at most 1,024 matches and 20 hits, without concurrent writes. Indexing includes document generation, validation, and waiting for visibility in batches of 1,000.
 

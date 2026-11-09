@@ -1,41 +1,41 @@
 # SQL benchmark audit, November 9, 2026
 
-The published calculations are correct, but the SQL results measure expensive query plans in the current drivers. They are useful for identifying implementation work. They should not be used as a general ranking of SQLite or PostgreSQL against search services.
+This report records the original pre-optimization measurements and investigation at [13afc50](https://github.com/goforj/search/tree/13afc50). Their calculations were correct, but the SQL results measured expensive query plans in those drivers. The original snapshot is preserved at that revision. The current README graphs use a fresh complete run after the SQL improvements. Neither run is a general ranking of SQLite or PostgreSQL against search services.
 
 ## Checks completed
 
-- All eight published records contain 1,000,000 accepted documents, the same source corpus hash and benchmark executable hash, and 200 positive latency samples per workload.
-- Independent recomputation of nearest-rank p95 and nanosecond-to-millisecond conversion matches every latency value in all three SVG charts.
-- Fresh million-document SQLite and PostgreSQL runs used the original compiled executable, without a tracing wrapper. Their corpus and executable hashes match the published run. Returned hits, counts, sort order and facet buckets passed the original correctness checks.
+- All eight original records contain 1,000,000 accepted documents, the same source corpus hash and benchmark executable hash, and 200 positive latency samples per workload.
+- Independent recomputation of nearest-rank p95 and nanosecond-to-millisecond conversion matches every latency value in the original three SVG charts.
+- Fresh million-document SQLite and PostgreSQL runs used the original compiled executable, without a tracing wrapper. Their corpus and executable hashes match the original run. Returned hits, counts, sort order and facet buckets passed the original correctness checks.
 - Controlled 100,000-document runs captured the actual SQL and bound values emitted by the production drivers. SQLite plans came from `EXPLAIN QUERY PLAN`; PostgreSQL plans came from `EXPLAIN (ANALYZE, BUFFERS)`.
 
 ## What the plans show
 
-SQLite has no persistent index on the encoded ID used to join FTS rows to stored documents. Its baseline plans build automatic covering indexes during searches, scan the relational table for filters, and use temporary B-trees for ordering. These costs grow with the full corpus even when the query returns only 20 hits.
+The original SQLite schema had no persistent index on the encoded ID used to join FTS rows to stored documents. Its baseline plans built automatic covering indexes during searches, scanned the relational table for filters, and used temporary B-trees for ordering. These costs grew with the full corpus even when the query returns only 20 hits.
 
-PostgreSQL's native full-text GIN index is used for selective literal searches. Filtered searches have a different problem: no secondary filter index is created, and the compiler wraps equality in `coalesce(column = parameter, false)`. In the captured 100,000-document plan, filtering scanned 100,000 rows and removed 98,976 to retain 1,024. Adding a B-tree alone still left that expression as a filter over the index. The diagnostic equality control produced an actual `Index Cond` and avoided the full scan.
+PostgreSQL's native full-text GIN index was used for selective literal searches. Filtered searches had a different problem: no secondary filter index was created, and the compiler wrapped equality in `coalesce(column = parameter, false)`. In the captured 100,000-document plan, filtering scanned 100,000 rows and removed 98,976 to retain 1,024. Adding a B-tree alone still left that expression as a filter over the index. The diagnostic equality control produced an actual `Index Cond` and avoided the full scan.
 
 ## Controlled comparisons
 
-Both controls use the same `catalog-v1` source documents, field capabilities, and queries as the main benchmark, at 100,000 documents. Each phase executes three warm-up requests and ten timed requests per workload. Timed requests use the published partition-selection formula and timed-request offset, adjusted for the smaller corpus. Tables use nearest-rank p50 in milliseconds.
+Both controls use the same `catalog-v1` source documents, field capabilities, and queries as the main benchmark, at 100,000 documents. Each phase executes three warm-up requests and ten timed requests per workload. Timed requests use the original partition-selection formula and timed-request offset, adjusted for the smaller corpus. Tables use nearest-rank p50 in milliseconds.
 
 The phases are:
 
-1. **Baseline:** current production SQL and schema.
+1. **Baseline:** pre-optimization production SQL and schema.
 2. **Analyzed:** the same schema after explicit `ANALYZE` on the document and value tables.
 3. **Indexed:** disposable B-trees added on document ID, partition, and `(field, owner, value)`, followed by `ANALYZE`.
 4. **Equality control:** those indexes plus a diagnostic rewrite of the benchmark's positive partition equality in `WHERE`, removing its `coalesce` wrapper.
 
-The equality control is restricted to this positive, non-null benchmark predicate. It is not a general replacement for the compiler's portable Boolean semantics. A production fix must preserve missing/null behavior, including negation, and pass the full conformance suite.
+The equality control is restricted to this positive, non-null benchmark predicate. It is not a general replacement for the compiler's portable Boolean semantics. The subsequent production fix uses an explicit non-null guard and retains missing/null behavior, including negation, with native regression tests and the full conformance suite.
 
 The SQLite report also contains a rowid-join control. It first checks that all document and FTS rowids match in this fresh disposable database. That assumption is not an established compatibility guarantee for existing indexes. This control is diagnostic and is not shipped as driver behavior.
 
 <!-- audit-results:start -->
 ### Million-document confirmation
 
-Both confirmations used the original executable, without SQL tracing. All response checks passed; source corpus and executable hashes match the published run. These shorter runs used three warm-ups and ten timed requests, so their timed window differs from the original 30-warm-up, 200-sample run. They confirm the scale of the issue, rather than reproducing its p95 estimate.
+Both confirmations used the original executable, without SQL tracing. All response checks passed; source corpus and executable hashes match the original run. These shorter runs used three warm-ups and ten timed requests, so their timed window differs from the original 30-warm-up, 200-sample run. They confirm the scale of the issue, rather than reproducing the original p95 estimate.
 
-| Driver | Workload | Published p50 (ms) | Confirmation p50 (ms) |
+| Driver | Workload | Original p50 (ms) | Confirmation p50 (ms) |
 | --- | --- | ---: | ---: |
 | sqlite | literal | 1061.935 | 4330.477 |
 | sqlite | filter_sort | 303.523 | 328.707 |
@@ -64,15 +64,15 @@ Explicit `ANALYZE` did not remove the structural access-path problems. Indexes a
 
 ## Repeatability limits
 
-The original benchmark has one measured run per driver on a developer machine with background services. A repeat run can vary with filesystem caching, temporary-index I/O, concurrent activity and database statistics. The shorter confirmation runs do not provide a second 200-sample p95 estimate or confidence intervals.
+The original benchmark had one measured run per driver on a developer machine with background services. A repeat run can vary with filesystem caching, temporary-index I/O, concurrent activity and database statistics. The shorter confirmation runs do not provide a second 200-sample p95 estimate or confidence intervals.
 
-A traced million-document SQLite diagnostic run timed out during filtering. It is excluded from the timing comparison. The original uninstrumented executable subsequently completed the million-document workload, which provides the repeat measurement reported here. The cause of the traced-run timeout has not been isolated, so its timings are not used to revise the published snapshot.
+A traced million-document SQLite diagnostic run timed out during filtering. It is excluded from the timing comparison. The original uninstrumented executable subsequently completed the million-document workload, which provides the repeat measurement reported here. The cause of the traced-run timeout has not been isolated, so its timings are excluded from both benchmark snapshots.
 
-The published snapshot is preserved. Improving the drivers should be followed by a fresh complete benchmark run, including index-build costs, rather than replacing individual chart rows with diagnostic control timings.
+The original snapshot is preserved in Git at the revision linked above. The replacement comparison reruns all eight drivers, including index-build costs, rather than substituting diagnostic control timings for individual chart rows.
 
-## Reproduce the controls
+## Reproduce the original controls
 
-From the repository root with Docker available:
+Use an isolated checkout of `13afc50`, with Docker available, to reproduce these pre-optimization controls:
 
 ```sh
 mkdir -p .artifacts/sql-audit
