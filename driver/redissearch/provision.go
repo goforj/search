@@ -141,6 +141,14 @@ func (d *Driver) indexInfo(ctx context.Context, name string) (any, error) {
 	for {
 		value, err := d.command(ctx, false, "FT.INFO", name)
 		if err != nil {
+			if ctx.Err() != nil {
+				return nil, ctx.Err()
+			}
+			// Socket deadlines can fire before the context timer runs under scheduler pressure.
+			deadline, _ := ctx.Deadline()
+			if !time.Now().Before(deadline) {
+				return nil, context.DeadlineExceeded
+			}
 			return nil, err
 		}
 		info, err := pairs(value)

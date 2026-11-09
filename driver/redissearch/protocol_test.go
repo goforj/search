@@ -510,3 +510,24 @@ func TestIndexScanReadiness(t *testing.T) {
 		})
 	}
 }
+
+// delayedDeadlineContext reproduces a socket deadline firing before the context timer has been scheduled.
+type delayedDeadlineContext struct{ context.Context }
+
+// Deadline reports an expired deadline while the embedded context still has no cancellation error.
+func (delayedDeadlineContext) Deadline() (time.Time, bool) {
+	return time.Unix(1, 0), true
+}
+
+// TestIndexScanDeadlineClassification preserves cancellation identity when transport and context deadlines race.
+func TestIndexScanDeadlineClassification(t *testing.T) {
+	d, _ := redisFixture(t, func([]string) any { t.Error("expired context used transport"); return nil })
+	if _, err := d.indexInfo(delayedDeadlineContext{context.Background()}, "owned"); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := d.indexInfo(ctx, "owned"); !errors.Is(err, context.Canceled) {
+		t.Fatal(err)
+	}
+}
