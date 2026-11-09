@@ -20,8 +20,7 @@
   <a href="docs/coverage.json"><img src="docs/assets/badges/coverage.svg" alt="Merged statement coverage"></a>
 <!-- test-count:embed:end -->
 <!-- package-coverage:embed:start -->
-<br>
-  <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-search.svg" alt="search statement coverage"></a>
+<a href="docs/coverage.json"><img src="docs/assets/badges/coverage-search.svg" alt="search statement coverage"></a>
   <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-blevesearch.svg" alt="blevesearch statement coverage"></a>
   <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-elasticsearch.svg" alt="elasticsearch statement coverage"></a>
   <a href="docs/coverage.json"><img src="docs/assets/badges/coverage-meilisearch.svg" alt="meilisearch statement coverage"></a>

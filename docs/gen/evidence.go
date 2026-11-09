@@ -98,7 +98,6 @@ func PackageCoverageBadges(root string) (string, error) {
 	}
 	sort.Strings(packages)
 	var out strings.Builder
-	out.WriteString("<br>\n")
 	for _, name := range packages {
 		label := filepath.Base(name)
 		path, err := writeBadge(root, "coverage-"+label, label, fmt.Sprintf("%.1f%%", *coverage.Packages[name]))
