@@ -56,15 +56,13 @@ Run `scripts/tidy-modules.sh --check` to check every module without changing the
 
 ## Release order
 
-This checkout is prepared for the first `v0.1.0` release. The root and embedded-driver requirements are aligned to that candidate version. No tags have been published yet.
+The first release uses `v0.1.0` for both the root module and the optional embedded module. The modules have separate tags; the docs, examples, and integration modules are not published.
 
-See the [first release review](release-readiness.md) for candidate verification and the remaining publication handoff.
+See the [first release review](release-readiness.md) for verification and publication checks.
 
-Before a first release:
+For each release, update the README and its authoritative `docs/assets/status.svg` version badge together.
 
-Replace the pre-release README notice and its authoritative `docs/assets/status.svg` badge with the published version information when tagging the first release.
-
-1. Confirm the candidate version. If it changes, update the embedded driver's root requirement, tooling requirements, and version-specific workspace replacements together. Regenerate module sums and rerun all checks against staged siblings.
+1. Select the release version and align the embedded driver's root requirement, tooling requirements, and version-specific workspace replacements together. Regenerate module sums and rerun all checks against staged siblings.
 2. Run `make release-plan v0.1.0` with the chosen version after the pins are aligned. The plan reads `scripts/module-manifest.txt` and excludes tooling modules.
 3. Commit the reviewed change. Tag the root as `v0.1.0` and the embedded module as `driver/blevesearch/v0.1.0` using `scripts/tag-all-modules.sh v0.1.0 --tag`.
 4. Publish the root tag first. Confirm the root is resolvable through the Go module proxy, then publish the embedded driver's tag.

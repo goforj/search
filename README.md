@@ -12,7 +12,7 @@
   <a href="https://github.com/goforj/search/actions/workflows/ci.yml"><img src="https://github.com/goforj/search/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://go.dev"><img src="https://img.shields.io/badge/go-1.24%2B-blue?logo=go" alt="Go 1.24 or newer"></a>
   <a href="https://codecov.io/gh/goforj/search"><img src="https://codecov.io/gh/goforj/search/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://github.com/goforj/search/tags"><img src="docs/assets/status.svg" alt="Unreleased"></a>
+  <a href="https://github.com/goforj/search/tags"><img src="docs/assets/status.svg" alt="Version v0.1.0"></a>
 <!-- test-count:embed:start -->
 <img src="docs/assets/badges/unit-tests.svg" alt="Executed unit tests, including subtests">
   <img src="docs/assets/badges/integration-tests.svg" alt="Executed integration tests, including subtests">
@@ -169,9 +169,7 @@ Bleve owns a single index path in one process. Its ownership lock refuses a seco
 
 The root package and service drivers require **Go 1.24+** and have no third-party dependencies. The optional Bleve module requires **Go 1.25+**.
 
-**Pre-release:** there are no published tags yet. Use the [workspace quick start](#quick-start) until the first release.
-
-After the first release:
+Install the root package and the drivers you need:
 
 ```sh
 go get github.com/goforj/search

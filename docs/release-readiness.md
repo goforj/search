@@ -1,8 +1,8 @@
-# First release candidate: v0.1.0
+# First release verification: v0.1.0
 
-The first release candidate is prepared for the root module and the optional Bleve module. Publication remains a separate step. Neither module has a published tag yet.
+The v0.1.0 release comprises the root module and the optional Bleve module, each with its own tag.
 
-| Module | Candidate tag | Minimum Go |
+| Module | Release tag | Minimum Go |
 | --- | --- | --- |
 | `github.com/goforj/search` | v0.1.0 | 1.24 |
 | `github.com/goforj/search/driver/blevesearch` | driver/blevesearch/v0.1.0 | 1.25 |
@@ -22,9 +22,9 @@ The staged consumer exercises embedded provisioning, writes, visibility, and sea
 
 Executed test inventories, backend versions, scenario lists, and source identity are recorded in [unit results](unit-results.json), [integration results](integration-results.json), [driver evidence](driver-results.json), and [coverage](coverage.json). CI and Security must pass on the final candidate commit before tagging.
 
-## Publication handoff
+## Publication verification
 
-Follow the [release order](development.md#release-order) after approving publication. Update the unreleased README notice and status badge for the actual release, publish the root tag before the Bleve tag, and verify each module resolves independently. Then run:
+Follow the [release order](development.md#release-order): publish the root tag before the Bleve tag and verify each module resolves independently. Then run:
 
 ```sh
 make release-check v0.1.0
