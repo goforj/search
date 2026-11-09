@@ -2,6 +2,8 @@
 
 This report records the original pre-optimization measurements and investigation at [13afc50](https://github.com/goforj/search/tree/13afc50). Their calculations were correct, but the SQL results measured expensive query plans in those drivers. The original snapshot is preserved at that revision. The current README graphs use a fresh complete run after the SQL improvements. Neither run is a general ranking of SQLite or PostgreSQL against search services.
 
+The later [facet optimization](https://github.com/goforj/search/commit/c3bbbbc) groups scalar values directly and shares text matching between totals and facets. The tables below remain historical evidence for the original investigation; the current complete-run measurements live in the [benchmark snapshot](benchmarks_rows.json).
+
 ## Checks completed
 
 - All eight original records contain 1,000,000 accepted documents, the same source corpus hash and benchmark executable hash, and 200 positive latency samples per workload.
