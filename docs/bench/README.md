@@ -2,6 +2,8 @@
 
 The driver comparison uses one deterministic synthetic catalog and identical query schedules through `search.Index`. The default baseline is **1,000,000 documents**. Larger runs accept up to 100,000,000 documents; measure those separately rather than mixing corpus sizes in one chart.
 
+The [SQL benchmark audit](sql-audit.md) verifies the published arithmetic and investigates SQLite and PostgreSQL query-plan bottlenecks with replayed workloads and disposable index controls.
+
 ## Reproduce
 
 Run from the repository root with Go 1.25 or newer, a C compiler, and Docker:

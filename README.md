@@ -239,6 +239,8 @@ The same **1,000,000-document synthetic catalog** and query sequence across all 
 | <img src="docs/assets/badges/driver-sqlite.svg" alt="SQLite FTS5" height="22"> | 188.8 | 1061.935 / 1589.125 | 303.523 / 310.451 | 1545.218 / 2614.716 |
 | <img src="docs/assets/badges/driver-redis.svg" alt="Redis Search" height="22"> | 29.6 | 5.134 / 6.015 | 5.037 / 5.953 | 6.792 / 7.883 |
 
+The SQL drivers currently have query-plan limitations that dominate several results. See the [SQL benchmark audit](docs/bench/sql-audit.md) for reproduced timings, captured plans, and controlled comparisons.
+
 Measured on Apple M4 Max, 16 CPU cores, 48 GiB RAM; Docker Desktop 16 CPUs, 20 GiB RAM. Embedded engines run on the host; service engines run in Docker. These are warmed, single-client, selective searches returning at most 1,024 matches and 20 hits, without concurrent writes. Indexing includes document generation, validation, and waiting for visibility in batches of 1,000.
 
 See [methodology and reproduction](docs/bench/README.md) for workload details, pinned versions, persistence settings, and limitations. The [measurement snapshot](docs/bench/benchmarks_rows.json) contains corpus fingerprints, environment metadata, count precision, and every latency sample. Run `make bench-drivers` to measure or `make bench-render` to redraw the recorded results.

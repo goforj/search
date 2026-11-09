@@ -1,0 +1,77 @@
+{
+  "harness_sha256": "3d3a89dc18e2673193529735cf0eef2cc5fe322fbd3b59b21e101532134fdd71",
+  "schema": "search-performance-v1",
+  "driver": "sqlite",
+  "version": {
+    "version": "3.54.1",
+    "image": ""
+  },
+  "dataset": "catalog-v1",
+  "documents": 1000000,
+  "loaded": 1000000,
+  "sha256": "e80754e5ca0e96a9c64e26aaa4b6f158e3cb834428fbb3f4b63b2717882ecc88",
+  "body_bytes": 279888890,
+  "batch": 1000,
+  "warmup": 3,
+  "samples": 10,
+  "started": "2026-11-09T20:08:49Z",
+  "revision": "4e1333e4b01df9f339e53f5540305c9095ad74e8\n",
+  "go": "go1.27.0",
+  "platform": "darwin/arm64",
+  "cpus": 16,
+  "machine": "Apple M4 Max, 16 CPU cores, 48 GiB RAM; Docker Desktop 16 CPUs, 20 GiB RAM",
+  "docker": "16 CPUs; 21012951040 bytes RAM\n",
+  "settings": "single client; one engine at a time; default integration fixture; SQLite WAL; Bleve disk; Elasticsearch/OpenSearch 1 shard, 0 replicas, 100ms refresh, 512MiB JVM; Redis persistence disabled",
+  "load_seconds": 317.961346167,
+  "complete": true,
+  "queries": [
+    {
+      "name": "literal",
+      "ns": [
+        5603431917,
+        2032672292,
+        2339880459,
+        5979854583,
+        4792723833,
+        4330476875,
+        9465305292,
+        2386211625,
+        7679500208,
+        2059736667
+      ],
+      "total_relation": "exact"
+    },
+    {
+      "name": "filter_sort",
+      "ns": [
+        346897333,
+        343147292,
+        351192209,
+        317261750,
+        340394792,
+        325219250,
+        328707375,
+        327164667,
+        323911750,
+        329080166
+      ],
+      "total_relation": "exact"
+    },
+    {
+      "name": "facets",
+      "ns": [
+        1620032500,
+        1602447000,
+        1595147584,
+        1648095167,
+        1579806334,
+        1571457166,
+        1576936667,
+        1582980833,
+        1571082291,
+        1577003875
+      ],
+      "total_relation": "exact"
+    }
+  ]
+}

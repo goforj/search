@@ -1,0 +1,993 @@
+{
+  "engine": "postgres",
+  "documents": 100000,
+  "corpus_sha256": "7e8e85cf15922ac94eb371412fc973a57d5993ed77f16b11d751d72265e1f152",
+  "load_seconds": 61.862212583,
+  "go": "go1.27.3",
+  "version": "18.6 (Debian 18.6-1.pgdg12+2)",
+  "dataset": "catalog-v1",
+  "revision": "4e1333e4b01df9f339e53f5540305c9095ad74e8",
+  "phases": [
+    {
+      "name": "baseline",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            7484084,
+            7261250,
+            5358209,
+            6647375,
+            6501500,
+            7814791,
+            7441416,
+            7479792,
+            5779917,
+            6476667
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            34666208,
+            34798209,
+            35192709,
+            35956791,
+            34517292,
+            35678417,
+            33091917,
+            33646750,
+            33712667,
+            32698375
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            54857083,
+            54061750,
+            99327000,
+            79701083,
+            80048292,
+            77459917,
+            79331542,
+            76544666,
+            78089834,
+            78460958
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "portable",
+            "batch00000092"
+          ],
+          "plan": [
+            "Aggregate  (cost=3176.04..3176.05 rows=1 width=8) (actual time=1.770..1.770 rows=1.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1473.21..3174.79 rows=500 width=0) (actual time=1.677..1.748 rows=1024.00 loops=1)",
+            "        Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "        Heap Blocks: exact=147",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1473.08 rows=500 width=0) (actual time=1.667..1.667 rows=1024.00 loops=1)",
+            "              Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Index Searches: 1",
+            "              Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.054 ms",
+            "Execution Time: 1.777 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$1))+ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "portable",
+            "batch00000092",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=3191.85..3191.90 rows=20 width=334) (actual time=1.878..1.879 rows=20.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Sort  (cost=3191.85..3193.10 rows=500 width=334) (actual time=1.878..1.878 rows=20.00 loops=1)",
+            "        Sort Key: ((ts_rank(faaf2320646108059_ts, '''portable'''::tsquery) + ts_rank(faaf2320646108059_ts, '''batch00000092'''::tsquery))) DESC, id COLLATE \"C\"",
+            "        Sort Method: top-N heapsort  Memory: 35kB",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1473.21..3178.54 rows=500 width=334) (actual time=1.614..1.805 rows=1024.00 loops=1)",
+            "              Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Heap Blocks: exact=147",
+            "              Buffers: shared hit=494",
+            "              -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1473.08 rows=500 width=0) (actual time=1.602..1.602 rows=1024.00 loops=1)",
+            "                    Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "                    Index Searches: 1",
+            "                    Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.043 ms",
+            "Execution Time: 1.886 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "Aggregate  (cost=15661.03..15661.04 rows=1 width=8) (actual time=17.239..17.239 rows=1.00 loops=1)",
+            "  Buffers: shared hit=14286",
+            "  -\u003e  Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..15536.02 rows=50001 width=0) (actual time=16.312..17.216 rows=1024.00 loops=1)",
+            "        Filter: COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false)",
+            "        Rows Removed by Filter: 98976",
+            "        Buffers: shared hit=14286",
+            "Planning Time: 0.017 ms",
+            "Execution Time: 17.247 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT $2 OFFSET $3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=16361.25..16363.58 rows=20 width=351) (actual time=13.287..13.349 rows=20.00 loops=1)",
+            "  Buffers: shared hit=14366 read=6",
+            "  -\u003e  Gather Merge  (cost=16361.25..22184.81 rows=50002 width=351) (actual time=13.286..13.347 rows=20.00 loops=1)",
+            "        Workers Planned: 2",
+            "        Workers Launched: 2",
+            "        Buffers: shared hit=14366 read=6",
+            "        -\u003e  Sort  (cost=15361.23..15413.31 rows=20834 width=351) (actual time=9.165..9.165 rows=7.00 loops=3)",
+            "              Sort Key: f8a4ba3186720a20e COLLATE \"C\" DESC, id COLLATE \"C\"",
+            "              Sort Method: top-N heapsort  Memory: 45kB",
+            "              Buffers: shared hit=14366 read=6",
+            "              Worker 0:  Sort Method: top-N heapsort  Memory: 45kB",
+            "              Worker 1:  Sort Method: quicksort  Memory: 25kB",
+            "              -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14806.84 rows=20834 width=351) (actual time=8.442..9.094 rows=341.33 loops=3)",
+            "                    Filter: COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false)",
+            "                    Rows Removed by Filter: 32992",
+            "                    Buffers: shared hit=14286",
+            "Planning Time: 0.046 ms",
+            "Execution Time: 13.359 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "v62617463683030303030303932",
+            "portable"
+          ],
+          "plan": [
+            "Aggregate  (cost=15911.03..15911.04 rows=1 width=8) (actual time=17.177..17.177 rows=1.00 loops=1)",
+            "  Buffers: shared hit=14286",
+            "  -\u003e  Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..15786.03 rows=50001 width=0) (actual time=16.248..17.154 rows=1024.00 loops=1)",
+            "        Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "        Rows Removed by Filter: 98976",
+            "        Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.047 ms",
+            "Execution Time: 17.186 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=16517.51..16519.84 rows=20 width=334) (actual time=8.223..9.820 rows=20.00 loops=1)",
+            "  Buffers: shared hit=14376 read=2",
+            "  -\u003e  Gather Merge  (cost=16517.51..22341.06 rows=50002 width=334) (actual time=8.222..9.817 rows=20.00 loops=1)",
+            "        Workers Planned: 2",
+            "        Workers Launched: 2",
+            "        Buffers: shared hit=14376 read=2",
+            "        -\u003e  Sort  (cost=15517.48..15569.57 rows=20834 width=334) (actual time=7.137..7.137 rows=20.00 loops=3)",
+            "              Sort Key: (ts_rank(faaf2320646108059_ts, '''portable'''::tsquery)) DESC, id COLLATE \"C\"",
+            "              Sort Method: top-N heapsort  Memory: 35kB",
+            "              Buffers: shared hit=14376 read=2",
+            "              Worker 0:  Sort Method: top-N heapsort  Memory: 35kB",
+            "              Worker 1:  Sort Method: top-N heapsort  Memory: 35kB",
+            "              -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14963.10 rows=20834 width=334) (actual time=6.673..7.065 rows=341.33 loops=3)",
+            "                    Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "                    Rows Removed by Filter: 32992",
+            "                    Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.058 ms",
+            "Execution Time: 9.839 ms"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=$3 AND ((coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))) GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "Limit  (cost=33120.48..33120.50 rows=9 width=29) (actual time=16.339..18.736 rows=8.00 loops=1)",
+            "  Buffers: shared hit=14588 read=7032",
+            "  -\u003e  Sort  (cost=33120.48..33154.52 rows=13614 width=29) (actual time=16.338..18.735 rows=8.00 loops=1)",
+            "        Sort Key: (count(DISTINCT v.owner)) DESC, v.value COLLATE \"C\"",
+            "        Sort Method: quicksort  Memory: 25kB",
+            "        Buffers: shared hit=14588 read=7032",
+            "        -\u003e  GroupAggregate  (cost=26633.00..32836.64 rows=13614 width=29) (actual time=16.181..18.732 rows=8.00 loops=1)",
+            "              Group Key: v.value",
+            "              Buffers: shared hit=14588 read=7032",
+            "              -\u003e  Gather Merge  (cost=26633.00..32450.74 rows=49952 width=86) (actual time=16.148..18.680 rows=1024.00 loops=1)",
+            "                    Workers Planned: 2",
+            "                    Workers Launched: 2",
+            "                    Buffers: shared hit=14588 read=7032",
+            "                    -\u003e  Sort  (cost=25632.98..25685.01 rows=20813 width=86) (actual time=15.190..15.200 rows=341.33 loops=3)",
+            "                          Sort Key: v.value COLLATE \"C\", v.owner",
+            "                          Sort Method: quicksort  Memory: 64kB",
+            "                          Buffers: shared hit=14588 read=7032",
+            "                          Worker 0:  Sort Method: quicksort  Memory: 69kB",
+            "                          Worker 1:  Sort Method: quicksort  Memory: 45kB",
+            "                          -\u003e  Parallel Hash Join  (cost=15171.44..24140.15 rows=20813 width=86) (actual time=14.637..15.034 rows=341.33 loops=3)",
+            "                                Hash Cond: (v.owner = d.owner)",
+            "                                Buffers: shared hit=14572 read=7032",
+            "                                -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4_values v  (cost=0.00..8859.44 rows=41627 width=86) (actual time=0.005..5.496 rows=33333.33 loops=3)",
+            "                                      Filter: (field = 'fedb2cd3b74c999af'::text)",
+            "                                      Rows Removed by Filter: 66667",
+            "                                      Buffers: shared hit=286 read=7032",
+            "                                -\u003e  Parallel Hash  (cost=14911.01..14911.01 rows=20834 width=65) (actual time=7.224..7.224 rows=341.33 loops=3)",
+            "                                      Buckets: 65536  Batches: 1  Memory Usage: 640kB",
+            "                                      Buffers: shared hit=14286",
+            "                                      -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14911.01 rows=20834 width=65) (actual time=6.738..7.121 rows=341.33 loops=3)",
+            "                                            Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "                                            Rows Removed by Filter: 32992",
+            "                                            Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=12 read=11",
+            "Planning Time: 0.182 ms",
+            "Execution Time: 18.751 ms"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "analyzed",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            5443166,
+            5675709,
+            5445958,
+            5307208,
+            5410042,
+            5478042,
+            5549916,
+            5434458,
+            5347542,
+            6748500
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            30661250,
+            29111000,
+            30864584,
+            30527875,
+            31002541,
+            28648334,
+            29121583,
+            30255666,
+            30391958,
+            29759625
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            90530917,
+            80428084,
+            80355333,
+            79662709,
+            79980792,
+            82253750,
+            77229959,
+            79269000,
+            78086084,
+            78075500
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "portable",
+            "batch00000092"
+          ],
+          "plan": [
+            "Aggregate  (cost=4666.38..4666.39 rows=1 width=8) (actual time=1.931..1.932 rows=1.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1475.95..4663.82 rows=1023 width=0) (actual time=1.831..1.912 rows=1024.00 loops=1)",
+            "        Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "        Heap Blocks: exact=147",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1475.70 rows=1023 width=0) (actual time=1.821..1.821 rows=1024.00 loops=1)",
+            "              Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Index Searches: 1",
+            "              Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.061 ms",
+            "Execution Time: 1.939 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$1))+ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "portable",
+            "batch00000092",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=4698.72..4698.77 rows=20 width=334) (actual time=1.877..1.878 rows=20.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Sort  (cost=4698.72..4701.28 rows=1023 width=334) (actual time=1.877..1.877 rows=20.00 loops=1)",
+            "        Sort Key: ((ts_rank(faaf2320646108059_ts, '''portable'''::tsquery) + ts_rank(faaf2320646108059_ts, '''batch00000092'''::tsquery))) DESC, id COLLATE \"C\"",
+            "        Sort Method: top-N heapsort  Memory: 35kB",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1475.95..4671.50 rows=1023 width=334) (actual time=1.629..1.808 rows=1024.00 loops=1)",
+            "              Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Heap Blocks: exact=147",
+            "              Buffers: shared hit=494",
+            "              -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1475.70 rows=1023 width=0) (actual time=1.618..1.618 rows=1024.00 loops=1)",
+            "                    Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "                    Index Searches: 1",
+            "                    Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.041 ms",
+            "Execution Time: 1.885 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "Aggregate  (cost=15661.00..15661.01 rows=1 width=8) (actual time=18.155..18.156 rows=1.00 loops=1)",
+            "  Buffers: shared hit=14286",
+            "  -\u003e  Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..15536.00 rows=50000 width=0) (actual time=17.173..18.133 rows=1024.00 loops=1)",
+            "        Filter: COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false)",
+            "        Rows Removed by Filter: 98976",
+            "        Buffers: shared hit=14286",
+            "Planning Time: 0.014 ms",
+            "Execution Time: 18.162 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT $2 OFFSET $3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=16361.22..16363.55 rows=20 width=351) (actual time=9.278..10.935 rows=20.00 loops=1)",
+            "  Buffers: shared hit=14366 read=6",
+            "  -\u003e  Gather Merge  (cost=16361.22..22184.42 rows=49999 width=351) (actual time=9.277..10.932 rows=20.00 loops=1)",
+            "        Workers Planned: 2",
+            "        Workers Launched: 2",
+            "        Buffers: shared hit=14366 read=6",
+            "        -\u003e  Sort  (cost=15361.19..15413.27 rows=20833 width=351) (actual time=7.647..7.648 rows=20.00 loops=3)",
+            "              Sort Key: f8a4ba3186720a20e COLLATE \"C\" DESC, id COLLATE \"C\"",
+            "              Sort Method: top-N heapsort  Memory: 45kB",
+            "              Buffers: shared hit=14366 read=6",
+            "              Worker 0:  Sort Method: top-N heapsort  Memory: 45kB",
+            "              Worker 1:  Sort Method: top-N heapsort  Memory: 45kB",
+            "              -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14806.83 rows=20833 width=351) (actual time=7.097..7.564 rows=341.33 loops=3)",
+            "                    Filter: COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false)",
+            "                    Rows Removed by Filter: 32992",
+            "                    Buffers: shared hit=14286",
+            "Planning Time: 0.049 ms",
+            "Execution Time: 10.958 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "v62617463683030303030303932",
+            "portable"
+          ],
+          "plan": [
+            "Aggregate  (cost=15911.00..15911.01 rows=1 width=8) (actual time=18.078..18.078 rows=1.00 loops=1)",
+            "  Buffers: shared hit=14286",
+            "  -\u003e  Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..15786.00 rows=50000 width=0) (actual time=17.047..18.056 rows=1024.00 loops=1)",
+            "        Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "        Rows Removed by Filter: 98976",
+            "        Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.057 ms",
+            "Execution Time: 18.087 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=16517.46..16519.79 rows=20 width=334) (actual time=9.206..11.104 rows=20.00 loops=1)",
+            "  Buffers: shared hit=14376 read=2",
+            "  -\u003e  Gather Merge  (cost=16517.46..22340.67 rows=49999 width=334) (actual time=9.205..11.102 rows=20.00 loops=1)",
+            "        Workers Planned: 2",
+            "        Workers Launched: 2",
+            "        Buffers: shared hit=14376 read=2",
+            "        -\u003e  Sort  (cost=15517.44..15569.52 rows=20833 width=334) (actual time=8.036..8.036 rows=13.67 loops=3)",
+            "              Sort Key: (ts_rank(faaf2320646108059_ts, '''portable'''::tsquery)) DESC, id COLLATE \"C\"",
+            "              Sort Method: top-N heapsort  Memory: 35kB",
+            "              Buffers: shared hit=14376 read=2",
+            "              Worker 0:  Sort Method: top-N heapsort  Memory: 35kB",
+            "              Worker 1:  Sort Method: top-N heapsort  Memory: 35kB",
+            "              -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14963.08 rows=20833 width=334) (actual time=7.465..7.962 rows=341.33 loops=3)",
+            "                    Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "                    Rows Removed by Filter: 32992",
+            "                    Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.064 ms",
+            "Execution Time: 11.117 ms"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=$3 AND ((coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))) GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "Limit  (cost=33128.20..33128.23 rows=9 width=29) (actual time=17.413..19.775 rows=8.00 loops=1)",
+            "  Buffers: shared hit=14580 read=7040",
+            "  -\u003e  Sort  (cost=33128.20..33164.16 rows=14383 width=29) (actual time=17.412..19.774 rows=8.00 loops=1)",
+            "        Sort Key: (count(DISTINCT v.owner)) DESC, v.value COLLATE \"C\"",
+            "        Sort Method: quicksort  Memory: 25kB",
+            "        Buffers: shared hit=14580 read=7040",
+            "        -\u003e  GroupAggregate  (cost=26645.79..32828.32 rows=14383 width=29) (actual time=17.261..19.771 rows=8.00 loops=1)",
+            "              Group Key: v.value",
+            "              Buffers: shared hit=14580 read=7040",
+            "              -\u003e  Gather Merge  (cost=26645.79..32435.92 rows=49715 width=86) (actual time=17.211..19.724 rows=1024.00 loops=1)",
+            "                    Workers Planned: 2",
+            "                    Workers Launched: 2",
+            "                    Buffers: shared hit=14580 read=7040",
+            "                    -\u003e  Sort  (cost=25645.76..25697.55 rows=20715 width=86) (actual time=15.995..16.004 rows=341.33 loops=3)",
+            "                          Sort Key: v.value COLLATE \"C\", v.owner",
+            "                          Sort Method: quicksort  Memory: 61kB",
+            "                          Buffers: shared hit=14580 read=7040",
+            "                          Worker 0:  Sort Method: quicksort  Memory: 58kB",
+            "                          Worker 1:  Sort Method: quicksort  Memory: 58kB",
+            "                          -\u003e  Parallel Hash Join  (cost=15171.41..24160.66 rows=20715 width=86) (actual time=15.439..15.843 rows=341.33 loops=3)",
+            "                                Hash Cond: (v.owner = d.owner)",
+            "                                Buffers: shared hit=14564 read=7040",
+            "                                -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4_values v  (cost=0.00..8880.50 rows=41429 width=86) (actual time=0.003..6.034 rows=33333.33 loops=3)",
+            "                                      Filter: (field = 'fedb2cd3b74c999af'::text)",
+            "                                      Rows Removed by Filter: 66667",
+            "                                      Buffers: shared hit=278 read=7040",
+            "                                -\u003e  Parallel Hash  (cost=14911.00..14911.00 rows=20833 width=65) (actual time=7.441..7.442 rows=341.33 loops=3)",
+            "                                      Buckets: 65536  Batches: 1  Memory Usage: 672kB",
+            "                                      Buffers: shared hit=14286",
+            "                                      -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14911.00 rows=20833 width=65) (actual time=6.923..7.320 rows=341.33 loops=3)",
+            "                                            Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "                                            Rows Removed by Filter: 32992",
+            "                                            Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=12 read=11",
+            "Planning Time: 0.225 ms",
+            "Execution Time: 19.793 ms"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "indexed",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            6132666,
+            6114542,
+            6094708,
+            5808000,
+            5470625,
+            5695166,
+            5751167,
+            6173416,
+            7124167,
+            5971833
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            27126667,
+            29046041,
+            24178334,
+            22820416,
+            21313334,
+            22061208,
+            22734125,
+            22902166,
+            21057292,
+            19770375
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            77334416,
+            79053916,
+            79428125,
+            80429625,
+            79161333,
+            75735916,
+            78962208,
+            77411542,
+            76375500,
+            78556292
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "portable",
+            "batch00000092"
+          ],
+          "plan": [
+            "Aggregate  (cost=4737.22..4737.23 rows=1 width=8) (actual time=1.767..1.768 rows=1.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1476.09..4734.60 rows=1050 width=0) (actual time=1.682..1.745 rows=1024.00 loops=1)",
+            "        Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "        Heap Blocks: exact=147",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1475.83 rows=1050 width=0) (actual time=1.672..1.672 rows=1024.00 loops=1)",
+            "              Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Index Searches: 1",
+            "              Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.065 ms",
+            "Execution Time: 1.775 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$1))+ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "portable",
+            "batch00000092",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=4770.41..4770.46 rows=20 width=334) (actual time=1.861..1.863 rows=20.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Sort  (cost=4770.41..4773.04 rows=1050 width=334) (actual time=1.861..1.862 rows=20.00 loops=1)",
+            "        Sort Key: ((ts_rank(faaf2320646108059_ts, '''portable'''::tsquery) + ts_rank(faaf2320646108059_ts, '''batch00000092'''::tsquery))) DESC, id COLLATE \"C\"",
+            "        Sort Method: top-N heapsort  Memory: 35kB",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1476.09..4742.47 rows=1050 width=334) (actual time=1.615..1.790 rows=1024.00 loops=1)",
+            "              Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Heap Blocks: exact=147",
+            "              Buffers: shared hit=494",
+            "              -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1475.83 rows=1050 width=0) (actual time=1.605..1.605 rows=1024.00 loops=1)",
+            "                    Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "                    Index Searches: 1",
+            "                    Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.041 ms",
+            "Execution Time: 1.869 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "Aggregate  (cost=9664.29..9664.30 rows=1 width=8) (actual time=10.574..10.575 rows=1.00 loops=1)",
+            "  Buffers: shared hit=7429 read=89",
+            "  -\u003e  Index Only Scan using audit_1 on s_652f55016243bf1b9f1bbea4 d  (cost=0.29..9539.29 rows=50000 width=0) (actual time=9.522..10.550 rows=1024.00 loops=1)",
+            "        Filter: COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false)",
+            "        Rows Removed by Filter: 98976",
+            "        Heap Fetches: 52001",
+            "        Index Searches: 1",
+            "        Buffers: shared hit=7429 read=89",
+            "Planning Time: 0.022 ms",
+            "Execution Time: 10.582 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT $2 OFFSET $3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=16361.22..16363.55 rows=20 width=351) (actual time=9.641..11.495 rows=20.00 loops=1)",
+            "  Buffers: shared hit=14366 read=6",
+            "  -\u003e  Gather Merge  (cost=16361.22..22184.42 rows=49999 width=351) (actual time=9.640..11.493 rows=20.00 loops=1)",
+            "        Workers Planned: 2",
+            "        Workers Launched: 2",
+            "        Buffers: shared hit=14366 read=6",
+            "        -\u003e  Sort  (cost=15361.19..15413.27 rows=20833 width=351) (actual time=8.087..8.088 rows=20.00 loops=3)",
+            "              Sort Key: f8a4ba3186720a20e COLLATE \"C\" DESC, id COLLATE \"C\"",
+            "              Sort Method: top-N heapsort  Memory: 45kB",
+            "              Buffers: shared hit=14366 read=6",
+            "              Worker 0:  Sort Method: top-N heapsort  Memory: 45kB",
+            "              Worker 1:  Sort Method: top-N heapsort  Memory: 45kB",
+            "              -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14806.83 rows=20833 width=351) (actual time=7.529..7.989 rows=341.33 loops=3)",
+            "                    Filter: COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false)",
+            "                    Rows Removed by Filter: 32992",
+            "                    Buffers: shared hit=14286",
+            "Planning Time: 0.049 ms",
+            "Execution Time: 11.507 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "v62617463683030303030303932",
+            "portable"
+          ],
+          "plan": [
+            "Aggregate  (cost=15911.00..15911.01 rows=1 width=8) (actual time=18.378..18.378 rows=1.00 loops=1)",
+            "  Buffers: shared hit=14286",
+            "  -\u003e  Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..15786.00 rows=50000 width=0) (actual time=17.345..18.356 rows=1024.00 loops=1)",
+            "        Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "        Rows Removed by Filter: 98976",
+            "        Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.056 ms",
+            "Execution Time: 18.388 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=16517.46..16519.79 rows=20 width=334) (actual time=8.679..11.066 rows=20.00 loops=1)",
+            "  Buffers: shared hit=14376 read=2",
+            "  -\u003e  Gather Merge  (cost=16517.46..22340.67 rows=49999 width=334) (actual time=8.678..11.062 rows=20.00 loops=1)",
+            "        Workers Planned: 2",
+            "        Workers Launched: 2",
+            "        Buffers: shared hit=14376 read=2",
+            "        -\u003e  Sort  (cost=15517.44..15569.52 rows=20833 width=334) (actual time=7.490..7.490 rows=13.67 loops=3)",
+            "              Sort Key: (ts_rank(faaf2320646108059_ts, '''portable'''::tsquery)) DESC, id COLLATE \"C\"",
+            "              Sort Method: top-N heapsort  Memory: 35kB",
+            "              Buffers: shared hit=14376 read=2",
+            "              Worker 0:  Sort Method: top-N heapsort  Memory: 35kB",
+            "              Worker 1:  Sort Method: top-N heapsort  Memory: 35kB",
+            "              -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14963.08 rows=20833 width=334) (actual time=6.999..7.416 rows=341.33 loops=3)",
+            "                    Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "                    Rows Removed by Filter: 32992",
+            "                    Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.088 ms",
+            "Execution Time: 11.079 ms"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=$3 AND ((coalesce(d.f2df962d37ee229c5=$1,false)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))) GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "Limit  (cost=33190.51..33190.53 rows=9 width=29) (actual time=20.973..23.660 rows=8.00 loops=1)",
+            "  Buffers: shared hit=14528 read=7092",
+            "  -\u003e  Sort  (cost=33190.51..33226.26 rows=14303 width=29) (actual time=20.972..23.659 rows=8.00 loops=1)",
+            "        Sort Key: (count(DISTINCT v.owner)) DESC, v.value COLLATE \"C\"",
+            "        Sort Method: quicksort  Memory: 25kB",
+            "        Buffers: shared hit=14528 read=7092",
+            "        -\u003e  GroupAggregate  (cost=26661.00..32892.29 rows=14303 width=29) (actual time=20.823..23.655 rows=8.00 loops=1)",
+            "              Group Key: v.value",
+            "              Buffers: shared hit=14528 read=7092",
+            "              -\u003e  Gather Merge  (cost=26661.00..32498.65 rows=50123 width=86) (actual time=20.796..23.610 rows=1024.00 loops=1)",
+            "                    Workers Planned: 2",
+            "                    Workers Launched: 2",
+            "                    Buffers: shared hit=14528 read=7092",
+            "                    -\u003e  Sort  (cost=25660.97..25713.19 rows=20885 width=86) (actual time=19.602..19.609 rows=341.33 loops=3)",
+            "                          Sort Key: v.value COLLATE \"C\", v.owner",
+            "                          Sort Method: quicksort  Memory: 89kB",
+            "                          Buffers: shared hit=14528 read=7092",
+            "                          Worker 0:  Sort Method: quicksort  Memory: 30kB",
+            "                          Worker 1:  Sort Method: quicksort  Memory: 58kB",
+            "                          -\u003e  Parallel Hash Join  (cost=15171.41..24162.46 rows=20885 width=86) (actual time=19.045..19.439 rows=341.33 loops=3)",
+            "                                Hash Cond: (v.owner = d.owner)",
+            "                                Buffers: shared hit=14512 read=7092",
+            "                                -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4_values v  (cost=0.00..8880.50 rows=42112 width=86) (actual time=0.060..8.671 rows=33333.33 loops=3)",
+            "                                      Filter: (field = 'fedb2cd3b74c999af'::text)",
+            "                                      Rows Removed by Filter: 66667",
+            "                                      Buffers: shared hit=226 read=7092",
+            "                                -\u003e  Parallel Hash  (cost=14911.00..14911.00 rows=20833 width=65) (actual time=7.679..7.680 rows=341.33 loops=3)",
+            "                                      Buckets: 65536  Batches: 1  Memory Usage: 672kB",
+            "                                      Buffers: shared hit=14286",
+            "                                      -\u003e  Parallel Seq Scan on s_652f55016243bf1b9f1bbea4 d  (cost=0.00..14911.00 rows=20833 width=65) (actual time=7.135..7.550 rows=341.33 loops=3)",
+            "                                            Filter: (COALESCE((f2df962d37ee229c5 = 'v62617463683030303030303932'::text), false) AND (faaf2320646108059_ts @@ '''portable'''::tsquery))",
+            "                                            Rows Removed by Filter: 32992",
+            "                                            Buffers: shared hit=14286",
+            "Planning:",
+            "  Buffers: shared hit=9 read=14",
+            "Planning Time: 0.204 ms",
+            "Execution Time: 23.679 ms"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "predicate_control",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            6249208,
+            6256125,
+            5994792,
+            6132083,
+            6015959,
+            5891834,
+            6692416,
+            6275500,
+            5943292,
+            6144375
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            1356041,
+            1488084,
+            1598083,
+            1751042,
+            1548083,
+            1220334,
+            1308375,
+            1205083,
+            1255666,
+            1222291
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            4781042,
+            5011375,
+            5368167,
+            5330167,
+            5541541,
+            4731459,
+            4765791,
+            4933625,
+            5251083,
+            5107083
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "portable",
+            "batch00000092"
+          ],
+          "plan": [
+            "Aggregate  (cost=4737.22..4737.23 rows=1 width=8) (actual time=1.960..1.961 rows=1.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1476.09..4734.60 rows=1050 width=0) (actual time=1.807..1.938 rows=1024.00 loops=1)",
+            "        Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "        Heap Blocks: exact=147",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1475.83 rows=1050 width=0) (actual time=1.794..1.794 rows=1024.00 loops=1)",
+            "              Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Index Searches: 1",
+            "              Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.035 ms",
+            "Execution Time: 1.967 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$1))+ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (1=1) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$1)) AND (d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "portable",
+            "batch00000092",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=4770.41..4770.46 rows=20 width=334) (actual time=2.179..2.181 rows=20.00 loops=1)",
+            "  Buffers: shared hit=494",
+            "  -\u003e  Sort  (cost=4770.41..4773.04 rows=1050 width=334) (actual time=2.179..2.180 rows=20.00 loops=1)",
+            "        Sort Key: ((ts_rank(faaf2320646108059_ts, '''portable'''::tsquery) + ts_rank(faaf2320646108059_ts, '''batch00000092'''::tsquery))) DESC, id COLLATE \"C\"",
+            "        Sort Method: top-N heapsort  Memory: 35kB",
+            "        Buffers: shared hit=494",
+            "        -\u003e  Bitmap Heap Scan on s_652f55016243bf1b9f1bbea4 d  (cost=1476.09..4742.47 rows=1050 width=334) (actual time=1.885..2.110 rows=1024.00 loops=1)",
+            "              Recheck Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "              Heap Blocks: exact=147",
+            "              Buffers: shared hit=494",
+            "              -\u003e  Bitmap Index Scan on s_652f55016243bf1b9f1bbea4_gfaaf2320646108059  (cost=0.00..1475.83 rows=1050 width=0) (actual time=1.871..1.871 rows=1024.00 loops=1)",
+            "                    Index Cond: ((faaf2320646108059_ts @@ '''portable'''::tsquery) AND (faaf2320646108059_ts @@ '''batch00000092'''::tsquery))",
+            "                    Index Searches: 1",
+            "                    Buffers: shared hit=347",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.038 ms",
+            "Execution Time: 2.188 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=$1)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "Aggregate  (cost=107.29..107.30 rows=1 width=8) (actual time=0.152..0.152 rows=1.00 loops=1)",
+            "  Buffers: shared hit=151",
+            "  -\u003e  Index Only Scan using audit_1 on s_652f55016243bf1b9f1bbea4 d  (cost=0.29..104.67 rows=1050 width=0) (actual time=0.006..0.130 rows=1024.00 loops=1)",
+            "        Index Cond: (f2df962d37ee229c5 = 'v62617463683030303030303932'::text)",
+            "        Heap Fetches: 1024",
+            "        Index Searches: 1",
+            "        Buffers: shared hit=151",
+            "Planning Time: 0.026 ms",
+            "Execution Time: 0.156 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=$1)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT $2 OFFSET $3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=204.61..204.66 rows=20 width=351) (actual time=0.296..0.297 rows=20.00 loops=1)",
+            "  Buffers: shared hit=150",
+            "  -\u003e  Sort  (cost=204.61..207.23 rows=1050 width=351) (actual time=0.296..0.296 rows=20.00 loops=1)",
+            "        Sort Key: f8a4ba3186720a20e COLLATE \"C\" DESC, id COLLATE \"C\"",
+            "        Sort Method: top-N heapsort  Memory: 45kB",
+            "        Buffers: shared hit=150",
+            "        -\u003e  Index Scan using audit_1 on s_652f55016243bf1b9f1bbea4 d  (cost=0.29..176.67 rows=1050 width=351) (actual time=0.004..0.176 rows=1024.00 loops=1)",
+            "              Index Cond: (f2df962d37ee229c5 = 'v62617463683030303030303932'::text)",
+            "              Index Searches: 1",
+            "              Buffers: shared hit=150",
+            "Planning Time: 0.024 ms",
+            "Execution Time: 0.301 ms"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=$1)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))",
+          "args": [
+            "v62617463683030303030303932",
+            "portable"
+          ],
+          "plan": [
+            "Aggregate  (cost=181.92..181.93 rows=1 width=8) (actual time=0.151..0.151 rows=1.00 loops=1)",
+            "  Buffers: shared hit=150",
+            "  -\u003e  Index Scan using audit_1 on s_652f55016243bf1b9f1bbea4 d  (cost=0.29..179.29 rows=1050 width=0) (actual time=0.003..0.132 rows=1024.00 loops=1)",
+            "        Index Cond: (f2df962d37ee229c5 = 'v62617463683030303030303932'::text)",
+            "        Filter: (faaf2320646108059_ts @@ '''portable'''::tsquery)",
+            "        Index Searches: 1",
+            "        Buffers: shared hit=150",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.026 ms",
+            "Execution Time: 0.155 ms"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,ts_rank(d.faaf2320646108059_ts,plainto_tsquery('simple',$2)) AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=$1)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2))) ORDER BY score DESC,d.id ASC LIMIT $3 OFFSET $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            20,
+            0
+          ],
+          "plan": [
+            "Limit  (cost=209.86..209.91 rows=20 width=334) (actual time=0.243..0.244 rows=20.00 loops=1)",
+            "  Buffers: shared hit=150",
+            "  -\u003e  Sort  (cost=209.86..212.48 rows=1050 width=334) (actual time=0.243..0.243 rows=20.00 loops=1)",
+            "        Sort Key: (ts_rank(faaf2320646108059_ts, '''portable'''::tsquery)) DESC, id COLLATE \"C\"",
+            "        Sort Method: top-N heapsort  Memory: 35kB",
+            "        Buffers: shared hit=150",
+            "        -\u003e  Index Scan using audit_1 on s_652f55016243bf1b9f1bbea4 d  (cost=0.29..181.92 rows=1050 width=334) (actual time=0.003..0.170 rows=1024.00 loops=1)",
+            "              Index Cond: (f2df962d37ee229c5 = 'v62617463683030303030303932'::text)",
+            "              Filter: (faaf2320646108059_ts @@ '''portable'''::tsquery)",
+            "              Index Searches: 1",
+            "              Buffers: shared hit=150",
+            "Planning:",
+            "  Buffers: shared hit=1",
+            "Planning Time: 0.028 ms",
+            "Execution Time: 0.249 ms"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=$3 AND (((d.f2df962d37ee229c5=$1)) AND ((d.faaf2320646108059_ts @@ plainto_tsquery('simple',$2)))) GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT $4",
+          "args": [
+            "v62617463683030303030303932",
+            "portable",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "Limit  (cost=6642.91..6642.93 rows=9 width=29) (actual time=3.155..3.156 rows=8.00 loops=1)",
+            "  Buffers: shared hit=5271",
+            "  -\u003e  Sort  (cost=6642.91..6645.54 rows=1053 width=29) (actual time=3.155..3.155 rows=8.00 loops=1)",
+            "        Sort Key: (count(DISTINCT v.owner)) DESC, v.value COLLATE \"C\"",
+            "        Sort Method: quicksort  Memory: 25kB",
+            "        Buffers: shared hit=5271",
+            "        -\u003e  GroupAggregate  (cost=6602.53..6620.96 rows=1053 width=29) (actual time=3.100..3.153 rows=8.00 loops=1)",
+            "              Group Key: v.value",
+            "              Buffers: shared hit=5271",
+            "              -\u003e  Sort  (cost=6602.53..6605.16 rows=1053 width=86) (actual time=3.091..3.110 rows=1024.00 loops=1)",
+            "                    Sort Key: v.value COLLATE \"C\", v.owner",
+            "                    Sort Method: quicksort  Memory: 153kB",
+            "                    Buffers: shared hit=5271",
+            "                    -\u003e  Nested Loop  (cost=0.84..6549.67 rows=1053 width=86) (actual time=0.016..2.655 rows=1024.00 loops=1)",
+            "                          Buffers: shared hit=5271",
+            "                          -\u003e  Index Scan using audit_1 on s_652f55016243bf1b9f1bbea4 d  (cost=0.29..179.29 rows=1050 width=65) (actual time=0.002..0.159 rows=1024.00 loops=1)",
+            "                                Index Cond: (f2df962d37ee229c5 = 'v62617463683030303030303932'::text)",
+            "                                Filter: (faaf2320646108059_ts @@ '''portable'''::tsquery)",
+            "                                Index Searches: 1",
+            "                                Buffers: shared hit=150",
+            "                          -\u003e  Index Only Scan using audit_2 on s_652f55016243bf1b9f1bbea4_values v  (cost=0.55..6.06 rows=1 width=86) (actual time=0.002..0.002 rows=1.00 loops=1024)",
+            "                                Index Cond: ((field = 'fedb2cd3b74c999af'::text) AND (owner = d.owner))",
+            "                                Heap Fetches: 1024",
+            "                                Index Searches: 1024",
+            "                                Buffers: shared hit=5121",
+            "Planning:",
+            "  Buffers: shared hit=23",
+            "Planning Time: 0.121 ms",
+            "Execution Time: 3.164 ms"
+          ]
+        }
+      ]
+    }
+  ]
+}

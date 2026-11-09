@@ -1,0 +1,77 @@
+{
+  "harness_sha256": "3d3a89dc18e2673193529735cf0eef2cc5fe322fbd3b59b21e101532134fdd71",
+  "schema": "search-performance-v1",
+  "driver": "postgres",
+  "version": {
+    "version": "18.6",
+    "image": "postgres:18.6-bookworm@sha256:f1ea2a1a4fb7b68d4836be1fdcb8a6466a89b072158bf9d97663600538c294c5"
+  },
+  "dataset": "catalog-v1",
+  "documents": 1000000,
+  "loaded": 1000000,
+  "sha256": "e80754e5ca0e96a9c64e26aaa4b6f158e3cb834428fbb3f4b63b2717882ecc88",
+  "body_bytes": 279888890,
+  "batch": 1000,
+  "warmup": 3,
+  "samples": 10,
+  "started": "2026-11-09T20:19:01Z",
+  "revision": "4e1333e4b01df9f339e53f5540305c9095ad74e8\n",
+  "go": "go1.27.0",
+  "platform": "darwin/arm64",
+  "cpus": 16,
+  "machine": "Apple M4 Max, 16 CPU cores, 48 GiB RAM; Docker Desktop 16 CPUs, 20 GiB RAM",
+  "docker": "16 CPUs; 21012951040 bytes RAM\n",
+  "settings": "single client; one engine at a time; default integration fixture; SQLite WAL; Bleve disk; Elasticsearch/OpenSearch 1 shard, 0 replicas, 100ms refresh, 512MiB JVM; Redis persistence disabled",
+  "load_seconds": 675.713085083,
+  "complete": true,
+  "queries": [
+    {
+      "name": "literal",
+      "ns": [
+        3247125,
+        2656458,
+        3517583,
+        3898292,
+        3924625,
+        3166958,
+        3322083,
+        3697083,
+        3833292,
+        3715708
+      ],
+      "total_relation": "exact"
+    },
+    {
+      "name": "filter_sort",
+      "ns": [
+        185907291,
+        177717625,
+        180026166,
+        170686959,
+        171482375,
+        171714750,
+        169626375,
+        171894541,
+        187317875,
+        191068958
+      ],
+      "total_relation": "exact"
+    },
+    {
+      "name": "facets",
+      "ns": [
+        438633500,
+        383564875,
+        1048249250,
+        985559083,
+        1051944459,
+        950509166,
+        929437042,
+        937507083,
+        927378292,
+        1043295125
+      ],
+      "total_relation": "exact"
+    }
+  ]
+}

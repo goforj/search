@@ -1,0 +1,742 @@
+{
+  "engine": "sqlite",
+  "documents": 100000,
+  "corpus_sha256": "7e8e85cf15922ac94eb371412fc973a57d5993ed77f16b11d751d72265e1f152",
+  "load_seconds": 14.016511542,
+  "go": "go1.27.3",
+  "version": "3.54.1",
+  "dataset": "catalog-v1",
+  "revision": "4e1333e4b01df9f339e53f5540305c9095ad74e8",
+  "phases": [
+    {
+      "name": "baseline",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            140496542,
+            179198333,
+            144983042,
+            248441417,
+            322095875,
+            180486041,
+            155729292,
+            148064083,
+            105983750,
+            107580625
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            31351750,
+            31779583,
+            32411125,
+            30873750,
+            31483583,
+            31440708,
+            31055333,
+            30256542,
+            30322375,
+            31294250
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            167892875,
+            166297833,
+            160785750,
+            159924334,
+            161892083,
+            159858125,
+            158046875,
+            159003791,
+            159565375,
+            159616500
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1)",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1) ORDER BY score DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "SCAN d"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN d",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2) ORDER BY score DESC,d.id ASC LIMIT ?3 OFFSET ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)) d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=?3 GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "CO-ROUTINE d",
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)",
+            "USE TEMP B-TREE FOR DISTINCT",
+            "SCAN d",
+            "SEARCH v USING INDEX sqlite_autoindex_s_652f55016243bf1b9f1bbea4_values_1 (owner=? AND field=?)",
+            "USE TEMP B-TREE FOR GROUP BY",
+            "USE TEMP B-TREE FOR count(DISTINCT)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "analyzed",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            101616000,
+            102955958,
+            117286459,
+            137048000,
+            107810625,
+            111003375,
+            136814750,
+            103243125,
+            102650334,
+            110392583
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            40237834,
+            57271083,
+            98651167,
+            40886250,
+            37878375,
+            34305209,
+            34208333,
+            51114083,
+            37279375,
+            42452250
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            163139916,
+            179768875,
+            193270708,
+            182973458,
+            160215833,
+            158532917,
+            167635667,
+            169518792,
+            168371750,
+            166264250
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1)",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1) ORDER BY score DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "SCAN d"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN d",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2) ORDER BY score DESC,d.id ASC LIMIT ?3 OFFSET ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)) d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=?3 GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "CO-ROUTINE d",
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "BLOOM FILTER ON d (id=?)",
+            "SEARCH d USING AUTOMATIC PARTIAL COVERING INDEX (id=?)",
+            "USE TEMP B-TREE FOR DISTINCT",
+            "SCAN d",
+            "SEARCH v USING INDEX sqlite_autoindex_s_652f55016243bf1b9f1bbea4_values_1 (owner=? AND field=?)",
+            "USE TEMP B-TREE FOR GROUP BY",
+            "USE TEMP B-TREE FOR count(DISTINCT)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "indexed",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            2907500,
+            3019834,
+            3038291,
+            2923083,
+            2838125,
+            3132417,
+            2925375,
+            3005291,
+            3091334,
+            3230917
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            19734125,
+            19552750,
+            19304125,
+            18958291,
+            20154667,
+            20408083,
+            19681500,
+            20125917,
+            20975708,
+            19187166
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            189288583,
+            188004083,
+            184215333,
+            186310958,
+            185951167,
+            194858417,
+            189905583,
+            183848000,
+            182687000,
+            182114084
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1)",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING COVERING INDEX audit_0 (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1) ORDER BY score DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "SCAN d USING COVERING INDEX audit_1"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN d",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2) ORDER BY score DESC,d.id ASC LIMIT ?3 OFFSET ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (coalesce(d.f2df962d37ee229c5=?1,false)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)) d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=?3 GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "CO-ROUTINE d",
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)",
+            "USE TEMP B-TREE FOR DISTINCT",
+            "SCAN d",
+            "SEARCH v USING COVERING INDEX audit_2 (field=? AND owner=?)",
+            "USE TEMP B-TREE FOR GROUP BY",
+            "USE TEMP B-TREE FOR count(DISTINCT)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "predicate_control",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            2922917,
+            2981709,
+            2957292,
+            3141500,
+            2987625,
+            3330042,
+            2948667,
+            2843167,
+            2837292,
+            2861500
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            657542,
+            664500,
+            672208,
+            659167,
+            644958,
+            649416,
+            885167,
+            739917,
+            653458,
+            671292
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            185621708,
+            187533166,
+            186876708,
+            209369000,
+            186980625,
+            185490833,
+            184246583,
+            192349417,
+            201996250,
+            184826583
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1)",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING COVERING INDEX audit_0 (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1) ORDER BY score DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=?1)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "SEARCH d USING COVERING INDEX audit_1 (f2df962d37ee229c5=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=?1)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "SEARCH d USING INDEX audit_1 (f2df962d37ee229c5=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE ((d.f2df962d37ee229c5=?1)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE ((d.f2df962d37ee229c5=?1)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2) ORDER BY score DESC,d.id ASC LIMIT ?3 OFFSET ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.id=d.id WHERE ((d.f2df962d37ee229c5=?1)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)) d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=?3 GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "CO-ROUTINE d",
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INDEX audit_0 (id=?)",
+            "USE TEMP B-TREE FOR DISTINCT",
+            "SCAN d",
+            "SEARCH v USING COVERING INDEX audit_2 (field=? AND owner=?)",
+            "USE TEMP B-TREE FOR GROUP BY",
+            "USE TEMP B-TREE FOR count(DISTINCT)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "rowid_control",
+      "queries": [
+        {
+          "name": "literal",
+          "ns": [
+            2272625,
+            2266125,
+            2341583,
+            2306792,
+            2268833,
+            2228916,
+            2181166,
+            2197041,
+            2200500,
+            2173542
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "filter_sort",
+          "ns": [
+            633792,
+            631834,
+            632750,
+            630958,
+            619833,
+            615833,
+            622916,
+            622709,
+            620416,
+            627417
+          ],
+          "total_relation": "exact"
+        },
+        {
+          "name": "facets",
+          "ns": [
+            56381166,
+            56656084,
+            56535500,
+            55760958,
+            55373416,
+            55518209,
+            55255417,
+            55783584,
+            55780042,
+            55448250
+          ],
+          "total_relation": "exact"
+        }
+      ],
+      "statements": [
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.rowid=d.rowid WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1)",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INTEGER PRIMARY KEY (rowid=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.rowid=d.rowid WHERE (1=1) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?1) ORDER BY score DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "{faaf2320646108059} : (\"portable\" AND \"batch00000092\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INTEGER PRIMARY KEY (rowid=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=?1)) AND (1=1)",
+          "args": [
+            "v62617463683030303030303932"
+          ],
+          "plan": [
+            "SEARCH d USING COVERING INDEX audit_1 (f2df962d37ee229c5=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,0 AS score FROM s_652f55016243bf1b9f1bbea4 d WHERE ((d.f2df962d37ee229c5=?1)) AND (1=1) ORDER BY d.f8a4ba3186720a20e DESC,d.id ASC LIMIT ?2 OFFSET ?3",
+          "args": [
+            "v62617463683030303030303932",
+            20,
+            0
+          ],
+          "plan": [
+            "SEARCH d USING INDEX audit_1 (f2df962d37ee229c5=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT count(*) FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.rowid=d.rowid WHERE ((d.f2df962d37ee229c5=?1)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")"
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INTEGER PRIMARY KEY (rowid=?)"
+          ]
+        },
+        {
+          "sql": "SELECT d.original,d.body,-bm25(s_652f55016243bf1b9f1bbea4_fts) AS score FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.rowid=d.rowid WHERE ((d.f2df962d37ee229c5=?1)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2) ORDER BY score DESC,d.id ASC LIMIT ?3 OFFSET ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            20,
+            0
+          ],
+          "plan": [
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INTEGER PRIMARY KEY (rowid=?)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        },
+        {
+          "sql": "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM s_652f55016243bf1b9f1bbea4 d JOIN s_652f55016243bf1b9f1bbea4_fts ON s_652f55016243bf1b9f1bbea4_fts.rowid=d.rowid WHERE ((d.f2df962d37ee229c5=?1)) AND (s_652f55016243bf1b9f1bbea4_fts MATCH ?2)) d JOIN s_652f55016243bf1b9f1bbea4_values v ON v.owner=d.owner WHERE v.field=?3 GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT ?4",
+          "args": [
+            "v62617463683030303030303932",
+            "{faaf2320646108059} : (\"portable\")",
+            "fedb2cd3b74c999af",
+            9
+          ],
+          "plan": [
+            "CO-ROUTINE d",
+            "SCAN s_652f55016243bf1b9f1bbea4_fts VIRTUAL TABLE INDEX 0:M3",
+            "SEARCH d USING INTEGER PRIMARY KEY (rowid=?)",
+            "USE TEMP B-TREE FOR DISTINCT",
+            "SCAN d",
+            "SEARCH v USING COVERING INDEX audit_2 (field=? AND owner=?)",
+            "USE TEMP B-TREE FOR GROUP BY",
+            "USE TEMP B-TREE FOR count(DISTINCT)",
+            "USE TEMP B-TREE FOR ORDER BY"
+          ]
+        }
+      ]
+    }
+  ]
+}

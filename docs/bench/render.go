@@ -338,6 +338,7 @@ func markdown(reports []Report) string {
 		}
 		out.WriteString("\n")
 	}
+	out.WriteString("\nThe SQL drivers currently have query-plan limitations that dominate several results. See the [SQL benchmark audit](docs/bench/sql-audit.md) for reproduced timings, captured plans, and controlled comparisons.\n")
 	fmt.Fprintf(&out, "\nMeasured on %s. Embedded engines run on the host; service engines run in Docker. These are warmed, single-client, selective searches returning at most 1,024 matches and 20 hits, without concurrent writes. Indexing includes document generation, validation, and waiting for visibility in batches of 1,000.\n\n", reports[0].Machine)
 	out.WriteString("See [methodology and reproduction](docs/bench/README.md) for workload details, pinned versions, persistence settings, and limitations. The [measurement snapshot](docs/bench/benchmarks_rows.json) contains corpus fingerprints, environment metadata, count precision, and every latency sample. Run `make bench-drivers` to measure or `make bench-render` to redraw the recorded results.\n")
 	return out.String()
