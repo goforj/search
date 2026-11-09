@@ -120,6 +120,10 @@ func (d *Driver) Search(ctx context.Context, def search.Definition, query search
 		field := c.parameter(fieldKey(facet.Field))
 		limit := c.parameter(facet.Limit + 1)
 		statement := "SELECT v.value,count(DISTINCT v.owner) FROM " + from + " JOIN " + d.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " AND (" + where + ") GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
+		if !d.postgres {
+			// DISTINCT prevents SQLite from flattening the match set and repeating the FTS scan for each facet value.
+			statement = "SELECT v.value,count(DISTINCT v.owner) FROM (SELECT DISTINCT d.owner FROM " + from + " WHERE " + where + ") d JOIN " + d.name + "_values v ON v.owner=d.owner WHERE v.field=" + field + " GROUP BY v.value ORDER BY count(DISTINCT v.owner) DESC,v.value ASC LIMIT " + limit
+		}
 		rows, err := tx.QueryContext(ctx, statement, c.args...)
 		if err != nil {
 			return search.Result{}, classify(err, false)

@@ -13,13 +13,15 @@ import (
 
 // remove keeps relational projections and native FTS rows in the same transaction as the source body.
 func (d *Driver) remove(ctx context.Context, tx *sql.Tx, id search.DocumentID) error {
-	for _, table := range []string{d.name + "_values", d.name} {
-		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table+" WHERE owner="+d.bind(1), ownerKey(id)); err != nil {
+	if !d.postgres {
+		// The indexed owner lookup prevents a full FTS scan for every newly inserted document.
+		query := "DELETE FROM " + d.name + "_fts WHERE rowid IN (SELECT f.rowid FROM " + d.name + " d CROSS JOIN " + d.name + "_fts f WHERE d.owner=" + d.bind(1) + " AND f.id=d.id)"
+		if _, err := tx.ExecContext(ctx, query, ownerKey(id)); err != nil {
 			return err
 		}
 	}
-	if !d.postgres {
-		if _, err := tx.ExecContext(ctx, "DELETE FROM "+d.name+"_fts WHERE id="+d.bind(1), driverutil.IDKey(id)); err != nil {
+	for _, table := range []string{d.name + "_values", d.name} {
+		if _, err := tx.ExecContext(ctx, "DELETE FROM "+table+" WHERE owner="+d.bind(1), ownerKey(id)); err != nil {
 			return err
 		}
 	}

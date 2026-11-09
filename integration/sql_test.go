@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/goforj/search"
 	"github.com/goforj/search/driver/postgressearch"
 	"github.com/goforj/search/driver/sqlitesearch"
@@ -14,6 +15,68 @@ import (
 	"testing"
 	"time"
 )
+
+// TestSQLiteLargeTextFacets prevents facet joins from repeating a full-text scan for each matching value.
+func TestSQLiteLargeTextFacets(t *testing.T) {
+	driver, err := sqlitesearch.New(sqlitesearch.Config{DB: sqlDatabase(t, "sqlite")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := driver.Close(); err != nil {
+			t.Error(err)
+		}
+	})
+	definition := search.Definition{Name: "largefacets", Fields: []search.Field{
+		{Name: "title", Type: search.TextField, Searchable: true},
+		{Name: "category", Type: search.KeywordField, Filterable: true, Facetable: true},
+	}}
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	if err := driver.CreateIndex(ctx, definition); err != nil {
+		t.Fatal(err)
+	}
+	index, err := search.NewIndex(driver, definition)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for start := 0; start < 10000; start += 1000 {
+		mutations := make([]search.Mutation, 1000)
+		for n := range mutations {
+			category := "even"
+			if n%2 != 0 {
+				category = "odd"
+			}
+			mutation, err := search.UpsertMutation(search.Document{ID: search.DocumentID(fmt.Sprintf("document%d", start+n)), Body: []byte(fmt.Sprintf(`{"title":"portable cup","category":"%s"}`, category))})
+			if err != nil {
+				t.Fatal(err)
+			}
+			mutations[n] = mutation
+		}
+		result, err := index.Bulk(ctx, mutations)
+		if err != nil {
+			t.Fatal(err)
+		}
+		outcome, err := index.Wait(ctx, result.Receipt)
+		if err != nil || outcome.State != search.OutcomeSucceeded {
+			t.Fatal(outcome, err)
+		}
+	}
+	queryCtx, queryCancel := context.WithTimeout(ctx, 10*time.Second)
+	defer queryCancel()
+	category, _ := search.Keyword("even")
+	result, err := index.Search(queryCtx, search.Query{Text: "portable", Fields: []search.FieldName{"title"}, Filter: search.Equal("category", category), Facets: []search.TermFacet{{Name: "categories", Field: "category", Limit: 8}}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Total.Value != 5000 || result.Total.Relation != search.TotalExact || len(result.Facets) != 1 || len(result.Facets[0].Buckets) != 1 || result.Facets[0].Buckets[0].Count != 5000 {
+		t.Fatal("incomplete large-match facets", result.Total, result.Facets)
+	}
+	value, ok := result.Facets[0].Buckets[0].Value.Keyword()
+	if !ok || value != "even" {
+		t.Fatal("incorrect facet term")
+	}
+}
 
 // TestSQLLifecycleAndDrift checks ownership, actual schema drift, and connection-pool lifetime on both SQL engines.
 func TestSQLLifecycleAndDrift(t *testing.T) {
