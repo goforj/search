@@ -56,9 +56,9 @@ Run `scripts/tidy-modules.sh --check` to check every module without changing the
 
 ## Release order
 
-The next patch release uses `v0.1.1` for both the root module and the optional embedded module. The modules have separate tags; the docs, examples, and integration modules are not published.
+The current release uses `v0.1.1` for both the root module and the optional embedded module. The modules have separate tags; the docs, examples, and integration modules are not published.
 
-See the [v0.1.1 release candidate](releases/v0.1.1.md) for current preparation and compatibility notes, and the [first release review](release-readiness.md) for the original publication evidence.
+See the [v0.1.1 release verification](releases/v0.1.1.md) for current preparation and compatibility notes, and the [first release review](release-readiness.md) for the original publication evidence.
 
 For each release, update the README and its authoritative `docs/assets/status.svg` version badge together.
 
