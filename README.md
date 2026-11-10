@@ -70,6 +70,15 @@ import (
 	"github.com/goforj/search/driver/blevesearch"
 )
 
+// Product models a catalog item; its document ID is supplied separately to Upsert.
+type Product struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	PriceCents  int64  `json:"price_cents"`
+	InStock     bool   `json:"in_stock"`
+}
+
 // main demonstrates the complete embedded indexing and typed-query lifecycle.
 func main() {
 	ctx := context.Background()
@@ -101,15 +110,7 @@ func main() {
 		panic(err)
 	}
 
-	// product models a catalog item; its document ID is supplied separately to Upsert.
-	type product struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Category    string `json:"category"`
-		PriceCents  int64  `json:"price_cents"`
-		InStock     bool   `json:"in_stock"`
-	}
-	receipt, err := search.Upsert(ctx, index, "mug-1", product{
+	receipt, err := search.Upsert(ctx, index, "mug-1", Product{
 		Title:       "Blue mug",
 		Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
 		Category:    "kitchen",
@@ -129,7 +130,7 @@ func main() {
 	}
 
 	// Require both search terms and decode hits directly into the application type.
-	page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+	page, err := search.SearchAs[Product](ctx, index, search.Query{Text: "blue mug"})
 	if err != nil {
 		panic(err)
 	}
@@ -363,15 +364,7 @@ if err != nil {
 	panic(err)
 }
 
-// product models a catalog item; its document ID is supplied separately to Upsert.
-type product struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	PriceCents  int64  `json:"price_cents"`
-	InStock     bool   `json:"in_stock"`
-}
-receipt, err := search.Upsert(ctx, index, "mug-1", product{
+receipt, err := search.Upsert(ctx, index, "mug-1", Product{
 	Title:       "Blue mug",
 	Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
 	Category:    "kitchen",
@@ -391,7 +384,7 @@ if outcome.State != search.OutcomeSucceeded {
 }
 
 // Require both search terms and decode hits directly into the application type.
-page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+page, err := search.SearchAs[Product](ctx, index, search.Query{Text: "blue mug"})
 if err != nil {
 	panic(err)
 }
@@ -545,15 +538,7 @@ if err != nil {
 	panic(err)
 }
 
-// product models a catalog item; its document ID is supplied separately to Upsert.
-type product struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	PriceCents  int64  `json:"price_cents"`
-	InStock     bool   `json:"in_stock"`
-}
-receipt, err := search.Upsert(ctx, index, "mug-1", product{
+receipt, err := search.Upsert(ctx, index, "mug-1", Product{
 	Title:       "Blue mug",
 	Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
 	Category:    "kitchen",
@@ -573,7 +558,7 @@ if outcome.State != search.OutcomeSucceeded {
 }
 
 // Require both search terms and decode hits directly into the application type.
-page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+page, err := search.SearchAs[Product](ctx, index, search.Query{Text: "blue mug"})
 if err != nil {
 	panic(err)
 }
@@ -723,15 +708,7 @@ if err != nil {
 	panic(err)
 }
 
-// product models a catalog item; its document ID is supplied separately to Upsert.
-type product struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Category    string `json:"category"`
-	PriceCents  int64  `json:"price_cents"`
-	InStock     bool   `json:"in_stock"`
-}
-receipt, err := search.Upsert(ctx, index, "mug-1", product{
+receipt, err := search.Upsert(ctx, index, "mug-1", Product{
 	Title:       "Blue mug",
 	Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
 	Category:    "kitchen",
@@ -751,7 +728,7 @@ if outcome.State != search.OutcomeSucceeded {
 }
 
 // Require both search terms and decode hits directly into the application type.
-page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+page, err := search.SearchAs[Product](ctx, index, search.Query{Text: "blue mug"})
 if err != nil {
 	panic(err)
 }
