@@ -41,18 +41,20 @@ func TestAPIIndexLinksToInlineExamples(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, expected := range []string{
-		"[Index.Search](#example-search)",
+		"[Index.Search](#api-index-search)",
 		"| Group | Functions |\n| ---: | --- |",
-		"| **Queries** | [Index.Search](#example-search) |",
+		"| **Queries** | [Index.Search](#api-index-search) |",
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
-		`### <a id="example-search"></a>Search documents`,
+		"## Queries\n",
+		`### <a id="api-index-search"></a>Index.Search`,
+		"Search documents.",
 	} {
 		if !strings.Contains(markdown, expected) {
 			t.Fatal("missing API navigation or example", expected)
 		}
 	}
-	index, _, _ := strings.Cut(markdown, "## API examples")
+	index, _, _ := strings.Cut(markdown, "\n## Queries")
 	if strings.Contains(index, "#L") || strings.Contains(index, "](index.go") {
 		t.Fatal("API index links to implementation source")
 	}
@@ -89,7 +91,19 @@ func TestApplicationAPIStaysFocused(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	index, _, _ := strings.Cut(markdown, "## API examples")
+	index, _, _ := strings.Cut(markdown, "\n## Construction")
+	for _, entry := range applicationAPI {
+		if !strings.Contains(markdown, "\n## "+entry.Group+"\n") {
+			t.Fatal("missing category heading", entry.Group)
+		}
+		for _, name := range entry.APIs {
+			label := strings.TrimPrefix(name, "search.")
+			anchor := "api-" + strings.ToLower(strings.ReplaceAll(label, ".", "-"))
+			if strings.Count(markdown, `<a id="`+anchor+`"></a>`+label) != 1 {
+				t.Fatal("API link must have one matching named heading", name)
+			}
+		}
+	}
 	for _, name := range []string{"NewIndex", "Upsert", "SearchAs", "Index.Bulk", "Index.Wait", "searchfake.New"} {
 		if !strings.Contains(index, "["+name+"]") {
 			t.Fatal("missing application operation", name)
@@ -101,7 +115,7 @@ func TestApplicationAPIStaysFocused(t *testing.T) {
 		}
 	}
 	if strings.Contains(index, "| Description |") || strings.Contains(index, "| Example |") || strings.Contains(index, "| Task |") {
-		t.Fatal("exhaustive symbol table returned")
+		t.Fatal("API index must retain the two-column category format")
 	}
 }
 
@@ -123,12 +137,12 @@ func TestCuratedEntriesRejectStaleReferences(t *testing.T) {
 func TestAPIIndexRequiresMatchingExamples(t *testing.T) {
 	symbols := []gen.Symbol{{Name: "search.Upsert"}, {Name: "search.Index.Wait"}}
 	examples := []gen.Example{
-		{Name: "write", APIs: []string{"search.Upsert"}, Snippet: "search.Upsert(ctx, index, id, value)"},
-		{Name: "wait", APIs: []string{"search.Index.Wait"}, Snippet: "index.Wait(ctx, receipt)"},
+		{Name: "write", Title: "Write a document", APIs: []string{"search.Upsert"}, Snippet: "search.Upsert(ctx, index, id, value)"},
+		{Name: "wait", Title: "Wait for visibility", APIs: []string{"search.Index.Wait"}, Snippet: "index.Wait(ctx, receipt)"},
 	}
 	entries := []apiEntry{{Group: "Write and wait", APIs: []string{"search.Upsert", "search.Index.Wait"}, Examples: []string{"write", "wait"}}}
 	markdown, err := apiMarkdownFor(symbols, examples, entries)
-	if err != nil || !strings.Contains(markdown, "[Index.Wait](#example-wait)") {
+	if err != nil || !strings.Contains(markdown, "[Index.Wait](#api-index-wait)") || !strings.Contains(markdown, "### <a id=\"api-index-wait\"></a>Index.Wait\n\nWait for visibility.\n\n```go\nindex.Wait(ctx, receipt)") {
 		t.Fatal(markdown, err)
 	}
 	entries[0].Examples = []string{"write"}

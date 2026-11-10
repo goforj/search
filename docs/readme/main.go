@@ -160,10 +160,12 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 			}
 		}
 	}
-	var out strings.Builder
+	var out, usage strings.Builder
+	anchored := map[string]bool{}
 	out.WriteString("## API Index\n\n| Group | Functions |\n| ---: | --- |\n")
 	for _, entry := range entries {
 		apis := []string{}
+		byUsage := map[string][]string{}
 		if len(entry.Examples) == 0 {
 			return "", fmt.Errorf("API index group %s has no example", entry.Group)
 		}
@@ -197,16 +199,26 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 				return "", fmt.Errorf("API index references API %s without a matching example", name)
 			}
 			label := strings.TrimPrefix(symbol.Name, "search.")
-			apis = append(apis, fmt.Sprintf("[%s](#example-%s)", label, target))
+			anchor := "api-" + strings.ToLower(strings.ReplaceAll(label, ".", "-"))
+			apis = append(apis, fmt.Sprintf("[%s](#%s)", label, anchor))
+			byUsage[target] = append(byUsage[target], fmt.Sprintf(`<a id="%s"></a>%s`, anchor, label))
 		}
 		fmt.Fprintf(&out, "| **%s** | %s |\n", entry.Group, strings.Join(apis, " · "))
-	}
-	out.WriteString("\n## API examples\n\nFind complete programs and setup in [Runnable examples](#runnable-examples).\n")
-	for _, example := range examples {
-		if example.Snippet == "" {
-			continue
+		fmt.Fprintf(&usage, "\n## %s\n", entry.Group)
+		for _, exampleName := range entry.Examples {
+			headings := byUsage[exampleName]
+			if len(headings) == 0 {
+				continue
+			}
+			example := byExample[exampleName]
+			if !anchored[exampleName] {
+				fmt.Fprintf(&usage, "\n<a id=\"example-%s\"></a>\n", exampleName)
+				anchored[exampleName] = true
+			}
+			fmt.Fprintf(&usage, "\n### %s\n\n%s.\n\n```go\n%s```\n", strings.Join(headings, " · "), example.Title, example.Snippet)
 		}
-		fmt.Fprintf(&out, "\n### <a id=\"example-%s\"></a>%s\n\n```go\n%s```\n", example.Name, example.Title, example.Snippet)
 	}
+	out.WriteString("\nFind complete programs and setup in [Runnable examples](#runnable-examples).\n")
+	out.WriteString(usage.String())
 	return out.String(), nil
 }

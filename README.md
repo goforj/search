@@ -294,126 +294,25 @@ See [development and release notes](docs/development.md) for focused driver test
 
 | Group | Functions |
 | ---: | --- |
-| **Construction** | [Definition](#example-quickstart) · [NewIndex](#example-quickstart) |
-| **Facets** | [TermFacet](#example-facets) |
-| **Filters** | [And](#example-filters) · [Equal](#example-filters) · [Integer](#example-filters) · [Keyword](#example-filters) |
-| **Highlights** | [Highlight](#example-highlights) |
-| **Mutations** | [DeleteMutation](#example-bulk) · [Index.Bulk](#example-bulk) · [Upsert](#example-quickstart) |
-| **Queries** | [Index.Search](#example-filters) · [Query](#example-search) · [SearchAs](#example-search) |
-| **Sorting** | [Sort](#example-filters) |
-| **Testing** | [searchfake.Backend.Calls](#example-fake) · [searchfake.Backend.QueueSearch](#example-fake) · [searchfake.New](#example-fake) |
-| **Visibility** | [Index.Wait](#example-quickstart) · [Outcome](#example-quickstart) |
-
-## API examples
+| **Construction** | [Definition](#api-definition) · [NewIndex](#api-newindex) |
+| **Facets** | [TermFacet](#api-termfacet) |
+| **Filters** | [And](#api-and) · [Equal](#api-equal) · [Integer](#api-integer) · [Keyword](#api-keyword) |
+| **Highlights** | [Highlight](#api-highlight) |
+| **Mutations** | [DeleteMutation](#api-deletemutation) · [Index.Bulk](#api-index-bulk) · [Upsert](#api-upsert) |
+| **Queries** | [Index.Search](#api-index-search) · [Query](#api-query) · [SearchAs](#api-searchas) |
+| **Sorting** | [Sort](#api-sort) |
+| **Testing** | [searchfake.Backend.Calls](#api-searchfake-backend-calls) · [searchfake.Backend.QueueSearch](#api-searchfake-backend-queuesearch) · [searchfake.New](#api-searchfake-new) |
+| **Visibility** | [Index.Wait](#api-index-wait) · [Outcome](#api-outcome) |
 
 Find complete programs and setup in [Runnable examples](#runnable-examples).
 
-### <a id="example-bulk"></a>Inspect bulk visibility
+## Construction
 
-```go
-first, err := search.DeleteMutation("one")
-if err != nil {
-	panic(err)
-}
-second, err := search.DeleteMutation("two")
-if err != nil {
-	panic(err)
-}
-batch, err := index.Bulk(ctx, []search.Mutation{first, second})
-if err != nil {
-	panic(err)
-}
-outcome, err := index.Wait(ctx, batch.Receipt)
-if err != nil {
-	panic(err)
-}
-for _, item := range outcome.Bulk.Items {
-	fmt.Println(item.ID, item.Status)
-	// one succeeded
-	// two succeeded
-}
-```
+<a id="example-quickstart"></a>
 
-### <a id="example-facets"></a>Count facets before pagination
+### <a id="api-definition"></a>Definition · <a id="api-newindex"></a>NewIndex
 
-```go
-result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
-if err != nil {
-	panic(err)
-}
-for _, bucket := range result.Facets[0].Buckets {
-	value, _ := bucket.Value.Keyword()
-	fmt.Println(value, bucket.Count)
-	// kitchen 2
-	// books 1
-}
-```
-
-### <a id="example-fake"></a>Test an application service
-
-```go
-backend := searchfake.New()
-backend.QueueSearch(search.Result{Total: search.Total{Value: 3, Relation: search.TotalExact}}, nil)
-index, err := search.NewIndex(backend, search.Definition{
-	Name:   "products",
-	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
-})
-if err != nil {
-	panic(err)
-}
-result, err := index.Search(context.Background(), search.Query{Text: "mug"})
-if err != nil {
-	panic(err)
-}
-fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
-// 3 search
-```
-
-### <a id="example-filters"></a>Filter and sort results
-
-```go
-category, err := search.Keyword("kitchen")
-if err != nil {
-	panic(err)
-}
-maximum, err := search.Integer(1500)
-if err != nil {
-	panic(err)
-}
-result, err := index.Search(ctx, search.Query{
-	Filter: search.And(search.Equal("category", category), search.LessThan("price", maximum)),
-	Sort:   []search.Sort{{Field: "price", Direction: search.Ascending}},
-	Limit:  1,
-})
-if err != nil {
-	panic(err)
-}
-fmt.Println(result.Hits[0].Document.ID)
-// two
-fmt.Println(result.Total.Value)
-// 2
-```
-
-### <a id="example-highlights"></a>Escape structured highlights
-
-```go
-result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
-if err != nil {
-	panic(err)
-}
-for _, segment := range result.Hits[0].Highlights["title"][0].Segments {
-	text := html.EscapeString(segment.Text)
-	if segment.Matched {
-		fmt.Print("<mark>" + text + "</mark>")
-	} else {
-		fmt.Print(text)
-	}
-}
-fmt.Println()
-// <mark>Blue</mark> mug
-```
-
-### <a id="example-quickstart"></a>Index and search a document
+Index and search a document.
 
 ```go
 ctx := context.Background()
@@ -465,7 +364,176 @@ fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
 // mug-1 Blue mug
 ```
 
-### <a id="example-search"></a>Search typed documents
+## Facets
+
+<a id="example-facets"></a>
+
+### <a id="api-termfacet"></a>TermFacet
+
+Count facets before pagination.
+
+```go
+result, err := index.Search(ctx, search.Query{Limit: 1, Facets: []search.TermFacet{{Name: "categories", Field: "category"}}})
+if err != nil {
+	panic(err)
+}
+for _, bucket := range result.Facets[0].Buckets {
+	value, _ := bucket.Value.Keyword()
+	fmt.Println(value, bucket.Count)
+	// kitchen 2
+	// books 1
+}
+```
+
+## Filters
+
+<a id="example-filters"></a>
+
+### <a id="api-and"></a>And · <a id="api-equal"></a>Equal · <a id="api-integer"></a>Integer · <a id="api-keyword"></a>Keyword
+
+Filter and sort results.
+
+```go
+category, err := search.Keyword("kitchen")
+if err != nil {
+	panic(err)
+}
+maximum, err := search.Integer(1500)
+if err != nil {
+	panic(err)
+}
+result, err := index.Search(ctx, search.Query{
+	Filter: search.And(search.Equal("category", category), search.LessThan("price", maximum)),
+	Sort:   []search.Sort{{Field: "price", Direction: search.Ascending}},
+	Limit:  1,
+})
+if err != nil {
+	panic(err)
+}
+fmt.Println(result.Hits[0].Document.ID)
+// two
+fmt.Println(result.Total.Value)
+// 2
+```
+
+## Highlights
+
+<a id="example-highlights"></a>
+
+### <a id="api-highlight"></a>Highlight
+
+Escape structured highlights.
+
+```go
+result, err := index.Search(ctx, search.Query{Text: "blue", Highlight: []search.Highlight{{Field: "title"}}})
+if err != nil {
+	panic(err)
+}
+for _, segment := range result.Hits[0].Highlights["title"][0].Segments {
+	text := html.EscapeString(segment.Text)
+	if segment.Matched {
+		fmt.Print("<mark>" + text + "</mark>")
+	} else {
+		fmt.Print(text)
+	}
+}
+fmt.Println()
+// <mark>Blue</mark> mug
+```
+
+## Mutations
+
+<a id="example-bulk"></a>
+
+### <a id="api-deletemutation"></a>DeleteMutation · <a id="api-index-bulk"></a>Index.Bulk
+
+Inspect bulk visibility.
+
+```go
+first, err := search.DeleteMutation("one")
+if err != nil {
+	panic(err)
+}
+second, err := search.DeleteMutation("two")
+if err != nil {
+	panic(err)
+}
+batch, err := index.Bulk(ctx, []search.Mutation{first, second})
+if err != nil {
+	panic(err)
+}
+outcome, err := index.Wait(ctx, batch.Receipt)
+if err != nil {
+	panic(err)
+}
+for _, item := range outcome.Bulk.Items {
+	fmt.Println(item.ID, item.Status)
+	// one succeeded
+	// two succeeded
+}
+```
+
+### <a id="api-upsert"></a>Upsert
+
+Index and search a document.
+
+```go
+ctx := context.Background()
+
+// Use an in-memory index so this example needs no files or search service.
+driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
+if err != nil {
+	panic(err)
+}
+defer driver.Close()
+
+// Declare which document fields participate in full-text search.
+definition := search.Definition{
+	Name:   "products",
+	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+}
+// Provision the schema explicitly before creating an application handle.
+if err := driver.CreateIndex(ctx, definition); err != nil {
+	panic(err)
+}
+index, err := search.NewIndex(driver, definition)
+if err != nil {
+	panic(err)
+}
+
+// Keep the document ID separate from the application JSON.
+type product struct {
+	Title string `json:"title"`
+}
+receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+if err != nil {
+	panic(err)
+}
+// A receipt acknowledges the write; Wait establishes search visibility.
+outcome, err := index.Wait(ctx, receipt)
+if err != nil {
+	panic(err)
+}
+if outcome.State != search.OutcomeSucceeded {
+	panic(outcome.Error)
+}
+
+// Require both search terms and decode hits directly into the application type.
+page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+if err != nil {
+	panic(err)
+}
+fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+// mug-1 Blue mug
+```
+
+## Queries
+
+<a id="example-search"></a>
+
+### <a id="api-query"></a>Query · <a id="api-searchas"></a>SearchAs
+
+Search typed documents.
 
 ```go
 page, err := search.SearchAs[struct {
@@ -480,35 +548,141 @@ fmt.Println(page.Total.Value)
 // 1
 ```
 
-### <a id="example-services"></a>Construct service drivers
+### <a id="api-index-search"></a>Index.Search
+
+Filter and sort results.
 
 ```go
-meili, err := meilisearch.New(meilisearch.Config{URL: "http://127.0.0.1:7700"})
+category, err := search.Keyword("kitchen")
 if err != nil {
 	panic(err)
 }
-defer meili.Close()
-typesense, err := typesensesearch.New(typesensesearch.Config{URL: "http://127.0.0.1:8108"})
+maximum, err := search.Integer(1500)
 if err != nil {
 	panic(err)
 }
-defer typesense.Close()
-openSearch, err := opensearch.New(opensearch.Config{URL: "http://127.0.0.1:9200"})
+result, err := index.Search(ctx, search.Query{
+	Filter: search.And(search.Equal("category", category), search.LessThan("price", maximum)),
+	Sort:   []search.Sort{{Field: "price", Direction: search.Ascending}},
+	Limit:  1,
+})
 if err != nil {
 	panic(err)
 }
-defer openSearch.Close()
-elastic, err := elasticsearch.New(elasticsearch.Config{URL: "http://127.0.0.1:9200"})
+fmt.Println(result.Hits[0].Document.ID)
+// two
+fmt.Println(result.Total.Value)
+// 2
+```
+
+## Sorting
+
+### <a id="api-sort"></a>Sort
+
+Filter and sort results.
+
+```go
+category, err := search.Keyword("kitchen")
 if err != nil {
 	panic(err)
 }
-defer elastic.Close()
-redis, err := redissearch.New(redissearch.Config{Addr: "127.0.0.1:6379"})
+maximum, err := search.Integer(1500)
 if err != nil {
 	panic(err)
 }
-defer redis.Close()
-fmt.Println("Clients constructed without backend I/O")
-// Clients constructed without backend I/O
+result, err := index.Search(ctx, search.Query{
+	Filter: search.And(search.Equal("category", category), search.LessThan("price", maximum)),
+	Sort:   []search.Sort{{Field: "price", Direction: search.Ascending}},
+	Limit:  1,
+})
+if err != nil {
+	panic(err)
+}
+fmt.Println(result.Hits[0].Document.ID)
+// two
+fmt.Println(result.Total.Value)
+// 2
+```
+
+## Testing
+
+<a id="example-fake"></a>
+
+### <a id="api-searchfake-backend-calls"></a>searchfake.Backend.Calls · <a id="api-searchfake-backend-queuesearch"></a>searchfake.Backend.QueueSearch · <a id="api-searchfake-new"></a>searchfake.New
+
+Test an application service.
+
+```go
+backend := searchfake.New()
+backend.QueueSearch(search.Result{Total: search.Total{Value: 3, Relation: search.TotalExact}}, nil)
+index, err := search.NewIndex(backend, search.Definition{
+	Name:   "products",
+	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+})
+if err != nil {
+	panic(err)
+}
+result, err := index.Search(context.Background(), search.Query{Text: "mug"})
+if err != nil {
+	panic(err)
+}
+fmt.Println(result.Total.Value, backend.Calls()[0].Kind)
+// 3 search
+```
+
+## Visibility
+
+### <a id="api-index-wait"></a>Index.Wait · <a id="api-outcome"></a>Outcome
+
+Index and search a document.
+
+```go
+ctx := context.Background()
+
+// Use an in-memory index so this example needs no files or search service.
+driver, err := blevesearch.Open(ctx, blevesearch.Config{Memory: true})
+if err != nil {
+	panic(err)
+}
+defer driver.Close()
+
+// Declare which document fields participate in full-text search.
+definition := search.Definition{
+	Name:   "products",
+	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+}
+// Provision the schema explicitly before creating an application handle.
+if err := driver.CreateIndex(ctx, definition); err != nil {
+	panic(err)
+}
+index, err := search.NewIndex(driver, definition)
+if err != nil {
+	panic(err)
+}
+
+// Keep the document ID separate from the application JSON.
+type product struct {
+	Title string `json:"title"`
+}
+receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+if err != nil {
+	panic(err)
+}
+// A receipt acknowledges the write; Wait establishes search visibility.
+outcome, err := index.Wait(ctx, receipt)
+if err != nil {
+	panic(err)
+}
+if outcome.State != search.OutcomeSucceeded {
+	panic(outcome.Error)
+}
+
+// Require both search terms and decode hits directly into the application type.
+page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"})
+if err != nil {
+	panic(err)
+}
+fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+// mug-1 Blue mug
 ```
 <!-- api:embed:end -->
