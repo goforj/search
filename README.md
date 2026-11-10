@@ -292,20 +292,17 @@ See [development and release notes](docs/development.md) for focused driver test
 <!-- api:embed:start -->
 ## API Index
 
-Choose a backend in [Drivers](#drivers), then use these operations in your application. API names and example titles jump to tested usage below.
-
-| Task | API | Example |
-| --- | --- | --- |
-| Define an index | [Definition](#example-quickstart) · [NewIndex](#example-quickstart) | [Index and search a document](#example-quickstart) |
-| Write documents | [Upsert](#example-quickstart) | [Index and search a document](#example-quickstart) |
-| Search documents | [SearchAs](#example-search) · [Query](#example-search) | [Search typed documents](#example-search) |
-| Filter results | [Index.Search](#example-filters) · [Keyword](#example-filters) · [Integer](#example-filters) · [And](#example-filters) · [Equal](#example-filters) | [Filter and sort results](#example-filters) |
-| Sort and paginate | [Query](#example-filters) · [Sort](#example-filters) | [Filter and sort results](#example-filters) |
-| Count facets | [TermFacet](#example-facets) | [Count facets before pagination](#example-facets) |
-| Highlight matches | [Highlight](#example-highlights) | [Escape structured highlights](#example-highlights) |
-| Write a batch | [Index.Bulk](#example-bulk) · [DeleteMutation](#example-bulk) | [Inspect bulk visibility](#example-bulk) |
-| Wait for visibility | [Index.Wait](#example-quickstart) · [Outcome](#example-quickstart) | [Index and search a document](#example-quickstart) · [Inspect bulk visibility](#example-bulk) |
-| Test application code | [searchfake.New](#example-fake) · [searchfake.Backend.QueueSearch](#example-fake) · [searchfake.Backend.Calls](#example-fake) | [Test an application service](#example-fake) |
+| Group | Functions |
+| ---: | --- |
+| **Construction** | [Definition](#example-quickstart) · [NewIndex](#example-quickstart) |
+| **Facets** | [TermFacet](#example-facets) |
+| **Filters** | [And](#example-filters) · [Equal](#example-filters) · [Integer](#example-filters) · [Keyword](#example-filters) |
+| **Highlights** | [Highlight](#example-highlights) |
+| **Mutations** | [DeleteMutation](#example-bulk) · [Index.Bulk](#example-bulk) · [Upsert](#example-quickstart) |
+| **Queries** | [Index.Search](#example-filters) · [Query](#example-search) · [SearchAs](#example-search) |
+| **Sorting** | [Sort](#example-filters) |
+| **Testing** | [searchfake.Backend.Calls](#example-fake) · [searchfake.Backend.QueueSearch](#example-fake) · [searchfake.New](#example-fake) |
+| **Visibility** | [Index.Wait](#example-quickstart) · [Outcome](#example-quickstart) |
 
 ## API examples
 

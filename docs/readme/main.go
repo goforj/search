@@ -120,28 +120,27 @@ func quickStartMarkdown(examples []gen.Example) (string, error) {
 	return "", fmt.Errorf("missing executable quickstart example")
 }
 
-// apiEntry selects operations around one application task rather than exported-symbol inventory.
+// apiEntry groups application operations without exposing the full exported-symbol inventory.
 type apiEntry struct {
-	Task     string
+	Group    string
 	APIs     []string
 	Examples []string
 }
 
 // applicationAPI keeps the README centered on the operations application services call.
 var applicationAPI = []apiEntry{
-	{"Define an index", []string{"search.Definition", "search.NewIndex"}, []string{"quickstart"}},
-	{"Write documents", []string{"search.Upsert"}, []string{"quickstart"}},
-	{"Search documents", []string{"search.SearchAs", "search.Query"}, []string{"search"}},
-	{"Filter results", []string{"search.Index.Search", "search.Keyword", "search.Integer", "search.And", "search.Equal"}, []string{"filters"}},
-	{"Sort and paginate", []string{"search.Query", "search.Sort"}, []string{"filters"}},
-	{"Count facets", []string{"search.TermFacet"}, []string{"facets"}},
-	{"Highlight matches", []string{"search.Highlight"}, []string{"highlights"}},
-	{"Write a batch", []string{"search.Index.Bulk", "search.DeleteMutation"}, []string{"bulk"}},
-	{"Wait for visibility", []string{"search.Index.Wait", "search.Outcome"}, []string{"quickstart", "bulk"}},
-	{"Test application code", []string{"searchfake.New", "searchfake.Backend.QueueSearch", "searchfake.Backend.Calls"}, []string{"fake"}},
+	{"Construction", []string{"search.Definition", "search.NewIndex"}, []string{"quickstart"}},
+	{"Facets", []string{"search.TermFacet"}, []string{"facets"}},
+	{"Filters", []string{"search.And", "search.Equal", "search.Integer", "search.Keyword"}, []string{"filters"}},
+	{"Highlights", []string{"search.Highlight"}, []string{"highlights"}},
+	{"Mutations", []string{"search.DeleteMutation", "search.Index.Bulk", "search.Upsert"}, []string{"bulk", "quickstart"}},
+	{"Queries", []string{"search.Index.Search", "search.Query", "search.SearchAs"}, []string{"search", "filters"}},
+	{"Sorting", []string{"search.Sort"}, []string{"filters"}},
+	{"Testing", []string{"searchfake.Backend.Calls", "searchfake.Backend.QueueSearch", "searchfake.New"}, []string{"fake"}},
+	{"Visibility", []string{"search.Index.Wait", "search.Outcome"}, []string{"quickstart", "bulk"}},
 }
 
-// apiMarkdown projects the curated application workflow while retaining tested example navigation.
+// apiMarkdown projects the curated application categories while retaining tested example navigation.
 func apiMarkdown(symbols []gen.Symbol, examples []gen.Example) (string, error) {
 	return apiMarkdownFor(symbols, examples, applicationAPI)
 }
@@ -162,11 +161,11 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 		}
 	}
 	var out strings.Builder
-	out.WriteString("## API Index\n\nChoose a backend in [Drivers](#drivers), then use these operations in your application. API names and example titles jump to tested usage below.\n\n| Task | API | Example |\n| --- | --- | --- |\n")
+	out.WriteString("## API Index\n\n| Group | Functions |\n| ---: | --- |\n")
 	for _, entry := range entries {
-		apis, links := []string{}, []string{}
+		apis := []string{}
 		if len(entry.Examples) == 0 {
-			return "", fmt.Errorf("API index task %s has no example", entry.Task)
+			return "", fmt.Errorf("API index group %s has no example", entry.Group)
 		}
 		for _, name := range entry.Examples {
 			example, ok := byExample[name]
@@ -176,7 +175,6 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 			if example.Snippet == "" {
 				return "", fmt.Errorf("API index references example %s without an inline snippet", name)
 			}
-			links = append(links, fmt.Sprintf("[%s](#example-%s)", example.Title, example.Name))
 		}
 		for _, name := range entry.APIs {
 			symbol, ok := known[name]
@@ -201,7 +199,7 @@ func apiMarkdownFor(symbols []gen.Symbol, examples []gen.Example, entries []apiE
 			label := strings.TrimPrefix(symbol.Name, "search.")
 			apis = append(apis, fmt.Sprintf("[%s](#example-%s)", label, target))
 		}
-		fmt.Fprintf(&out, "| %s | %s | %s |\n", entry.Task, strings.Join(apis, " · "), strings.Join(links, " · "))
+		fmt.Fprintf(&out, "| **%s** | %s |\n", entry.Group, strings.Join(apis, " · "))
 	}
 	out.WriteString("\n## API examples\n\nFind complete programs and setup in [Runnable examples](#runnable-examples).\n")
 	for _, example := range examples {

@@ -35,14 +35,15 @@ func TestQuickStartRequiresTestedSource(t *testing.T) {
 func TestAPIIndexLinksToInlineExamples(t *testing.T) {
 	symbols := []gen.Symbol{{Name: "search.Index.Search", Source: "index.go", Line: 79, Group: "Queries", Description: "Search matches text | filters."}}
 	examples := []gen.Example{{Name: "search", Title: "Search documents", Source: "search/main.go", APIs: []string{"search.Index.Search"}, Snippet: "index.Search(ctx, query)\n"}}
-	entries := []apiEntry{{Task: "Search documents", APIs: []string{"search.Index.Search"}, Examples: []string{"search"}}}
+	entries := []apiEntry{{Group: "Queries", APIs: []string{"search.Index.Search"}, Examples: []string{"search"}}}
 	markdown, err := apiMarkdownFor(symbols, examples, entries)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for _, expected := range []string{
 		"[Index.Search](#example-search)",
-		"[Search documents](#example-search)",
+		"| Group | Functions |\n| ---: | --- |",
+		"| **Queries** | [Index.Search](#example-search) |",
 		`id="example-search"`,
 		"```go\nindex.Search(ctx, query)\n```",
 		`### <a id="example-search"></a>Search documents`,
@@ -99,7 +100,7 @@ func TestApplicationAPIStaysFocused(t *testing.T) {
 			t.Fatal("supporting API returned to application index", name)
 		}
 	}
-	if strings.Contains(index, "| Description |") {
+	if strings.Contains(index, "| Description |") || strings.Contains(index, "| Example |") || strings.Contains(index, "| Task |") {
 		t.Fatal("exhaustive symbol table returned")
 	}
 }
@@ -107,13 +108,13 @@ func TestApplicationAPIStaysFocused(t *testing.T) {
 // TestCuratedEntriesRejectStaleReferences catches renamed APIs and examples at generation time.
 func TestCuratedEntriesRejectStaleReferences(t *testing.T) {
 	for _, entry := range []apiEntry{
-		{Task: "Missing API", APIs: []string{"search.Missing"}, Examples: []string{"example"}},
-		{Task: "Missing example", Examples: []string{"missing"}},
-		{Task: "No example", APIs: []string{"search.Index.Search"}},
-		{Task: "No snippet", Examples: []string{"empty"}},
+		{Group: "Missing API", APIs: []string{"search.Missing"}, Examples: []string{"example"}},
+		{Group: "Missing example", Examples: []string{"missing"}},
+		{Group: "No example", APIs: []string{"search.Index.Search"}},
+		{Group: "No snippet", Examples: []string{"empty"}},
 	} {
 		if _, err := apiMarkdownFor(nil, []gen.Example{{Name: "example", Snippet: "code"}, {Name: "empty"}}, []apiEntry{entry}); err == nil {
-			t.Fatal("stale curated entry accepted", entry.Task)
+			t.Fatal("stale curated entry accepted", entry.Group)
 		}
 	}
 }
@@ -125,7 +126,7 @@ func TestAPIIndexRequiresMatchingExamples(t *testing.T) {
 		{Name: "write", APIs: []string{"search.Upsert"}, Snippet: "search.Upsert(ctx, index, id, value)"},
 		{Name: "wait", APIs: []string{"search.Index.Wait"}, Snippet: "index.Wait(ctx, receipt)"},
 	}
-	entries := []apiEntry{{Task: "Write and wait", APIs: []string{"search.Upsert", "search.Index.Wait"}, Examples: []string{"write", "wait"}}}
+	entries := []apiEntry{{Group: "Write and wait", APIs: []string{"search.Upsert", "search.Index.Wait"}, Examples: []string{"write", "wait"}}}
 	markdown, err := apiMarkdownFor(symbols, examples, entries)
 	if err != nil || !strings.Contains(markdown, "[Index.Wait](#example-wait)") {
 		t.Fatal(markdown, err)
