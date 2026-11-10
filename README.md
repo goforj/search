@@ -259,7 +259,7 @@ Run `make bench` for allocation-aware [document validation benchmarks](validatio
 <!-- examples:embed:start -->
 ## Runnable examples
 
-Each program under [`examples/`](examples) is executed by a [shared test runner](examples/example_test.go) that checks its expected output. Run these commands from the repository root with Go 1.25 or newer.
+Run these examples from the repository root with **Go 1.25+**. Each program includes expected output, verified by [automated tests](examples/example_test.go).
 
 | Example | Run |
 | --- | --- |

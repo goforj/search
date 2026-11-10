@@ -38,7 +38,7 @@ func run() error {
 		return err
 	}
 	var usage strings.Builder
-	usage.WriteString("## Runnable examples\n\nEach program under [`examples/`](examples) is executed by a [shared test runner](examples/example_test.go) that checks its expected output. Run these commands from the repository root with Go 1.25 or newer.\n\n| Example | Run |\n| --- | --- |\n")
+	usage.WriteString("## Runnable examples\n\nRun these examples from the repository root with **Go 1.25+**. Each program includes expected output, verified by [automated tests](examples/example_test.go).\n\n| Example | Run |\n| --- | --- |\n")
 	for _, example := range examples {
 		fmt.Fprintf(&usage, "| [%s](examples/%s/main.go) | `go run ./examples/%s` |\n", example.Title, example.Name, example.Name)
 	}
