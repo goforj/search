@@ -81,10 +81,16 @@ func main() {
 	}
 	defer driver.Close()
 
-	// Declare which document fields participate in full-text search.
+	// Search descriptive text and expose catalog fields for filtering and sorting.
 	definition := search.Definition{
-		Name:   "products",
-		Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+		Name: "products",
+		Fields: []search.Field{
+			{Name: "title", Type: search.TextField, Searchable: true},
+			{Name: "description", Type: search.TextField, Searchable: true},
+			{Name: "category", Type: search.KeywordField, Filterable: true},
+			{Name: "price_cents", Type: search.IntegerField, Required: true, Filterable: true, Sortable: true},
+			{Name: "in_stock", Type: search.BooleanField, Filterable: true},
+		},
 	}
 	// Provision the schema explicitly before creating an application handle.
 	if err := driver.CreateIndex(ctx, definition); err != nil {
@@ -95,11 +101,21 @@ func main() {
 		panic(err)
 	}
 
-	// Keep the document ID separate from the application JSON.
+	// product models a catalog item; its document ID is supplied separately to Upsert.
 	type product struct {
-		Title string `json:"title"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Category    string `json:"category"`
+		PriceCents  int64  `json:"price_cents"`
+		InStock     bool   `json:"in_stock"`
 	}
-	receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+	receipt, err := search.Upsert(ctx, index, "mug-1", product{
+		Title:       "Blue mug",
+		Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
+		Category:    "kitchen",
+		PriceCents:  2495,
+		InStock:     true,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -117,8 +133,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+	hit := page.Hits[0]
+	fmt.Println(hit.ID, hit.Value.Title)
 	// mug-1 Blue mug
+	fmt.Printf("%s | $%.2f | in stock: %t\n", hit.Value.Category, float64(hit.Value.PriceCents)/100, hit.Value.InStock)
+	// kitchen | $24.95 | in stock: true
 }
 ```
 <!-- quickstart:embed:end -->
@@ -324,10 +343,16 @@ if err != nil {
 }
 defer driver.Close()
 
-// Declare which document fields participate in full-text search.
+// Search descriptive text and expose catalog fields for filtering and sorting.
 definition := search.Definition{
-	Name:   "products",
-	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+	Name: "products",
+	Fields: []search.Field{
+		{Name: "title", Type: search.TextField, Searchable: true},
+		{Name: "description", Type: search.TextField, Searchable: true},
+		{Name: "category", Type: search.KeywordField, Filterable: true},
+		{Name: "price_cents", Type: search.IntegerField, Required: true, Filterable: true, Sortable: true},
+		{Name: "in_stock", Type: search.BooleanField, Filterable: true},
+	},
 }
 // Provision the schema explicitly before creating an application handle.
 if err := driver.CreateIndex(ctx, definition); err != nil {
@@ -338,11 +363,21 @@ if err != nil {
 	panic(err)
 }
 
-// Keep the document ID separate from the application JSON.
+// product models a catalog item; its document ID is supplied separately to Upsert.
 type product struct {
-	Title string `json:"title"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	PriceCents  int64  `json:"price_cents"`
+	InStock     bool   `json:"in_stock"`
 }
-receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+receipt, err := search.Upsert(ctx, index, "mug-1", product{
+	Title:       "Blue mug",
+	Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
+	Category:    "kitchen",
+	PriceCents:  2495,
+	InStock:     true,
+})
 if err != nil {
 	panic(err)
 }
@@ -360,8 +395,11 @@ page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"}
 if err != nil {
 	panic(err)
 }
-fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+hit := page.Hits[0]
+fmt.Println(hit.ID, hit.Value.Title)
 // mug-1 Blue mug
+fmt.Printf("%s | $%.2f | in stock: %t\n", hit.Value.Category, float64(hit.Value.PriceCents)/100, hit.Value.InStock)
+// kitchen | $24.95 | in stock: true
 ```
 
 ## Facets
@@ -487,10 +525,16 @@ if err != nil {
 }
 defer driver.Close()
 
-// Declare which document fields participate in full-text search.
+// Search descriptive text and expose catalog fields for filtering and sorting.
 definition := search.Definition{
-	Name:   "products",
-	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+	Name: "products",
+	Fields: []search.Field{
+		{Name: "title", Type: search.TextField, Searchable: true},
+		{Name: "description", Type: search.TextField, Searchable: true},
+		{Name: "category", Type: search.KeywordField, Filterable: true},
+		{Name: "price_cents", Type: search.IntegerField, Required: true, Filterable: true, Sortable: true},
+		{Name: "in_stock", Type: search.BooleanField, Filterable: true},
+	},
 }
 // Provision the schema explicitly before creating an application handle.
 if err := driver.CreateIndex(ctx, definition); err != nil {
@@ -501,11 +545,21 @@ if err != nil {
 	panic(err)
 }
 
-// Keep the document ID separate from the application JSON.
+// product models a catalog item; its document ID is supplied separately to Upsert.
 type product struct {
-	Title string `json:"title"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	PriceCents  int64  `json:"price_cents"`
+	InStock     bool   `json:"in_stock"`
 }
-receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+receipt, err := search.Upsert(ctx, index, "mug-1", product{
+	Title:       "Blue mug",
+	Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
+	Category:    "kitchen",
+	PriceCents:  2495,
+	InStock:     true,
+})
 if err != nil {
 	panic(err)
 }
@@ -523,8 +577,11 @@ page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"}
 if err != nil {
 	panic(err)
 }
-fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+hit := page.Hits[0]
+fmt.Println(hit.ID, hit.Value.Title)
 // mug-1 Blue mug
+fmt.Printf("%s | $%.2f | in stock: %t\n", hit.Value.Category, float64(hit.Value.PriceCents)/100, hit.Value.InStock)
+// kitchen | $24.95 | in stock: true
 ```
 
 ## Queries
@@ -646,10 +703,16 @@ if err != nil {
 }
 defer driver.Close()
 
-// Declare which document fields participate in full-text search.
+// Search descriptive text and expose catalog fields for filtering and sorting.
 definition := search.Definition{
-	Name:   "products",
-	Fields: []search.Field{{Name: "title", Type: search.TextField, Searchable: true}},
+	Name: "products",
+	Fields: []search.Field{
+		{Name: "title", Type: search.TextField, Searchable: true},
+		{Name: "description", Type: search.TextField, Searchable: true},
+		{Name: "category", Type: search.KeywordField, Filterable: true},
+		{Name: "price_cents", Type: search.IntegerField, Required: true, Filterable: true, Sortable: true},
+		{Name: "in_stock", Type: search.BooleanField, Filterable: true},
+	},
 }
 // Provision the schema explicitly before creating an application handle.
 if err := driver.CreateIndex(ctx, definition); err != nil {
@@ -660,11 +723,21 @@ if err != nil {
 	panic(err)
 }
 
-// Keep the document ID separate from the application JSON.
+// product models a catalog item; its document ID is supplied separately to Upsert.
 type product struct {
-	Title string `json:"title"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Category    string `json:"category"`
+	PriceCents  int64  `json:"price_cents"`
+	InStock     bool   `json:"in_stock"`
 }
-receipt, err := search.Upsert(ctx, index, "mug-1", product{Title: "Blue mug"})
+receipt, err := search.Upsert(ctx, index, "mug-1", product{
+	Title:       "Blue mug",
+	Description: "Handcrafted ceramic mug with a matte glaze, 350 ml.",
+	Category:    "kitchen",
+	PriceCents:  2495,
+	InStock:     true,
+})
 if err != nil {
 	panic(err)
 }
@@ -682,7 +755,10 @@ page, err := search.SearchAs[product](ctx, index, search.Query{Text: "blue mug"}
 if err != nil {
 	panic(err)
 }
-fmt.Println(page.Hits[0].ID, page.Hits[0].Value.Title)
+hit := page.Hits[0]
+fmt.Println(hit.ID, hit.Value.Title)
 // mug-1 Blue mug
+fmt.Printf("%s | $%.2f | in stock: %t\n", hit.Value.Category, float64(hit.Value.PriceCents)/100, hit.Value.InStock)
+// kitchen | $24.95 | in stock: true
 ```
 <!-- api:embed:end -->
